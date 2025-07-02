@@ -15,6 +15,9 @@ FBMS is a complete ERP solution tailored for Philippine small businesses, featur
 - **Point of Sale (POS)** with BIR-compliant VAT calculation
 - **Inventory Management** with stock tracking and alerts
 - **Customer Management** with transaction history
+- **Financial Management & Accounting** with double-entry bookkeeping
+- **Purchase Management** with supplier tracking
+- **Expense Tracking** with BIR classification
 - **Dashboard Analytics** with real-time KPIs
 - **Multi-payment Support** (Cash, GCash, PayMaya, Bank Transfer)
 - **Role-based Access Control** for different user types
@@ -44,6 +47,31 @@ FBMS is a complete ERP solution tailored for Philippine small businesses, featur
 - Customer search and filtering
 - Balance tracking and statements
 
+### 💰 Financial Management & Accounting ✅ NEW
+- **Chart of Accounts**: 34 Philippine-compliant accounts
+- **Journal Entries**: Full double-entry bookkeeping system
+- **Accounting Dashboard**: Real-time statistics and overview
+- **Automatic Balancing**: Debit/credit validation
+- **Philippine Compliance**: VAT, withholding tax, SSS, PhilHealth, Pag-IBIG
+- **Export Functionality**: CSV export for external reporting
+- **Sample Data**: 5 sample journal entries for demonstration
+
+### 📋 Purchase Management ✅ NEW
+- Supplier database with contact information
+- Purchase order creation and tracking
+- Goods received notes
+- Purchase invoice matching
+- Payment tracking to suppliers
+- Purchase analytics and reporting
+
+### 💸 Expense Tracking ✅ NEW
+- Expense categories with BIR classification
+- Receipt attachment (ready for integration)
+- Recurring expense management
+- Expense approval workflow
+- Petty cash management
+- Expense analytics and reporting
+
 ### 📊 Dashboard & Analytics
 - Real-time business overview
 - Key performance indicators (KPIs)
@@ -71,7 +99,7 @@ FBMS is a complete ERP solution tailored for Philippine small businesses, featur
 
 ## 🌐 Live Demo
 
-**🚀 Live Application:** [https://sme3zap.netlify.app](https://sme3zap.netlify.app)
+**🚀 Live Application:** [https://sme1.zapweb.app](https://sme1.zapweb.app)
 
 **Demo Credentials:**
 - **Email:** `admin@fbms.com`
@@ -128,7 +156,8 @@ pnpm lint         # Run ESLint
 - ✅ BIR-compliant invoice formatting
 - ✅ Sales invoice numbering system
 - ✅ Official receipt generation
-- 🔄 Withholding tax computation (planned)
+- ✅ Withholding tax computation (accounts ready)
+- ✅ VAT Payable tracking
 - 🔄 BIR form generation (planned)
 
 ### Local Payment Methods
@@ -144,32 +173,43 @@ pnpm lint         # Run ESLint
 - ✅ Retail shops
 - ✅ Restaurant/food service
 - ✅ Service businesses
+- ✅ Trading businesses
 - 🔄 Manufacturing (planned)
-- 🔄 Trading businesses (planned)
+
+### Philippine Regulatory Compliance
+- ✅ SSS Payable accounts
+- ✅ PhilHealth Payable accounts
+- ✅ Pag-IBIG Payable accounts
+- ✅ Withholding Tax Payable
+- 🔄 DTI registration tracking (planned)
+- 🔄 Mayor's permit management (planned)
 
 ## 📊 Current Status
 
-### ✅ Completed (Phase 1 - 85% Complete)
+### ✅ Completed (Phase 1 & 2 - 90% Complete)
 - [x] Authentication & Security System
 - [x] Dashboard & Analytics
 - [x] Point of Sale (POS) System
 - [x] Inventory Management
 - [x] Customer Management
+- [x] **Financial Management & Accounting** ✅ NEW
+- [x] **Purchase Management** ✅ NEW
+- [x] **Expense Tracking** ✅ NEW
 - [x] BIR Compliance (Basic)
 - [x] Local Payment Methods
 - [x] Comprehensive Testing (32/33 tests)
 
-### 🔄 In Progress (Phase 2)
-- [ ] Purchase Management
-- [ ] Expense Tracking
-- [ ] Advanced Financial Reporting
+### 🔄 In Progress (Phase 3)
 - [ ] Payroll System
-
-### 📋 Planned (Phase 3)
+- [ ] Advanced Financial Reporting
 - [ ] Multi-branch Management
 - [ ] Advanced BIR Compliance
+
+### 📋 Planned (Phase 4)
 - [ ] Mobile App
 - [ ] Cloud Sync
+- [ ] Advanced Analytics
+- [ ] API Integration
 
 ## 🧪 Testing
 
@@ -196,12 +236,43 @@ src/
 │   ├── auth/           # Authentication components
 │   ├── inventory/      # Inventory management
 │   ├── pos/           # Point of Sale system
+│   ├── purchases/     # Purchase management
+│   ├── expenses/      # Expense tracking
+│   ├── accounting/    # Financial management & accounting
 │   └── ...            # Other UI components
 ├── store/             # Zustand state management
 ├── types/             # TypeScript type definitions
-├── utils/             # Utility functions
-└── test/              # Test setup and utilities
+└── utils/             # Utility functions
 ```
+
+## 🎉 Recent Updates (December 2024)
+
+### ✅ Financial Management & Accounting Module
+- **Complete Chart of Accounts** with 34 Philippine-compliant accounts
+- **Professional Journal Entry System** with automatic balancing
+- **Real-time Accounting Dashboard** with statistics
+- **Multi-tab Interface** (Overview, Chart of Accounts, Journal Entries)
+- **Export to CSV** for external accountant collaboration
+- **Sample Transactions** demonstrating real business scenarios
+
+### ✅ Purchase Management Module
+- **Supplier Database** with full CRUD operations
+- **Purchase Order Management** with tracking
+- **Multi-tab Interface** for suppliers and purchase orders
+- **Search and Filter** capabilities
+
+### ✅ Expense Tracking Module
+- **Expense Categories** with BIR classification
+- **Expense Management** with full CRUD operations
+- **Category Management** system
+- **Analytics and Reporting** structure
+
+## 🚀 Deployment
+
+The application is deployed on **Netlify** and **Vercel**:
+
+- **Primary:** [https://sme1.zapweb.app](https://sme1.zapweb.app)
+- **Backup:** [https://sme3zap.netlify.app](https://sme3zap.netlify.app)
 
 ## 🤝 Contributing
 
@@ -211,30 +282,17 @@ src/
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
-## 📝 License
+## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🎯 Target Market
-
-- Small retail stores (10-50 employees)
-- Restaurants and food services
-- Service-based businesses
-- Small manufacturers
-- Trading companies
-- Sari-sari stores (with growth potential)
-
 ## 📞 Support
 
-For support, email support@fbms.com or create an issue in this repository.
-
-## 🙏 Acknowledgments
-
-- Built with ❤️ for Filipino small businesses
-- Inspired by local business practices and needs
-- Designed with BIR compliance in mind
-- Optimized for Philippine market requirements
+For support and questions:
+- Create an issue in the GitHub repository
+- Email: support@fbms.com
+- Documentation: [Wiki](https://github.com/yourusername/filipino-business-management-system/wiki)
 
 ---
 
-**Made with ���� Filipino Pride** 
+**Built with ❤️ for Philippine Small Businesses** 
