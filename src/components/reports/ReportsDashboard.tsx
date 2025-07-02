@@ -1,6 +1,10 @@
 import React, { useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
 import { useBusinessStore } from '../../store/businessStore';
+import FinancialStatements from './FinancialStatements';
+import SalesReports from './SalesReports';
+import TaxReports from './TaxReports';
+import CustomReportBuilder from './CustomReportBuilder';
 
 interface ReportData {
   salesData: any[];
@@ -15,7 +19,7 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
 
 const ReportsDashboard: React.FC = () => {
   const { sales, products, customers, journalEntries, accounts } = useBusinessStore();
-  const [selectedReport, setSelectedReport] = useState<string>('sales');
+  const [selectedReport, setSelectedReport] = useState<string>('overview');
   const [dateRange, setDateRange] = useState<string>('month');
 
   // Generate sales data for charts
@@ -478,6 +482,26 @@ const ReportsDashboard: React.FC = () => {
       <div className="bg-white p-4 rounded-lg shadow mb-6">
         <div className="flex flex-wrap gap-2">
           <button
+            onClick={() => setSelectedReport('overview')}
+            className={`px-4 py-2 rounded-lg font-medium ${
+              selectedReport === 'overview'
+                ? 'bg-blue-500 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            Overview
+          </button>
+          <button
+            onClick={() => setSelectedReport('financial')}
+            className={`px-4 py-2 rounded-lg font-medium ${
+              selectedReport === 'financial'
+                ? 'bg-blue-500 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            Financial Statements
+          </button>
+          <button
             onClick={() => setSelectedReport('sales')}
             className={`px-4 py-2 rounded-lg font-medium ${
               selectedReport === 'sales'
@@ -488,37 +512,29 @@ const ReportsDashboard: React.FC = () => {
             Sales Reports
           </button>
           <button
-            onClick={() => setSelectedReport('inventory')}
+            onClick={() => setSelectedReport('tax')}
             className={`px-4 py-2 rounded-lg font-medium ${
-              selectedReport === 'inventory'
+              selectedReport === 'tax'
                 ? 'bg-blue-500 text-white'
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
           >
-            Inventory Reports
+            Tax Reports
           </button>
           <button
-            onClick={() => setSelectedReport('financial')}
+            onClick={() => setSelectedReport('custom')}
             className={`px-4 py-2 rounded-lg font-medium ${
-              selectedReport === 'financial'
+              selectedReport === 'custom'
                 ? 'bg-blue-500 text-white'
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
           >
-            Financial Reports
-          </button>
-          <button
-            onClick={() => setSelectedReport('customers')}
-            className={`px-4 py-2 rounded-lg font-medium ${
-              selectedReport === 'customers'
-                ? 'bg-blue-500 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
-          >
-            Customer Reports
+            Custom Reports
           </button>
         </div>
       </div>
+
+
 
       {/* Date Range Selector */}
       <div className="bg-white p-4 rounded-lg shadow mb-6">
@@ -539,10 +555,18 @@ const ReportsDashboard: React.FC = () => {
 
       {/* Report Content */}
       <div className="bg-gray-50 rounded-lg p-6">
-        {selectedReport === 'sales' && renderSalesReport()}
-        {selectedReport === 'inventory' && renderInventoryReport()}
-        {selectedReport === 'financial' && renderFinancialReport()}
-        {selectedReport === 'customers' && renderCustomerReport()}
+        {selectedReport === 'overview' && (
+          <div className="space-y-6">
+            {renderSalesReport()}
+            {renderInventoryReport()}
+            {renderFinancialReport()}
+            {renderCustomerReport()}
+          </div>
+        )}
+        {selectedReport === 'financial' && <FinancialStatements />}
+        {selectedReport === 'sales' && <SalesReports />}
+        {selectedReport === 'tax' && <TaxReports />}
+        {selectedReport === 'custom' && <CustomReportBuilder />}
       </div>
     </div>
   );

@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { Product, Category, Customer, Sale, CartItem, Supplier, PurchaseOrder, Expense, ExpenseCategory, Account, JournalEntry, Employee, Allowance, PayrollPeriod, PayrollEntry, LeaveRecord, TimeRecord, PayrollSettings, WithholdingTaxBracket } from '../types/business';
+import { Product, Category, Customer, Sale, CartItem, Supplier, PurchaseOrder, Expense, ExpenseCategory, Account, JournalEntry, Employee, PayrollPeriod, PayrollEntry, LeaveRecord, TimeRecord, PayrollSettings } from '../types/business';
+import { getCustomers as supaGetCustomers, createCustomer as supaCreateCustomer, updateCustomer as supaUpdateCustomer, deleteCustomer as supaDeleteCustomer } from '../api/customers';
 
 interface BusinessState {
   // Products
@@ -55,9 +56,10 @@ interface BusinessActions {
   getCategory: (id: string) => Category | undefined;
   
   // Customer actions
-  addCustomer: (customer: Omit<Customer, 'id' | 'createdAt'>) => void;
-  updateCustomer: (id: string, updates: Partial<Customer>) => void;
-  deleteCustomer: (id: string) => void;
+  fetchCustomers: () => Promise<void>;
+  addCustomer: (customer: Omit<Customer, 'id' | 'createdAt'>) => Promise<void>;
+  updateCustomer: (id: string, updates: Partial<Customer>) => Promise<void>;
+  deleteCustomer: (id: string) => Promise<void>;
   getCustomer: (id: string) => Customer | undefined;
   
   // Cart actions
@@ -997,7 +999,7 @@ export const useBusinessStore = create<BusinessStore>()(
       // Initial state
       products: initialProducts,
       categories: initialCategories,
-      customers: initialCustomers,
+      customers: [],
       sales: [],
       cart: [],
       suppliers: initialSuppliers,
@@ -1093,29 +1095,38 @@ export const useBusinessStore = create<BusinessStore>()(
       },
 
       // Customer actions
-      addCustomer: (customerData) => {
-        const customer: Customer = {
-          ...customerData,
-          id: generateId(),
-          createdAt: new Date()
-        };
-        set((state) => ({
-          customers: [...state.customers, customer]
-        }));
+      fetchCustomers: async () => {
+        set({ isLoading: true, error: null });
+        const { data, error } = await supaGetCustomers();
+        if (!error) set({ customers: data || [], isLoading: false });
+        else set({ error: error.message, isLoading: false });
       },
 
-      updateCustomer: (id, updates) => {
-        set((state) => ({
-          customers: state.customers.map(customer =>
-            customer.id === id ? { ...customer, ...updates } : customer
-          )
-        }));
+      addCustomer: async (customerData) => {
+        set({ isLoading: true, error: null });
+        const { data, error } = await supaCreateCustomer(customerData);
+        if (!error && data) set((state) => ({ customers: [...state.customers, data], isLoading: false }));
+        else set({ error: error?.message, isLoading: false });
       },
 
-      deleteCustomer: (id) => {
-        set((state) => ({
-          customers: state.customers.filter(customer => customer.id !== id)
+      updateCustomer: async (id, updates) => {
+        set({ isLoading: true, error: null });
+        const { data, error } = await supaUpdateCustomer(id, updates);
+        if (!error && data) set((state) => ({
+          customers: state.customers.map(c => c.id === id ? data : c),
+          isLoading: false
         }));
+        else set({ error: error?.message, isLoading: false });
+      },
+
+      deleteCustomer: async (id) => {
+        set({ isLoading: true, error: null });
+        const { error } = await supaDeleteCustomer(id);
+        if (!error) set((state) => ({
+          customers: state.customers.filter(c => c.id !== id),
+          isLoading: false
+        }));
+        else set({ error: error?.message, isLoading: false });
       },
 
       getCustomer: (id) => {

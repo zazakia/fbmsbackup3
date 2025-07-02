@@ -1,15 +1,12 @@
 import React from 'react';
 import { 
-  TrendingUp, 
-  TrendingDown, 
   DollarSign, 
   ShoppingCart, 
   Package, 
   Users, 
   AlertTriangle,
   Calendar,
-  Target,
-  Award
+  Target
 } from 'lucide-react';
 import StatsCard from './StatsCard';
 import RecentTransactions from './RecentTransactions';

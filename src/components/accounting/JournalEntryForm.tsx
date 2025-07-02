@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Plus, Minus, Save, Calendar, FileText, Calculator } from 'lucide-react';
 import { useBusinessStore } from '../../store/businessStore';
-import { JournalEntry, JournalEntryLine } from '../../types/business';
+import { JournalEntryLine } from '../../types/business';
 
 interface JournalEntryFormProps {
   entryId?: string;
