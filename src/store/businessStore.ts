@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { Product, Category, Customer, Sale, CartItem, Supplier, PurchaseOrder, Expense, ExpenseCategory } from '../types/business';
+import { Product, Category, Customer, Sale, CartItem, Supplier, PurchaseOrder, Expense, ExpenseCategory, Account, JournalEntry } from '../types/business';
 
 interface BusinessState {
   // Products
@@ -21,6 +21,10 @@ interface BusinessState {
   // Expenses
   expenses: Expense[];
   expenseCategories: ExpenseCategory[];
+  
+  // Accounts
+  accounts: Account[];
+  journalEntries: JournalEntry[];
   
   // Loading states
   isLoading: boolean;
@@ -86,6 +90,18 @@ interface BusinessActions {
   updateExpenseCategory: (id: string, updates: Partial<ExpenseCategory>) => void;
   deleteExpenseCategory: (id: string) => void;
   getExpenseCategory: (id: string) => ExpenseCategory | undefined;
+  
+  // Account actions
+  addAccount: (account: Omit<Account, 'id' | 'createdAt'>) => void;
+  updateAccount: (id: string, updates: Partial<Account>) => void;
+  deleteAccount: (id: string) => void;
+  getAccount: (id: string) => Account | undefined;
+  
+  // Journal Entry actions
+  addJournalEntry: (entry: Omit<JournalEntry, 'id' | 'createdAt'>) => void;
+  updateJournalEntry: (id: string, updates: Partial<JournalEntry>) => void;
+  deleteJournalEntry: (id: string) => void;
+  getJournalEntry: (id: string) => JournalEntry | undefined;
   
   // Utility actions
   clearError: () => void;
@@ -322,6 +338,324 @@ const initialExpenseCategories: ExpenseCategory[] = [
   }
 ];
 
+const initialAccounts: Account[] = [
+  // Assets (1000-1999)
+  {
+    id: '1',
+    code: '1000',
+    name: 'Cash on Hand',
+    type: 'Asset',
+    description: 'Cash available in the business premises',
+    isActive: true,
+    createdAt: new Date()
+  },
+  {
+    id: '2',
+    code: '1100',
+    name: 'Cash in Bank - BDO',
+    type: 'Asset',
+    description: 'Checking account with BDO',
+    isActive: true,
+    createdAt: new Date()
+  },
+  {
+    id: '3',
+    code: '1101',
+    name: 'Cash in Bank - BPI',
+    type: 'Asset',
+    description: 'Savings account with BPI',
+    isActive: true,
+    createdAt: new Date()
+  },
+  {
+    id: '4',
+    code: '1200',
+    name: 'Accounts Receivable',
+    type: 'Asset',
+    description: 'Amounts owed by customers',
+    isActive: true,
+    createdAt: new Date()
+  },
+  {
+    id: '5',
+    code: '1300',
+    name: 'Inventory',
+    type: 'Asset',
+    description: 'Merchandise for sale',
+    isActive: true,
+    createdAt: new Date()
+  },
+  {
+    id: '6',
+    code: '1400',
+    name: 'Prepaid Expenses',
+    type: 'Asset',
+    description: 'Expenses paid in advance',
+    isActive: true,
+    createdAt: new Date()
+  },
+  {
+    id: '7',
+    code: '1500',
+    name: 'Equipment',
+    type: 'Asset',
+    description: 'Office and business equipment',
+    isActive: true,
+    createdAt: new Date()
+  },
+  {
+    id: '8',
+    code: '1600',
+    name: 'Furniture and Fixtures',
+    type: 'Asset',
+    description: 'Office furniture and store fixtures',
+    isActive: true,
+    createdAt: new Date()
+  },
+  {
+    id: '9',
+    code: '1700',
+    name: 'Accumulated Depreciation',
+    type: 'Asset',
+    description: 'Accumulated depreciation on fixed assets',
+    isActive: true,
+    createdAt: new Date()
+  },
+
+  // Liabilities (2000-2999)
+  {
+    id: '10',
+    code: '2000',
+    name: 'Accounts Payable',
+    type: 'Liability',
+    description: 'Amounts owed to suppliers',
+    isActive: true,
+    createdAt: new Date()
+  },
+  {
+    id: '11',
+    code: '2100',
+    name: 'Notes Payable',
+    type: 'Liability',
+    description: 'Short-term loans and notes',
+    isActive: true,
+    createdAt: new Date()
+  },
+  {
+    id: '12',
+    code: '2200',
+    name: 'Accrued Expenses',
+    type: 'Liability',
+    description: 'Expenses incurred but not yet paid',
+    isActive: true,
+    createdAt: new Date()
+  },
+  {
+    id: '13',
+    code: '2300',
+    name: 'VAT Payable',
+    type: 'Liability',
+    description: 'Value Added Tax collected',
+    isActive: true,
+    createdAt: new Date()
+  },
+  {
+    id: '14',
+    code: '2400',
+    name: 'Withholding Tax Payable',
+    type: 'Liability',
+    description: 'Taxes withheld from payments',
+    isActive: true,
+    createdAt: new Date()
+  },
+  {
+    id: '15',
+    code: '2500',
+    name: 'SSS Payable',
+    type: 'Liability',
+    description: 'SSS contributions payable',
+    isActive: true,
+    createdAt: new Date()
+  },
+  {
+    id: '16',
+    code: '2600',
+    name: 'PhilHealth Payable',
+    type: 'Liability',
+    description: 'PhilHealth contributions payable',
+    isActive: true,
+    createdAt: new Date()
+  },
+  {
+    id: '17',
+    code: '2700',
+    name: 'Pag-IBIG Payable',
+    type: 'Liability',
+    description: 'Pag-IBIG contributions payable',
+    isActive: true,
+    createdAt: new Date()
+  },
+
+  // Equity (3000-3999)
+  {
+    id: '18',
+    code: '3000',
+    name: 'Owner\'s Capital',
+    type: 'Equity',
+    description: 'Owner\'s investment in the business',
+    isActive: true,
+    createdAt: new Date()
+  },
+  {
+    id: '19',
+    code: '3100',
+    name: 'Owner\'s Drawing',
+    type: 'Equity',
+    description: 'Owner\'s withdrawals from the business',
+    isActive: true,
+    createdAt: new Date()
+  },
+  {
+    id: '20',
+    code: '3200',
+    name: 'Retained Earnings',
+    type: 'Equity',
+    description: 'Accumulated profits not distributed',
+    isActive: true,
+    createdAt: new Date()
+  },
+
+  // Income (4000-4999)
+  {
+    id: '21',
+    code: '4000',
+    name: 'Sales Revenue',
+    type: 'Income',
+    description: 'Revenue from sales of goods',
+    isActive: true,
+    createdAt: new Date()
+  },
+  {
+    id: '22',
+    code: '4100',
+    name: 'Service Revenue',
+    type: 'Income',
+    description: 'Revenue from services rendered',
+    isActive: true,
+    createdAt: new Date()
+  },
+  {
+    id: '23',
+    code: '4200',
+    name: 'Interest Income',
+    type: 'Income',
+    description: 'Interest earned on bank deposits',
+    isActive: true,
+    createdAt: new Date()
+  },
+  {
+    id: '24',
+    code: '4300',
+    name: 'Other Income',
+    type: 'Income',
+    description: 'Miscellaneous income',
+    isActive: true,
+    createdAt: new Date()
+  },
+
+  // Expenses (5000-5999)
+  {
+    id: '25',
+    code: '5000',
+    name: 'Cost of Goods Sold',
+    type: 'Expense',
+    description: 'Cost of merchandise sold',
+    isActive: true,
+    createdAt: new Date()
+  },
+  {
+    id: '26',
+    code: '5100',
+    name: 'Salaries and Wages',
+    type: 'Expense',
+    description: 'Employee compensation',
+    isActive: true,
+    createdAt: new Date()
+  },
+  {
+    id: '27',
+    code: '5200',
+    name: 'Rent Expense',
+    type: 'Expense',
+    description: 'Rental payments for premises',
+    isActive: true,
+    createdAt: new Date()
+  },
+  {
+    id: '28',
+    code: '5300',
+    name: 'Utilities Expense',
+    type: 'Expense',
+    description: 'Electricity, water, internet, phone',
+    isActive: true,
+    createdAt: new Date()
+  },
+  {
+    id: '29',
+    code: '5400',
+    name: 'Office Supplies',
+    type: 'Expense',
+    description: 'Office supplies and materials',
+    isActive: true,
+    createdAt: new Date()
+  },
+  {
+    id: '30',
+    code: '5500',
+    name: 'Transportation Expense',
+    type: 'Expense',
+    description: 'Fuel, maintenance, travel',
+    isActive: true,
+    createdAt: new Date()
+  },
+  {
+    id: '31',
+    code: '5600',
+    name: 'Advertising Expense',
+    type: 'Expense',
+    description: 'Marketing and promotional costs',
+    isActive: true,
+    createdAt: new Date()
+  },
+  {
+    id: '32',
+    code: '5700',
+    name: 'Depreciation Expense',
+    type: 'Expense',
+    description: 'Depreciation on fixed assets',
+    isActive: true,
+    createdAt: new Date()
+  },
+  {
+    id: '33',
+    code: '5800',
+    name: 'Insurance Expense',
+    type: 'Expense',
+    description: 'Business insurance premiums',
+    isActive: true,
+    createdAt: new Date()
+  },
+  {
+    id: '34',
+    code: '5900',
+    name: 'Miscellaneous Expense',
+    type: 'Expense',
+    description: 'Other operating expenses',
+    isActive: true,
+    createdAt: new Date()
+  }
+];
+
 export const useBusinessStore = create<BusinessStore>()(
   persist(
     (set, get) => ({
@@ -335,6 +669,8 @@ export const useBusinessStore = create<BusinessStore>()(
       purchaseOrders: [],
       expenses: [],
       expenseCategories: initialExpenseCategories,
+      accounts: initialAccounts,
+      journalEntries: [],
       isLoading: false,
       error: null,
 
@@ -667,6 +1003,66 @@ export const useBusinessStore = create<BusinessStore>()(
         return get().expenseCategories.find(category => category.id === id);
       },
 
+      // Account actions
+      addAccount: (accountData) => {
+        const account: Account = {
+          ...accountData,
+          id: generateId(),
+          createdAt: new Date()
+        };
+        set((state) => ({
+          accounts: [...state.accounts, account]
+        }));
+      },
+
+      updateAccount: (id, updates) => {
+        set((state) => ({
+          accounts: state.accounts.map(account =>
+            account.id === id ? { ...account, ...updates } : account
+          )
+        }));
+      },
+
+      deleteAccount: (id) => {
+        set((state) => ({
+          accounts: state.accounts.filter(account => account.id !== id)
+        }));
+      },
+
+      getAccount: (id) => {
+        return get().accounts.find(account => account.id === id);
+      },
+
+      // Journal Entry actions
+      addJournalEntry: (entryData) => {
+        const entry: JournalEntry = {
+          ...entryData,
+          id: generateId(),
+          createdAt: new Date()
+        };
+        set((state) => ({
+          journalEntries: [...state.journalEntries, entry]
+        }));
+      },
+
+      updateJournalEntry: (id, updates) => {
+        set((state) => ({
+          journalEntries: state.journalEntries.map(entry =>
+            entry.id === id ? { ...entry, ...updates } : entry
+          )
+        }));
+      },
+
+      deleteJournalEntry: (id) => {
+        set((state) => ({
+          journalEntries: state.journalEntries.filter(entry => entry.id !== id)
+        }));
+      },
+
+      getJournalEntry: (id) => {
+        return get().journalEntries.find(entry => entry.id === id);
+      },
+
       // Utility actions
       clearError: () => {
         set({ error: null });
@@ -686,7 +1082,9 @@ export const useBusinessStore = create<BusinessStore>()(
         suppliers: state.suppliers,
         purchaseOrders: state.purchaseOrders,
         expenses: state.expenses,
-        expenseCategories: state.expenseCategories
+        expenseCategories: state.expenseCategories,
+        accounts: state.accounts,
+        journalEntries: state.journalEntries
       })
     }
   )

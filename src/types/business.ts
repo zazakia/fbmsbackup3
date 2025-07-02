@@ -146,3 +146,34 @@ export interface Expense {
 }
 
 export type PurchaseOrderStatus = 'draft' | 'sent' | 'received' | 'partial' | 'cancelled';
+
+export type AccountType = 'Asset' | 'Liability' | 'Equity' | 'Income' | 'Expense';
+
+export interface Account {
+  id: string;
+  code: string;
+  name: string;
+  type: AccountType;
+  description?: string;
+  isActive: boolean;
+  createdAt: Date;
+}
+
+export interface JournalEntryLine {
+  id: string;
+  accountId: string;
+  accountName: string;
+  debit: number;
+  credit: number;
+  description?: string;
+}
+
+export interface JournalEntry {
+  id: string;
+  date: Date;
+  reference?: string;
+  description?: string;
+  lines: JournalEntryLine[];
+  createdBy: string;
+  createdAt: Date;
+}

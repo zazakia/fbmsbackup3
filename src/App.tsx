@@ -21,6 +21,7 @@ import POSSystem from './components/pos/POSSystem';
 import InventoryManagement from './components/inventory/InventoryManagement';
 import PurchaseManagement from './components/purchases/PurchaseManagement';
 import ExpenseTracking from './components/expenses/ExpenseTracking';
+import ChartOfAccounts from './components/accounting/ChartOfAccounts';
 
 const App: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -57,7 +58,7 @@ const App: React.FC = () => {
       case 'payroll':
         return <div className="p-6"><h2 className="text-2xl font-bold">Payroll System</h2><p className="text-gray-600 mt-2">Employee payroll coming soon...</p></div>;
       case 'accounting':
-        return <div className="p-6"><h2 className="text-2xl font-bold">Accounting</h2><p className="text-gray-600 mt-2">Financial management coming soon...</p></div>;
+        return <ChartOfAccounts />;
       case 'reports':
         return <div className="p-6"><h2 className="text-2xl font-bold">Reports</h2><p className="text-gray-600 mt-2">Business reports coming soon...</p></div>;
       case 'analytics':

@@ -22,11 +22,11 @@ const ExpenseTracking: React.FC = () => {
     const matchesCategory = categoryFilter === 'all' || expense.category === categoryFilter;
     const matchesDate = dateFilter === 'all' || 
                        (dateFilter === 'this-month' && new Date(expense.date).getMonth() === new Date().getMonth()) ||
-                       (dateFilter === 'this-week' && {
+                       (dateFilter === 'this-week' && (() => {
                          const weekAgo = new Date();
                          weekAgo.setDate(weekAgo.getDate() - 7);
                          return new Date(expense.date) >= weekAgo;
-                       });
+                       })());
     return matchesSearch && matchesCategory && matchesDate;
   });
 
