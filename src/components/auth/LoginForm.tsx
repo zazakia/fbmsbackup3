@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Eye, EyeOff, Mail, Lock, AlertCircle } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, AlertCircle, Zap } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { validateEmail } from '../../utils/auth';
 
@@ -49,6 +49,23 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister }) => {
     }
   };
 
+  const handleIClick = async () => {
+    clearError();
+    setFormData({
+      email: 'admin@fbms.com',
+      password: 'admin123'
+    });
+    
+    try {
+      await login({
+        email: 'admin@fbms.com',
+        password: 'admin123'
+      });
+    } catch (error) {
+      // Error is handled by the store
+    }
+  };
+
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     
@@ -80,6 +97,41 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister }) => {
             <span className="text-red-700 text-sm">{error}</span>
           </div>
         )}
+
+        {/* I Click Button */}
+        <div className="mb-6">
+          <button
+            type="button"
+            onClick={handleIClick}
+            disabled={isLoading}
+            className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white py-3 px-4 rounded-lg font-medium hover:from-green-600 hover:to-emerald-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+          >
+            {isLoading ? (
+              <div className="flex items-center justify-center">
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                Signing In...
+              </div>
+            ) : (
+              <>
+                <Zap className="h-5 w-5 mr-2" />
+                I Click - Quick Login
+              </>
+            )}
+          </button>
+          <p className="text-xs text-gray-500 text-center mt-2">
+            Instantly login with demo credentials
+          </p>
+        </div>
+
+        {/* Divider */}
+        <div className="relative mb-6">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-gray-300" />
+          </div>
+          <div className="relative flex justify-center text-sm">
+            <span className="px-2 bg-white text-gray-500">Or sign in manually</span>
+          </div>
+        </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>

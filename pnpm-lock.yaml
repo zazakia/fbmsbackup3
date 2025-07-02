@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@types/recharts':
+        specifier: ^2.0.1
+        version: 2.0.1(@types/react@18.3.23)(react-dom@18.3.1(react@18.3.1))(react-is@18.3.1)(react@18.3.1)(redux@5.0.1)
       date-fns:
         specifier: ^2.30.0
         version: 2.30.0
@@ -674,6 +677,10 @@ packages:
 
   '@types/react@18.3.23':
     resolution: {integrity: sha512-/LDXMQh55EzZQ0uVAZmKKhfENivEvWz6E+EYzh+/MCjMhNsotd+ZHhBGIjFDTi6+fz0OhQQQLbTgdQIxxCsC0w==}
+
+  '@types/recharts@2.0.1':
+    resolution: {integrity: sha512-/cFs7oiafzByUwBSWA1IzE6FW+ppPwQAWsDTadSgVOwzveY9MESpyLHyyHY0SfPPKLW4+4qVNYHPXd0rFiC8vg==}
+    deprecated: This is a stub types definition. recharts provides its own type definitions, so you do not need this installed.
 
   '@types/use-sync-external-store@0.0.6':
     resolution: {integrity: sha512-zFDAD+tlpf2r4asuHEj0XH6pY6i0g5NeAHPn+15wk3BV6JA69eERFXC1gyGThDkVa1zCyKr5jox1+2LbV/AMLg==}
@@ -2885,6 +2892,16 @@ snapshots:
     dependencies:
       '@types/prop-types': 15.7.15
       csstype: 3.1.3
+
+  '@types/recharts@2.0.1(@types/react@18.3.23)(react-dom@18.3.1(react@18.3.1))(react-is@18.3.1)(react@18.3.1)(redux@5.0.1)':
+    dependencies:
+      recharts: 3.0.2(@types/react@18.3.23)(react-dom@18.3.1(react@18.3.1))(react-is@18.3.1)(react@18.3.1)(redux@5.0.1)
+    transitivePeerDependencies:
+      - '@types/react'
+      - react
+      - react-dom
+      - react-is
+      - redux
 
   '@types/use-sync-external-store@0.0.6': {}
 
