@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, Suspense, useEffect } from 'react';
 import { 
   ShoppingCart, 
   Package, 
@@ -13,27 +13,39 @@ import {
   Building2,
   FileSpreadsheet
 } from 'lucide-react';
-import Dashboard from './components/Dashboard';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import ProtectedRoute from './components/ProtectedRoute';
-import POSSystem from './components/pos/POSSystem';
-import InventoryManagement from './components/inventory/InventoryManagement';
-import PurchaseManagement from './components/purchases/PurchaseManagement';
-import ExpenseTracking from './components/expenses/ExpenseTracking';
-import AccountingManagement from './components/accounting/AccountingManagement';
-import PayrollManagement from './components/payroll/PayrollManagement';
-import ReportsDashboard from './components/reports/ReportsDashboard';
-import BIRForms from './components/bir/BIRForms';
-import BranchManagement from './components/branches/BranchManagement';
+import LoadingSpinner from './components/LoadingSpinner';
 import ErrorBoundary from './components/ErrorBoundary';
 import { ToastContainer } from './components/Toast';
 import { useToastStore } from './store/toastStore';
+import { useThemeStore } from './store/themeStore';
+import {
+  LazyDashboard,
+  LazyPOSSystem,
+  LazyInventoryManagement,
+  LazyPurchaseManagement,
+  LazyExpenseTracking,
+  LazyAccountingManagement,
+  LazyPayrollManagement,
+  LazyReportsDashboard,
+  LazyBIRForms,
+  LazyBranchManagement,
+  LazySettingsPage,
+  LazyCustomerManagement
+} from './utils/lazyComponents';
 
 const App: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeModule, setActiveModule] = useState('dashboard');
   const { toasts, removeToast } = useToastStore();
+  const { initializeTheme } = useThemeStore();
+
+  // Initialize theme on app load
+  useEffect(() => {
+    initializeTheme();
+  }, [initializeTheme]);
 
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: Home },
@@ -53,38 +65,38 @@ const App: React.FC = () => {
   const renderContent = () => {
     switch (activeModule) {
       case 'dashboard':
-        return <Dashboard />;
+        return <LazyDashboard />;
       case 'sales':
-        return <POSSystem />;
+        return <LazyPOSSystem />;
       case 'inventory':
-        return <InventoryManagement />;
+        return <LazyInventoryManagement />;
       case 'purchases':
-        return <PurchaseManagement />;
+        return <LazyPurchaseManagement />;
       case 'customers':
-        return <div className="p-6"><h2 className="text-2xl font-bold">Customer Management</h2><p className="text-gray-600 mt-2">CRM system coming soon...</p></div>;
+        return <LazyCustomerManagement />;
       case 'expenses':
-        return <ExpenseTracking />;
+        return <LazyExpenseTracking />;
       case 'payroll':
-        return <PayrollManagement />;
+        return <LazyPayrollManagement />;
       case 'accounting':
-        return <AccountingManagement />;
+        return <LazyAccountingManagement />;
       case 'reports':
-        return <ReportsDashboard />;
+        return <LazyReportsDashboard />;
       case 'bir':
-        return <BIRForms />;
+        return <LazyBIRForms />;
       case 'branches':
-        return <BranchManagement />;
+        return <LazyBranchManagement />;
       case 'settings':
-        return <div className="p-6"><h2 className="text-2xl font-bold">Settings</h2><p className="text-gray-600 mt-2">System configuration coming soon...</p></div>;
+        return <LazySettingsPage />;
       default:
-        return <Dashboard />;
+        return <LazyDashboard />;
     }
   };
 
   return (
     <ErrorBoundary>
       <ProtectedRoute>
-        <div className="min-h-screen bg-gray-50 flex">
+        <div className="min-h-screen bg-gray-50 dark:bg-dark-950 flex transition-colors duration-300">
         {/* Sidebar */}
         <Sidebar 
           isOpen={sidebarOpen}
@@ -103,8 +115,10 @@ const App: React.FC = () => {
           />
 
           {/* Content Area */}
-          <main className="flex-1 overflow-y-auto">
-            {renderContent()}
+          <main className="flex-1 overflow-y-auto bg-gray-50 dark:bg-dark-950 transition-colors duration-300">
+            <Suspense fallback={<LoadingSpinner message="Loading module..." size="lg" className="min-h-[400px]" />}>
+              {renderContent()}
+            </Suspense>
           </main>
         </div>
 

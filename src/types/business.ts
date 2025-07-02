@@ -35,10 +35,51 @@ export interface Customer {
   zipCode?: string;
   creditLimit: number;
   currentBalance: number;
+  totalPurchases: number;
   isActive: boolean;
+  customerType: CustomerType;
+  taxId?: string;
+  businessName?: string;
+  birthday?: Date;
+  notes?: string;
+  tags: string[];
+  preferredPaymentMethod?: PaymentMethod;
+  discountPercentage: number;
+  loyaltyPoints: number;
   createdAt: Date;
+  updatedAt: Date;
   lastPurchase?: Date;
+  lastContact?: Date;
 }
+
+export type CustomerType = 'individual' | 'business' | 'vip' | 'wholesale';
+
+export interface CustomerContact {
+  id: string;
+  customerId: string;
+  type: ContactType;
+  subject: string;
+  content: string;
+  followUpDate?: Date;
+  status: ContactStatus;
+  createdBy: string;
+  createdAt: Date;
+}
+
+export type ContactType = 'email' | 'phone' | 'meeting' | 'note' | 'complaint' | 'inquiry';
+export type ContactStatus = 'pending' | 'completed' | 'cancelled';
+
+export interface CustomerTransaction {
+  id: string;
+  customerId: string;
+  type: TransactionType;
+  amount: number;
+  description: string;
+  referenceNumber?: string;
+  createdAt: Date;
+}
+
+export type TransactionType = 'sale' | 'payment' | 'refund' | 'credit' | 'debit' | 'adjustment';
 
 export interface Sale {
   id: string;

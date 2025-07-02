@@ -5,7 +5,24 @@ import react from '@vitejs/plugin-react';
 export default defineConfig({
   plugins: [react()],
   optimizeDeps: {
-    include: ['lucide-react'],
+    include: ['lucide-react', 'zustand', 'date-fns'],
+  },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom'],
+          ui: ['lucide-react'],
+          charts: ['recharts'],
+          store: ['zustand'],
+          utils: ['date-fns']
+        }
+      }
+    },
+    chunkSizeWarningLimit: 1000,
+    target: 'es2020',
+    minify: 'esbuild',
+    cssMinify: true,
   },
   test: {
     globals: true,

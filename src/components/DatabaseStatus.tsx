@@ -21,7 +21,7 @@ const DatabaseStatus: React.FC<DatabaseStatusProps> = ({ className = '' }) => {
       setDetails('Checking connection...');
 
       // Test basic connection
-      const { data: customers, error: customerError } = await supabase
+      const { error: customerError } = await supabase
         .from('customers')
         .select('count', { count: 'exact' });
 
