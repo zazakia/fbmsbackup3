@@ -69,6 +69,14 @@ FBMS is a complete ERP solution tailored for Philippine small businesses, featur
 - **Package Manager:** pnpm
 - **Storage:** Local Storage (offline-first)
 
+## 🌐 Live Demo
+
+**🚀 Live Application:** [https://sme3zap.netlify.app](https://sme3zap.netlify.app)
+
+**Demo Credentials:**
+- **Email:** `admin@fbms.com`
+- **Password:** `admin123`
+
 ## 🚀 Quick Start
 
 ### Prerequisites
@@ -95,10 +103,6 @@ FBMS is a complete ERP solution tailored for Philippine small businesses, featur
 
 4. **Open your browser**
    Navigate to `http://localhost:5173`
-
-### Demo Credentials
-- **Email:** admin@fbms.com
-- **Password:** admin123
 
 ## 📋 Available Scripts
 
