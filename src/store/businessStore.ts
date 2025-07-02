@@ -68,6 +68,7 @@ interface BusinessActions {
   // Purchase Order actions
   addPurchaseOrder: (po: Omit<PurchaseOrder, 'id' | 'createdAt'>) => void;
   updatePurchaseOrder: (id: string, updates: Partial<PurchaseOrder>) => void;
+  deletePurchaseOrder: (id: string) => void;
   getPurchaseOrder: (id: string) => PurchaseOrder | undefined;
   
   // Utility actions
@@ -212,6 +213,48 @@ const initialCustomers: Customer[] = [
   }
 ];
 
+const initialSuppliers: Supplier[] = [
+  {
+    id: '1',
+    name: 'San Miguel Corporation',
+    contactPerson: 'Juan Dela Cruz',
+    email: 'purchasing@sanmiguel.com.ph',
+    phone: '+63281234567',
+    address: '40 San Miguel Avenue',
+    city: 'Mandaluyong City',
+    province: 'Metro Manila',
+    zipCode: '1550',
+    isActive: true,
+    createdAt: new Date()
+  },
+  {
+    id: '2',
+    name: 'Universal Robina Corporation',
+    contactPerson: 'Maria Garcia',
+    email: 'orders@urc.com.ph',
+    phone: '+63287654321',
+    address: 'E. Rodriguez Jr. Avenue',
+    city: 'Quezon City',
+    province: 'Metro Manila',
+    zipCode: '1110',
+    isActive: true,
+    createdAt: new Date()
+  },
+  {
+    id: '3',
+    name: 'Nestle Philippines',
+    contactPerson: 'Pedro Santos',
+    email: 'supply@nestle.com.ph',
+    phone: '+63278901234',
+    address: 'Rockwell Business Center',
+    city: 'Makati City',
+    province: 'Metro Manila',
+    zipCode: '1200',
+    isActive: true,
+    createdAt: new Date()
+  }
+];
+
 export const useBusinessStore = create<BusinessStore>()(
   persist(
     (set, get) => ({
@@ -221,7 +264,7 @@ export const useBusinessStore = create<BusinessStore>()(
       customers: initialCustomers,
       sales: [],
       cart: [],
-      suppliers: [],
+      suppliers: initialSuppliers,
       purchaseOrders: [],
       isLoading: false,
       error: null,
@@ -487,6 +530,12 @@ export const useBusinessStore = create<BusinessStore>()(
 
       getPurchaseOrder: (id) => {
         return get().purchaseOrders.find(po => po.id === id);
+      },
+
+      deletePurchaseOrder: (id) => {
+        set((state) => ({
+          purchaseOrders: state.purchaseOrders.filter(po => po.id !== id)
+        }));
       },
 
       // Utility actions
