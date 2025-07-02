@@ -656,6 +656,72 @@ const initialAccounts: Account[] = [
   }
 ];
 
+const initialJournalEntries: JournalEntry[] = [
+  {
+    id: '1',
+    date: new Date('2024-12-01'),
+    reference: 'JE20241201001',
+    description: 'Initial business investment',
+    memo: 'Owner investment to start the business',
+    lines: [
+      { accountId: '2', debit: 100000, credit: 0, description: 'Initial cash deposit' },
+      { accountId: '18', debit: 0, credit: 100000, description: 'Owner capital contribution' }
+    ],
+    createdAt: new Date('2024-12-01')
+  },
+  {
+    id: '2',
+    date: new Date('2024-12-02'),
+    reference: 'JE20241202001',
+    description: 'Purchase of office equipment',
+    memo: 'Bought computer and printer for office use',
+    lines: [
+      { accountId: '7', debit: 25000, credit: 0, description: 'Computer and printer' },
+      { accountId: '2', debit: 0, credit: 25000, description: 'Payment for equipment' }
+    ],
+    createdAt: new Date('2024-12-02')
+  },
+  {
+    id: '3',
+    date: new Date('2024-12-03'),
+    reference: 'JE20241203001',
+    description: 'Purchase of initial inventory',
+    memo: 'First batch of products for resale',
+    lines: [
+      { accountId: '5', debit: 50000, credit: 0, description: 'Initial inventory purchase' },
+      { accountId: '2', debit: 0, credit: 50000, description: 'Payment for inventory' }
+    ],
+    createdAt: new Date('2024-12-03')
+  },
+  {
+    id: '4',
+    date: new Date('2024-12-05'),
+    reference: 'JE20241205001',
+    description: 'Sales transaction',
+    memo: 'First sale of the day',
+    lines: [
+      { accountId: '2', debit: 1200, credit: 0, description: 'Cash received from sale' },
+      { accountId: '21', debit: 0, credit: 1000, description: 'Sales revenue' },
+      { accountId: '13', debit: 0, credit: 120, description: 'VAT collected' },
+      { accountId: '5', debit: 0, credit: 600, description: 'Cost of goods sold' },
+      { accountId: '25', debit: 600, credit: 0, description: 'COGS expense' }
+    ],
+    createdAt: new Date('2024-12-05')
+  },
+  {
+    id: '5',
+    date: new Date('2024-12-06'),
+    reference: 'JE20241206001',
+    description: 'Payment of utilities',
+    memo: 'Electricity and water bills',
+    lines: [
+      { accountId: '28', debit: 2500, credit: 0, description: 'Utilities expense' },
+      { accountId: '2', debit: 0, credit: 2500, description: 'Payment for utilities' }
+    ],
+    createdAt: new Date('2024-12-06')
+  }
+];
+
 export const useBusinessStore = create<BusinessStore>()(
   persist(
     (set, get) => ({
@@ -670,7 +736,7 @@ export const useBusinessStore = create<BusinessStore>()(
       expenses: [],
       expenseCategories: initialExpenseCategories,
       accounts: initialAccounts,
-      journalEntries: [],
+      journalEntries: initialJournalEntries,
       isLoading: false,
       error: null,
 
