@@ -26,6 +26,9 @@ export const validatePhilippinePhone = (phone: string): boolean => {
   return phoneRegex.test(phone.replace(/[\s-]/g, ''));
 };
 
+// Alias for validatePhilippinePhone
+export const validatePhone = validatePhilippinePhone;
+
 // TIN validation (Philippine format)
 export const validateTIN = (tin: string): boolean => {
   const tinRegex = /^[0-9]{3}-[0-9]{3}-[0-9]{3}-[0-9]{3}$/;
