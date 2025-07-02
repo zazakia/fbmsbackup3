@@ -1,0 +1,218 @@
+import React, { useState } from 'react';
+import { Search, ShoppingCart, User, CreditCard, Calculator } from 'lucide-react';
+import { useBusinessStore } from '../../store/businessStore';
+import { useAuthStore } from '../../store/authStore';
+import ProductGrid from './ProductGrid';
+import Cart from './Cart';
+import CustomerSelector from './CustomerSelector';
+import PaymentModal from './PaymentModal';
+import { PaymentMethod } from '../../types/business';
+
+const POSSystem: React.FC = () => {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [selectedCustomer, setSelectedCustomer] = useState<string | null>(null);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showCustomerSelector, setShowCustomerSelector] = useState(false);
+
+  const { 
+    products, 
+    categories, 
+    cart, 
+    customers,
+    getCartSubtotal, 
+    getCartTax, 
+    getCartTotal,
+    createSale,
+    clearCart,
+    getCustomer
+  } = useBusinessStore();
+  
+  const { user } = useAuthStore();
+
+  const filteredProducts = products.filter(product => {
+    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         product.sku.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = selectedCategory === 'all' || product.category === selectedCategory;
+    return matchesSearch && matchesCategory && product.isActive && product.stock > 0;
+  });
+
+  const handleCompleteSale = (paymentMethod: PaymentMethod) => {
+    if (cart.length === 0) return;
+
+    const customer = selectedCustomer ? getCustomer(selectedCustomer) : null;
+    const subtotal = getCartSubtotal();
+    const tax = getCartTax();
+    const total = getCartTotal();
+
+    createSale({
+      customerId: customer?.id,
+      customerName: customer ? `${customer.firstName} ${customer.lastName}` : 'Walk-in Customer',
+      items: cart.map(item => ({
+        id: item.product.id,
+        productId: item.product.id,
+        productName: item.product.name,
+        sku: item.product.sku,
+        quantity: item.quantity,
+        price: item.product.price,
+        total: item.total
+      })),
+      subtotal,
+      tax,
+      discount: 0,
+      total,
+      paymentMethod,
+      paymentStatus: 'paid',
+      status: 'completed',
+      cashierId: user?.id || '1',
+      notes: ''
+    });
+
+    setShowPaymentModal(false);
+    setSelectedCustomer(null);
+  };
+
+  const selectedCustomerData = selectedCustomer ? getCustomer(selectedCustomer) : null;
+
+  return (
+    <div className="h-full flex bg-gray-50">
+      {/* Left Panel - Products */}
+      <div className="flex-1 flex flex-col">
+        {/* Search and Filters */}
+        <div className="bg-white p-4 border-b border-gray-200">
+          <div className="flex items-center space-x-4">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search products by name or SKU..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+            <select
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="all">All Categories</option>
+              {categories.map(category => (
+                <option key={category.id} value={category.id}>
+                  {category.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Product Grid */}
+        <div className="flex-1 overflow-y-auto p-4">
+          <ProductGrid products={filteredProducts} />
+        </div>
+      </div>
+
+      {/* Right Panel - Cart */}
+      <div className="w-96 bg-white border-l border-gray-200 flex flex-col">
+        {/* Header */}
+        <div className="p-4 border-b border-gray-200">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-gray-900 flex items-center">
+              <ShoppingCart className="h-5 w-5 mr-2" />
+              Current Sale
+            </h2>
+            <span className="bg-blue-100 text-blue-800 text-sm font-medium px-2 py-1 rounded">
+              {cart.length} items
+            </span>
+          </div>
+
+          {/* Customer Selection */}
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => setShowCustomerSelector(true)}
+              className="flex-1 flex items-center justify-center px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              <User className="h-4 w-4 mr-2" />
+              {selectedCustomerData 
+                ? `${selectedCustomerData.firstName} ${selectedCustomerData.lastName}`
+                : 'Select Customer'
+              }
+            </button>
+            {selectedCustomer && (
+              <button
+                onClick={() => setSelectedCustomer(null)}
+                className="px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+              >
+                Clear
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Cart Items */}
+        <div className="flex-1 overflow-y-auto">
+          <Cart />
+        </div>
+
+        {/* Cart Summary and Checkout */}
+        <div className="p-4 border-t border-gray-200 bg-gray-50">
+          <div className="space-y-2 mb-4">
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-600">Subtotal:</span>
+              <span className="font-medium">₱{getCartSubtotal().toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-600">VAT (12%):</span>
+              <span className="font-medium">₱{getCartTax().toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between text-lg font-bold border-t pt-2">
+              <span>Total:</span>
+              <span className="text-blue-600">₱{getCartTotal().toFixed(2)}</span>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <button
+              onClick={() => setShowPaymentModal(true)}
+              disabled={cart.length === 0}
+              className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+            >
+              <CreditCard className="h-4 w-4 mr-2" />
+              Process Payment
+            </button>
+            <button
+              onClick={clearCart}
+              disabled={cart.length === 0}
+              className="w-full bg-gray-200 text-gray-700 py-2 px-4 rounded-lg font-medium hover:bg-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Clear Cart
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Customer Selector Modal */}
+      {showCustomerSelector && (
+        <CustomerSelector
+          customers={customers}
+          onSelect={(customerId) => {
+            setSelectedCustomer(customerId);
+            setShowCustomerSelector(false);
+          }}
+          onClose={() => setShowCustomerSelector(false)}
+        />
+      )}
+
+      {/* Payment Modal */}
+      {showPaymentModal && (
+        <PaymentModal
+          total={getCartTotal()}
+          onPayment={handleCompleteSale}
+          onClose={() => setShowPaymentModal(false)}
+        />
+      )}
+    </div>
+  );
+};
+
+export default POSSystem;
