@@ -11,7 +11,9 @@ import {
   Home,
   DollarSign,
   FileText,
-  UserCheck
+  UserCheck,
+  Building2,
+  FileSpreadsheet
 } from 'lucide-react';
 import Dashboard from './components/Dashboard';
 import Sidebar from './components/Sidebar';
@@ -23,6 +25,9 @@ import PurchaseManagement from './components/purchases/PurchaseManagement';
 import ExpenseTracking from './components/expenses/ExpenseTracking';
 import AccountingManagement from './components/accounting/AccountingManagement';
 import PayrollManagement from './components/payroll/PayrollManagement';
+import ReportsDashboard from './components/reports/ReportsDashboard';
+import BIRForms from './components/bir/BIRForms';
+import BranchManagement from './components/branches/BranchManagement';
 
 const App: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -37,8 +42,9 @@ const App: React.FC = () => {
     { id: 'expenses', label: 'Expenses', icon: DollarSign },
     { id: 'payroll', label: 'Payroll', icon: UserCheck },
     { id: 'accounting', label: 'Accounting', icon: Calculator },
-    { id: 'reports', label: 'Reports', icon: FileText },
-    { id: 'analytics', label: 'Analytics', icon: TrendingUp },
+    { id: 'reports', label: 'Reports & Analytics', icon: FileText },
+    { id: 'bir', label: 'BIR Forms', icon: FileSpreadsheet },
+    { id: 'branches', label: 'Multi-Branch', icon: Building2 },
     { id: 'settings', label: 'Settings', icon: Settings }
   ];
 
@@ -61,9 +67,11 @@ const App: React.FC = () => {
       case 'accounting':
         return <AccountingManagement />;
       case 'reports':
-        return <div className="p-6"><h2 className="text-2xl font-bold">Reports</h2><p className="text-gray-600 mt-2">Business reports coming soon...</p></div>;
-      case 'analytics':
-        return <div className="p-6"><h2 className="text-2xl font-bold">Analytics</h2><p className="text-gray-600 mt-2">Business analytics coming soon...</p></div>;
+        return <ReportsDashboard />;
+      case 'bir':
+        return <BIRForms />;
+      case 'branches':
+        return <BranchManagement />;
       case 'settings':
         return <div className="p-6"><h2 className="text-2xl font-bold">Settings</h2><p className="text-gray-600 mt-2">System configuration coming soon...</p></div>;
       default:
