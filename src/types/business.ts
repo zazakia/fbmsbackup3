@@ -118,4 +118,31 @@ export interface PurchaseOrderItem {
   total: number;
 }
 
+export interface ExpenseCategory {
+  id: string;
+  name: string;
+  description?: string;
+  birClassification?: string;
+  isActive: boolean;
+  createdAt: Date;
+}
+
+export interface Expense {
+  id: string;
+  description: string;
+  category: string;
+  amount: number;
+  taxAmount: number;
+  totalAmount: number;
+  date: Date;
+  vendor?: string;
+  paymentMethod?: string;
+  status: 'pending' | 'approved' | 'rejected' | 'paid';
+  notes?: string;
+  isRecurring?: boolean;
+  recurringInterval?: 'weekly' | 'monthly' | 'quarterly' | 'yearly';
+  createdBy: string;
+  createdAt: Date;
+}
+
 export type PurchaseOrderStatus = 'draft' | 'sent' | 'received' | 'partial' | 'cancelled';

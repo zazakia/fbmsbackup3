@@ -41,13 +41,13 @@ A comprehensive web-based business management system designed specifically for s
 - [x] Payment tracking to suppliers (basic)
 - [x] Purchase analytics and reporting
 
-### 5. Expense Tracking
-- [ ] Expense categories (utilities, rent, supplies, etc.)
-- [ ] Receipt attachment and digitization
-- [ ] Recurring expense management
-- [ ] Expense approval workflow
-- [ ] Petty cash management
-- [ ] BIR expense classification
+### 5. Expense Tracking ✅ COMPLETE
+- [x] Expense categories (utilities, rent, supplies, etc.)
+- [x] Receipt attachment and digitization (ready for integration)
+- [x] Recurring expense management
+- [x] Expense approval workflow
+- [x] Petty cash management (basic)
+- [x] BIR expense classification
 
 ### 6. Customer Relationship Management (CRM) ✅ COMPLETE
 - [x] Customer database with contact information

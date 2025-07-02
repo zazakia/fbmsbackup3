@@ -20,6 +20,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import POSSystem from './components/pos/POSSystem';
 import InventoryManagement from './components/inventory/InventoryManagement';
 import PurchaseManagement from './components/purchases/PurchaseManagement';
+import ExpenseTracking from './components/expenses/ExpenseTracking';
 
 const App: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -52,7 +53,7 @@ const App: React.FC = () => {
       case 'customers':
         return <div className="p-6"><h2 className="text-2xl font-bold">Customer Management</h2><p className="text-gray-600 mt-2">CRM system coming soon...</p></div>;
       case 'expenses':
-        return <div className="p-6"><h2 className="text-2xl font-bold">Expense Tracking</h2><p className="text-gray-600 mt-2">Expense management coming soon...</p></div>;
+        return <ExpenseTracking />;
       case 'payroll':
         return <div className="p-6"><h2 className="text-2xl font-bold">Payroll System</h2><p className="text-gray-600 mt-2">Employee payroll coming soon...</p></div>;
       case 'accounting':

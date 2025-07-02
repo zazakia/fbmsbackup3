@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { Product, Category, Customer, Sale, CartItem, Supplier, PurchaseOrder } from '../types/business';
+import { Product, Category, Customer, Sale, CartItem, Supplier, PurchaseOrder, Expense, ExpenseCategory } from '../types/business';
 
 interface BusinessState {
   // Products
@@ -17,6 +17,10 @@ interface BusinessState {
   // Suppliers & Purchases
   suppliers: Supplier[];
   purchaseOrders: PurchaseOrder[];
+  
+  // Expenses
+  expenses: Expense[];
+  expenseCategories: ExpenseCategory[];
   
   // Loading states
   isLoading: boolean;
@@ -70,6 +74,18 @@ interface BusinessActions {
   updatePurchaseOrder: (id: string, updates: Partial<PurchaseOrder>) => void;
   deletePurchaseOrder: (id: string) => void;
   getPurchaseOrder: (id: string) => PurchaseOrder | undefined;
+  
+  // Expense actions
+  addExpense: (expense: Omit<Expense, 'id' | 'createdAt'>) => void;
+  updateExpense: (id: string, updates: Partial<Expense>) => void;
+  deleteExpense: (id: string) => void;
+  getExpense: (id: string) => Expense | undefined;
+  
+  // Expense Category actions
+  addExpenseCategory: (category: Omit<ExpenseCategory, 'id' | 'createdAt'>) => void;
+  updateExpenseCategory: (id: string, updates: Partial<ExpenseCategory>) => void;
+  deleteExpenseCategory: (id: string) => void;
+  getExpenseCategory: (id: string) => ExpenseCategory | undefined;
   
   // Utility actions
   clearError: () => void;
@@ -255,6 +271,57 @@ const initialSuppliers: Supplier[] = [
   }
 ];
 
+const initialExpenseCategories: ExpenseCategory[] = [
+  {
+    id: '1',
+    name: 'Utilities',
+    description: 'Electricity, water, internet, phone bills',
+    birClassification: 'Operating Expenses',
+    isActive: true,
+    createdAt: new Date()
+  },
+  {
+    id: '2',
+    name: 'Rent',
+    description: 'Office and store rental expenses',
+    birClassification: 'Operating Expenses',
+    isActive: true,
+    createdAt: new Date()
+  },
+  {
+    id: '3',
+    name: 'Supplies',
+    description: 'Office supplies and materials',
+    birClassification: 'Operating Expenses',
+    isActive: true,
+    createdAt: new Date()
+  },
+  {
+    id: '4',
+    name: 'Transportation',
+    description: 'Fuel, maintenance, and travel expenses',
+    birClassification: 'Operating Expenses',
+    isActive: true,
+    createdAt: new Date()
+  },
+  {
+    id: '5',
+    name: 'Marketing',
+    description: 'Advertising and promotional expenses',
+    birClassification: 'Selling Expenses',
+    isActive: true,
+    createdAt: new Date()
+  },
+  {
+    id: '6',
+    name: 'Salaries',
+    description: 'Employee salaries and wages',
+    birClassification: 'Operating Expenses',
+    isActive: true,
+    createdAt: new Date()
+  }
+];
+
 export const useBusinessStore = create<BusinessStore>()(
   persist(
     (set, get) => ({
@@ -266,6 +333,8 @@ export const useBusinessStore = create<BusinessStore>()(
       cart: [],
       suppliers: initialSuppliers,
       purchaseOrders: [],
+      expenses: [],
+      expenseCategories: initialExpenseCategories,
       isLoading: false,
       error: null,
 
@@ -538,6 +607,66 @@ export const useBusinessStore = create<BusinessStore>()(
         }));
       },
 
+      // Expense actions
+      addExpense: (expenseData) => {
+        const expense: Expense = {
+          ...expenseData,
+          id: generateId(),
+          createdAt: new Date()
+        };
+        set((state) => ({
+          expenses: [...state.expenses, expense]
+        }));
+      },
+
+      updateExpense: (id, updates) => {
+        set((state) => ({
+          expenses: state.expenses.map(expense =>
+            expense.id === id ? { ...expense, ...updates } : expense
+          )
+        }));
+      },
+
+      deleteExpense: (id) => {
+        set((state) => ({
+          expenses: state.expenses.filter(expense => expense.id !== id)
+        }));
+      },
+
+      getExpense: (id) => {
+        return get().expenses.find(expense => expense.id === id);
+      },
+
+      // Expense Category actions
+      addExpenseCategory: (categoryData) => {
+        const category: ExpenseCategory = {
+          ...categoryData,
+          id: generateId(),
+          createdAt: new Date()
+        };
+        set((state) => ({
+          expenseCategories: [...state.expenseCategories, category]
+        }));
+      },
+
+      updateExpenseCategory: (id, updates) => {
+        set((state) => ({
+          expenseCategories: state.expenseCategories.map(category =>
+            category.id === id ? { ...category, ...updates } : category
+          )
+        }));
+      },
+
+      deleteExpenseCategory: (id) => {
+        set((state) => ({
+          expenseCategories: state.expenseCategories.filter(category => category.id !== id)
+        }));
+      },
+
+      getExpenseCategory: (id) => {
+        return get().expenseCategories.find(category => category.id === id);
+      },
+
       // Utility actions
       clearError: () => {
         set({ error: null });
@@ -555,7 +684,9 @@ export const useBusinessStore = create<BusinessStore>()(
         customers: state.customers,
         sales: state.sales,
         suppliers: state.suppliers,
-        purchaseOrders: state.purchaseOrders
+        purchaseOrders: state.purchaseOrders,
+        expenses: state.expenses,
+        expenseCategories: state.expenseCategories
       })
     }
   )
