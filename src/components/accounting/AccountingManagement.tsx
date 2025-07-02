@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { BookOpen, FileText, BarChart3, Calculator, TrendingUp, DollarSign } from 'lucide-react';
+import { BookOpen, FileText, BarChart3, Calculator, DollarSign } from 'lucide-react';
 import { useBusinessStore } from '../../store/businessStore';
 import ChartOfAccounts from './ChartOfAccounts';
 import JournalEntries from './JournalEntries';
