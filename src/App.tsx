@@ -22,6 +22,7 @@ import InventoryManagement from './components/inventory/InventoryManagement';
 import PurchaseManagement from './components/purchases/PurchaseManagement';
 import ExpenseTracking from './components/expenses/ExpenseTracking';
 import AccountingManagement from './components/accounting/AccountingManagement';
+import PayrollManagement from './components/payroll/PayrollManagement';
 
 const App: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -56,7 +57,7 @@ const App: React.FC = () => {
       case 'expenses':
         return <ExpenseTracking />;
       case 'payroll':
-        return <div className="p-6"><h2 className="text-2xl font-bold">Payroll System</h2><p className="text-gray-600 mt-2">Employee payroll coming soon...</p></div>;
+        return <PayrollManagement />;
       case 'accounting':
         return <AccountingManagement />;
       case 'reports':

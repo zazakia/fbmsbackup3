@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { Product, Category, Customer, Sale, CartItem, Supplier, PurchaseOrder, Expense, ExpenseCategory, Account, JournalEntry } from '../types/business';
+import { Product, Category, Customer, Sale, CartItem, Supplier, PurchaseOrder, Expense, ExpenseCategory, Account, JournalEntry, Employee, Allowance, PayrollPeriod, PayrollEntry, LeaveRecord, TimeRecord, PayrollSettings, WithholdingTaxBracket } from '../types/business';
 
 interface BusinessState {
   // Products
@@ -25,6 +25,14 @@ interface BusinessState {
   // Accounts
   accounts: Account[];
   journalEntries: JournalEntry[];
+  
+  // Payroll
+  employees: Employee[];
+  payrollPeriods: PayrollPeriod[];
+  payrollEntries: PayrollEntry[];
+  leaveRecords: LeaveRecord[];
+  timeRecords: TimeRecord[];
+  payrollSettings: PayrollSettings;
   
   // Loading states
   isLoading: boolean;
@@ -102,6 +110,40 @@ interface BusinessActions {
   updateJournalEntry: (id: string, updates: Partial<JournalEntry>) => void;
   deleteJournalEntry: (id: string) => void;
   getJournalEntry: (id: string) => JournalEntry | undefined;
+  
+  // Employee actions
+  addEmployee: (employee: Omit<Employee, 'id' | 'createdAt' | 'updatedAt'>) => void;
+  updateEmployee: (id: string, updates: Partial<Employee>) => void;
+  deleteEmployee: (id: string) => void;
+  getEmployee: (id: string) => Employee | undefined;
+  
+  // Payroll Period actions
+  addPayrollPeriod: (period: Omit<PayrollPeriod, 'id' | 'createdAt'>) => void;
+  updatePayrollPeriod: (id: string, updates: Partial<PayrollPeriod>) => void;
+  deletePayrollPeriod: (id: string) => void;
+  getPayrollPeriod: (id: string) => PayrollPeriod | undefined;
+  
+  // Payroll Entry actions
+  addPayrollEntry: (entry: Omit<PayrollEntry, 'id' | 'createdAt' | 'updatedAt'>) => void;
+  updatePayrollEntry: (id: string, updates: Partial<PayrollEntry>) => void;
+  deletePayrollEntry: (id: string) => void;
+  getPayrollEntry: (id: string) => PayrollEntry | undefined;
+  
+  // Leave Record actions
+  addLeaveRecord: (leave: Omit<LeaveRecord, 'id' | 'createdAt'>) => void;
+  updateLeaveRecord: (id: string, updates: Partial<LeaveRecord>) => void;
+  deleteLeaveRecord: (id: string) => void;
+  getLeaveRecord: (id: string) => LeaveRecord | undefined;
+  
+  // Time Record actions
+  addTimeRecord: (time: Omit<TimeRecord, 'id' | 'createdAt'>) => void;
+  updateTimeRecord: (id: string, updates: Partial<TimeRecord>) => void;
+  deleteTimeRecord: (id: string) => void;
+  getTimeRecord: (id: string) => TimeRecord | undefined;
+  
+  // Payroll Settings actions
+  updatePayrollSettings: (updates: Partial<PayrollSettings>) => void;
+  getPayrollSettings: () => PayrollSettings;
   
   // Utility actions
   clearError: () => void;
@@ -722,6 +764,233 @@ const initialJournalEntries: JournalEntry[] = [
   }
 ];
 
+const initialEmployees: Employee[] = [
+  {
+    id: '1',
+    employeeId: 'EMP001',
+    firstName: 'Maria',
+    lastName: 'Santos',
+    middleName: 'Garcia',
+    email: 'maria.santos@company.com',
+    phone: '+639171234567',
+    address: '123 Rizal Street',
+    city: 'Manila',
+    province: 'Metro Manila',
+    zipCode: '1000',
+    birthDate: new Date('1990-05-15'),
+    hireDate: new Date('2023-01-15'),
+    position: 'Sales Manager',
+    department: 'Sales',
+    employmentType: 'Regular',
+    status: 'Active',
+    basicSalary: 25000,
+    allowances: [
+      {
+        id: '1',
+        name: 'Transportation Allowance',
+        amount: 2000,
+        type: 'Fixed',
+        isTaxable: false,
+        description: 'Monthly transportation allowance'
+      },
+      {
+        id: '2',
+        name: 'Meal Allowance',
+        amount: 1500,
+        type: 'Fixed',
+        isTaxable: false,
+        description: 'Daily meal allowance'
+      }
+    ],
+    sssNumber: '34-5678901-2',
+    philhealthNumber: '1234-5678-9012',
+    pagibigNumber: '1234-5678-9012',
+    tinNumber: '123-456-789-000',
+    bankName: 'BDO',
+    bankAccountNumber: '1234567890',
+    emergencyContact: {
+      name: 'Juan Santos',
+      relationship: 'Spouse',
+      phone: '+639171234568'
+    },
+    createdAt: new Date('2023-01-15'),
+    updatedAt: new Date('2023-01-15')
+  },
+  {
+    id: '2',
+    employeeId: 'EMP002',
+    firstName: 'Pedro',
+    lastName: 'Cruz',
+    middleName: 'Martinez',
+    email: 'pedro.cruz@company.com',
+    phone: '+639171234569',
+    address: '456 Bonifacio Avenue',
+    city: 'Quezon City',
+    province: 'Metro Manila',
+    zipCode: '1100',
+    birthDate: new Date('1988-08-22'),
+    hireDate: new Date('2023-03-01'),
+    position: 'Cashier',
+    department: 'Operations',
+    employmentType: 'Regular',
+    status: 'Active',
+    basicSalary: 18000,
+    allowances: [
+      {
+        id: '3',
+        name: 'Transportation Allowance',
+        amount: 1500,
+        type: 'Fixed',
+        isTaxable: false,
+        description: 'Monthly transportation allowance'
+      }
+    ],
+    sssNumber: '34-5678902-3',
+    philhealthNumber: '1234-5678-9013',
+    pagibigNumber: '1234-5678-9013',
+    tinNumber: '123-456-789-001',
+    bankName: 'BPI',
+    bankAccountNumber: '0987654321',
+    emergencyContact: {
+      name: 'Ana Cruz',
+      relationship: 'Sister',
+      phone: '+639171234570'
+    },
+    createdAt: new Date('2023-03-01'),
+    updatedAt: new Date('2023-03-01')
+  },
+  {
+    id: '3',
+    employeeId: 'EMP003',
+    firstName: 'Ana',
+    lastName: 'Reyes',
+    middleName: 'Lopez',
+    email: 'ana.reyes@company.com',
+    phone: '+639171234571',
+    address: '789 Mabini Street',
+    city: 'Makati',
+    province: 'Metro Manila',
+    zipCode: '1200',
+    birthDate: new Date('1992-12-10'),
+    hireDate: new Date('2023-06-01'),
+    position: 'Inventory Clerk',
+    department: 'Operations',
+    employmentType: 'Regular',
+    status: 'Active',
+    basicSalary: 16000,
+    allowances: [
+      {
+        id: '4',
+        name: 'Transportation Allowance',
+        amount: 1200,
+        type: 'Fixed',
+        isTaxable: false,
+        description: 'Monthly transportation allowance'
+      }
+    ],
+    sssNumber: '34-5678903-4',
+    philhealthNumber: '1234-5678-9014',
+    pagibigNumber: '1234-5678-9014',
+    tinNumber: '123-456-789-002',
+    bankName: 'UnionBank',
+    bankAccountNumber: '1122334455',
+    emergencyContact: {
+      name: 'Carlos Reyes',
+      relationship: 'Father',
+      phone: '+639171234572'
+    },
+    createdAt: new Date('2023-06-01'),
+    updatedAt: new Date('2023-06-01')
+  }
+];
+
+const initialPayrollSettings: PayrollSettings = {
+  id: '1',
+  
+  // SSS Rates (2024)
+  sssEmployeeRate: 0.045, // 4.5%
+  sssEmployerRate: 0.095, // 9.5%
+  sssMaxContribution: 1800,
+  
+  // PhilHealth Rates (2024)
+  philhealthEmployeeRate: 0.02, // 2%
+  philhealthEmployerRate: 0.02, // 2%
+  philhealthMinContribution: 400,
+  philhealthMaxContribution: 1600,
+  
+  // Pag-IBIG Rates (2024)
+  pagibigEmployeeRate: 0.02, // 2%
+  pagibigEmployerRate: 0.02, // 2%
+  pagibigMaxContribution: 100,
+  
+  // Overtime Rates
+  regularOvertimeRate: 1.25,
+  holidayOvertimeRate: 2.0,
+  nightDifferentialRate: 1.1,
+  
+  // Leave Benefits
+  vacationLeaveDays: 15,
+  sickLeaveDays: 15,
+  maternityLeaveDays: 105,
+  paternityLeaveDays: 7,
+  
+  // 13th Month Pay
+  thirteenthMonthPayMonth: 12,
+  
+  // Tax Settings (2024 Philippine Withholding Tax Table)
+  withholdingTaxTable: [
+    {
+      id: '1',
+      minAmount: 0,
+      maxAmount: 250000,
+      baseTax: 0,
+      rate: 0,
+      description: '0% - ₱0 to ₱250,000'
+    },
+    {
+      id: '2',
+      minAmount: 250000,
+      maxAmount: 400000,
+      baseTax: 0,
+      rate: 0.20,
+      description: '20% - ₱250,000 to ₱400,000'
+    },
+    {
+      id: '3',
+      minAmount: 400000,
+      maxAmount: 800000,
+      baseTax: 30000,
+      rate: 0.25,
+      description: '25% - ₱400,000 to ₱800,000'
+    },
+    {
+      id: '4',
+      minAmount: 800000,
+      maxAmount: 2000000,
+      baseTax: 130000,
+      rate: 0.30,
+      description: '30% - ₱800,000 to ₱2,000,000'
+    },
+    {
+      id: '5',
+      minAmount: 2000000,
+      maxAmount: 8000000,
+      baseTax: 490000,
+      rate: 0.32,
+      description: '32% - ₱2,000,000 to ₱8,000,000'
+    },
+    {
+      id: '6',
+      minAmount: 8000000,
+      baseTax: 2410000,
+      rate: 0.35,
+      description: '35% - Above ₱8,000,000'
+    }
+  ],
+  
+  updatedAt: new Date()
+};
+
 export const useBusinessStore = create<BusinessStore>()(
   persist(
     (set, get) => ({
@@ -737,6 +1006,12 @@ export const useBusinessStore = create<BusinessStore>()(
       expenseCategories: initialExpenseCategories,
       accounts: initialAccounts,
       journalEntries: initialJournalEntries,
+      employees: initialEmployees,
+      payrollPeriods: [],
+      payrollEntries: [],
+      leaveRecords: [],
+      timeRecords: [],
+      payrollSettings: initialPayrollSettings,
       isLoading: false,
       error: null,
 
@@ -1129,6 +1404,169 @@ export const useBusinessStore = create<BusinessStore>()(
         return get().journalEntries.find(entry => entry.id === id);
       },
 
+      // Employee actions
+      addEmployee: (employeeData) => {
+        const employee: Employee = {
+          ...employeeData,
+          id: generateId(),
+          createdAt: new Date(),
+          updatedAt: new Date()
+        };
+        set((state) => ({
+          employees: [...state.employees, employee]
+        }));
+      },
+
+      updateEmployee: (id, updates) => {
+        set((state) => ({
+          employees: state.employees.map(employee =>
+            employee.id === id ? { ...employee, ...updates, updatedAt: new Date() } : employee
+          )
+        }));
+      },
+
+      deleteEmployee: (id) => {
+        set((state) => ({
+          employees: state.employees.filter(employee => employee.id !== id)
+        }));
+      },
+
+      getEmployee: (id) => {
+        return get().employees.find(employee => employee.id === id);
+      },
+
+      // Payroll Period actions
+      addPayrollPeriod: (periodData) => {
+        const period: PayrollPeriod = {
+          ...periodData,
+          id: generateId(),
+          createdAt: new Date()
+        };
+        set((state) => ({
+          payrollPeriods: [...state.payrollPeriods, period]
+        }));
+      },
+
+      updatePayrollPeriod: (id, updates) => {
+        set((state) => ({
+          payrollPeriods: state.payrollPeriods.map(period =>
+            period.id === id ? { ...period, ...updates } : period
+          )
+        }));
+      },
+
+      deletePayrollPeriod: (id) => {
+        set((state) => ({
+          payrollPeriods: state.payrollPeriods.filter(period => period.id !== id)
+        }));
+      },
+
+      getPayrollPeriod: (id) => {
+        return get().payrollPeriods.find(period => period.id === id);
+      },
+
+      // Payroll Entry actions
+      addPayrollEntry: (entryData) => {
+        const entry: PayrollEntry = {
+          ...entryData,
+          id: generateId(),
+          createdAt: new Date(),
+          updatedAt: new Date()
+        };
+        set((state) => ({
+          payrollEntries: [...state.payrollEntries, entry]
+        }));
+      },
+
+      updatePayrollEntry: (id, updates) => {
+        set((state) => ({
+          payrollEntries: state.payrollEntries.map(entry =>
+            entry.id === id ? { ...entry, ...updates, updatedAt: new Date() } : entry
+          )
+        }));
+      },
+
+      deletePayrollEntry: (id) => {
+        set((state) => ({
+          payrollEntries: state.payrollEntries.filter(entry => entry.id !== id)
+        }));
+      },
+
+      getPayrollEntry: (id) => {
+        return get().payrollEntries.find(entry => entry.id === id);
+      },
+
+      // Leave Record actions
+      addLeaveRecord: (leaveData) => {
+        const leave: LeaveRecord = {
+          ...leaveData,
+          id: generateId(),
+          createdAt: new Date()
+        };
+        set((state) => ({
+          leaveRecords: [...state.leaveRecords, leave]
+        }));
+      },
+
+      updateLeaveRecord: (id, updates) => {
+        set((state) => ({
+          leaveRecords: state.leaveRecords.map(leave =>
+            leave.id === id ? { ...leave, ...updates } : leave
+          )
+        }));
+      },
+
+      deleteLeaveRecord: (id) => {
+        set((state) => ({
+          leaveRecords: state.leaveRecords.filter(leave => leave.id !== id)
+        }));
+      },
+
+      getLeaveRecord: (id) => {
+        return get().leaveRecords.find(leave => leave.id === id);
+      },
+
+      // Time Record actions
+      addTimeRecord: (timeData) => {
+        const time: TimeRecord = {
+          ...timeData,
+          id: generateId(),
+          createdAt: new Date()
+        };
+        set((state) => ({
+          timeRecords: [...state.timeRecords, time]
+        }));
+      },
+
+      updateTimeRecord: (id, updates) => {
+        set((state) => ({
+          timeRecords: state.timeRecords.map(time =>
+            time.id === id ? { ...time, ...updates } : time
+          )
+        }));
+      },
+
+      deleteTimeRecord: (id) => {
+        set((state) => ({
+          timeRecords: state.timeRecords.filter(time => time.id !== id)
+        }));
+      },
+
+      getTimeRecord: (id) => {
+        return get().timeRecords.find(time => time.id === id);
+      },
+
+      // Payroll Settings actions
+      updatePayrollSettings: (updates) => {
+        set((state) => ({
+          payrollSettings: { ...state.payrollSettings, ...updates }
+        }));
+      },
+
+      getPayrollSettings: () => {
+        return get().payrollSettings;
+      },
+
       // Utility actions
       clearError: () => {
         set({ error: null });
@@ -1150,7 +1588,13 @@ export const useBusinessStore = create<BusinessStore>()(
         expenses: state.expenses,
         expenseCategories: state.expenseCategories,
         accounts: state.accounts,
-        journalEntries: state.journalEntries
+        journalEntries: state.journalEntries,
+        employees: state.employees,
+        payrollPeriods: state.payrollPeriods,
+        payrollEntries: state.payrollEntries,
+        leaveRecords: state.leaveRecords,
+        timeRecords: state.timeRecords,
+        payrollSettings: state.payrollSettings
       })
     }
   )

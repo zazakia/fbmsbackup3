@@ -177,3 +177,190 @@ export interface JournalEntry {
   createdBy: string;
   createdAt: Date;
 }
+
+// Payroll System Types
+export interface Employee {
+  id: string;
+  employeeId: string;
+  firstName: string;
+  lastName: string;
+  middleName?: string;
+  email: string;
+  phone: string;
+  address: string;
+  city: string;
+  province: string;
+  zipCode: string;
+  birthDate: Date;
+  hireDate: Date;
+  position: string;
+  department: string;
+  employmentType: 'Regular' | 'Contractual' | 'Probationary' | 'Part-time';
+  status: 'Active' | 'Inactive' | 'Terminated' | 'On Leave';
+  
+  // Salary Information
+  basicSalary: number;
+  allowances: Allowance[];
+  
+  // Government IDs
+  sssNumber?: string;
+  philhealthNumber?: string;
+  pagibigNumber?: string;
+  tinNumber?: string;
+  
+  // Bank Information
+  bankName?: string;
+  bankAccountNumber?: string;
+  
+  // Emergency Contact
+  emergencyContact: {
+    name: string;
+    relationship: string;
+    phone: string;
+  };
+  
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface Allowance {
+  id: string;
+  name: string;
+  amount: number;
+  type: 'Fixed' | 'Percentage';
+  isTaxable: boolean;
+  description?: string;
+}
+
+export interface PayrollPeriod {
+  id: string;
+  month: number;
+  year: number;
+  startDate: Date;
+  endDate: Date;
+  status: 'Open' | 'Processing' | 'Completed' | 'Closed';
+  createdAt: Date;
+}
+
+export interface PayrollEntry {
+  id: string;
+  employeeId: string;
+  periodId: string;
+  
+  // Basic Pay
+  basicSalary: number;
+  allowances: number;
+  grossPay: number;
+  
+  // Deductions
+  sssContribution: number;
+  philhealthContribution: number;
+  pagibigContribution: number;
+  withholdingTax: number;
+  otherDeductions: number;
+  totalDeductions: number;
+  
+  // Net Pay
+  netPay: number;
+  
+  // Overtime
+  overtimeHours: number;
+  overtimeRate: number;
+  overtimePay: number;
+  
+  // Leave
+  leaveDays: number;
+  leavePay: number;
+  
+  // 13th Month
+  thirteenthMonthPay: number;
+  
+  // Status
+  status: 'Draft' | 'Approved' | 'Paid';
+  paymentDate?: Date;
+  paymentMethod: 'Bank Transfer' | 'Cash' | 'Check';
+  
+  // Notes
+  notes?: string;
+  
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface LeaveRecord {
+  id: string;
+  employeeId: string;
+  leaveType: 'Vacation' | 'Sick' | 'Maternity' | 'Paternity' | 'Bereavement' | 'Other';
+  startDate: Date;
+  endDate: Date;
+  days: number;
+  reason: string;
+  status: 'Pending' | 'Approved' | 'Rejected' | 'Cancelled';
+  approvedBy?: string;
+  approvedDate?: Date;
+  notes?: string;
+  createdAt: Date;
+}
+
+export interface TimeRecord {
+  id: string;
+  employeeId: string;
+  date: Date;
+  timeIn: Date;
+  timeOut?: Date;
+  breakStart?: Date;
+  breakEnd?: Date;
+  totalHours: number;
+  overtimeHours: number;
+  status: 'Present' | 'Absent' | 'Late' | 'Half-day' | 'Leave';
+  notes?: string;
+  createdAt: Date;
+}
+
+export interface PayrollSettings {
+  id: string;
+  
+  // SSS Rates (2024)
+  sssEmployeeRate: number; // 4.5%
+  sssEmployerRate: number; // 9.5%
+  sssMaxContribution: number; // 1,800
+  
+  // PhilHealth Rates (2024)
+  philhealthEmployeeRate: number; // 2%
+  philhealthEmployerRate: number; // 2%
+  philhealthMinContribution: number; // 400
+  philhealthMaxContribution: number; // 1,600
+  
+  // Pag-IBIG Rates (2024)
+  pagibigEmployeeRate: number; // 2%
+  pagibigEmployerRate: number; // 2%
+  pagibigMaxContribution: number; // 100
+  
+  // Overtime Rates
+  regularOvertimeRate: number; // 1.25
+  holidayOvertimeRate: number; // 2.0
+  nightDifferentialRate: number; // 1.1
+  
+  // Leave Benefits
+  vacationLeaveDays: number; // 15
+  sickLeaveDays: number; // 15
+  maternityLeaveDays: number; // 105
+  paternityLeaveDays: number; // 7
+  
+  // 13th Month Pay
+  thirteenthMonthPayMonth: number; // 12
+  
+  // Tax Settings
+  withholdingTaxTable: WithholdingTaxBracket[];
+  
+  updatedAt: Date;
+}
+
+export interface WithholdingTaxBracket {
+  id: string;
+  minAmount: number;
+  maxAmount?: number;
+  baseTax: number;
+  rate: number;
+  description: string;
+}
