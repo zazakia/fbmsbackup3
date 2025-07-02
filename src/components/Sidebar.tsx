@@ -4,7 +4,7 @@ import { X, BarChart3 } from 'lucide-react';
 interface MenuItem {
   id: string;
   label: string;
-  icon: React.ComponentType<any>;
+  icon: React.ComponentType<{ className?: string }>;
 }
 
 interface SidebarProps {

@@ -6,7 +6,7 @@ interface StatsCardProps {
   value: string;
   change: string;
   trend: 'up' | 'down';
-  icon: React.ComponentType<any>;
+  icon: React.ComponentType<{ className?: string }>;
   color: 'green' | 'blue' | 'purple' | 'indigo' | 'red' | 'orange';
 }
 
@@ -27,7 +27,7 @@ const StatsCard: React.FC<StatsCardProps> = ({
     orange: 'bg-orange-500 text-orange-600 bg-orange-50'
   };
 
-  const [bgColor, textColor, lightBg] = colorClasses[color].split(' ');
+  const [, textColor, lightBg] = colorClasses[color].split(' ');
 
   return (
     <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 hover:shadow-md transition-shadow">

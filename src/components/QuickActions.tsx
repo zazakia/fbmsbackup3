@@ -1,5 +1,5 @@
 import React from 'react';
-import { Plus, ShoppingCart, Package, Receipt, FileText } from 'lucide-react';
+import { ShoppingCart, Package, Receipt, FileText } from 'lucide-react';
 
 const QuickActions: React.FC = () => {
   const actions = [

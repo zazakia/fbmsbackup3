@@ -1,6 +1,8 @@
 import React from 'react';
 import { Menu, Bell, Search, User, LogOut } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
+import SupabaseStatusIndicator from './SupabaseStatusIndicator';
+import DatabaseStatus from './DatabaseStatus';
 
 interface HeaderProps {
   onMenuToggle: () => void;
@@ -34,6 +36,12 @@ const Header: React.FC<HeaderProps> = ({ onMenuToggle, activeModule }) => {
 
         {/* Right section */}
         <div className="flex items-center space-x-4">
+          {/* Database Status */}
+          <DatabaseStatus className="hidden lg:flex" />
+          
+          {/* Supabase Connection Indicator */}
+          <SupabaseStatusIndicator />
+
           {/* Search */}
           <div className="relative hidden md:block">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />

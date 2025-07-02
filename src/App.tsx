@@ -1,12 +1,10 @@
 import React, { useState } from 'react';
 import { 
-  BarChart3, 
   ShoppingCart, 
   Package, 
   Receipt, 
   Users, 
   Calculator, 
-  TrendingUp, 
   Settings,
   Home,
   DollarSign,
@@ -28,10 +26,14 @@ import PayrollManagement from './components/payroll/PayrollManagement';
 import ReportsDashboard from './components/reports/ReportsDashboard';
 import BIRForms from './components/bir/BIRForms';
 import BranchManagement from './components/branches/BranchManagement';
+import ErrorBoundary from './components/ErrorBoundary';
+import { ToastContainer } from './components/Toast';
+import { useToastStore } from './store/toastStore';
 
 const App: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeModule, setActiveModule] = useState('dashboard');
+  const { toasts, removeToast } = useToastStore();
 
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: Home },
@@ -80,8 +82,9 @@ const App: React.FC = () => {
   };
 
   return (
-    <ProtectedRoute>
-      <div className="min-h-screen bg-gray-50 flex">
+    <ErrorBoundary>
+      <ProtectedRoute>
+        <div className="min-h-screen bg-gray-50 flex">
         {/* Sidebar */}
         <Sidebar 
           isOpen={sidebarOpen}
@@ -112,8 +115,12 @@ const App: React.FC = () => {
             onClick={() => setSidebarOpen(false)}
           />
         )}
-      </div>
-    </ProtectedRoute>
+        </div>
+        
+        {/* Toast Notifications */}
+        <ToastContainer toasts={toasts} onClose={removeToast} />
+      </ProtectedRoute>
+    </ErrorBoundary>
   );
 };
 

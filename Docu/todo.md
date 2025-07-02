@@ -1,7 +1,7 @@
 # Filipino Small Business Management System (FBMS)
 
 ## Overview
-A comprehensive web-based business management system designed specifically for small businesses in the Philippines, incorporating local business practices, BIR compliance, and Filipino business culture.
+A comprehensive web-based business management system designed specifically for  businesses in the Philippines, incorporating local business practices, BIR compliance, and Filipino business culture.
 
 ## Core Modules
 
