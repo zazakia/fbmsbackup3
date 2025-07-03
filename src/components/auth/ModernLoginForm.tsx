@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Mail, Lock, Eye, EyeOff, LogIn, Loader2, Github, AlertCircle } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, LogIn, Loader2, Github, AlertCircle, Shield } from 'lucide-react';
 import { useSupabaseAuthStore } from '../../store/supabaseAuthStore';
 import { useToastStore } from '../../store/toastStore';
+import { triggerAdminSetup } from '../../utils/setupAdmin';
 
 interface ModernLoginFormProps {
   onSwitchToRegister: () => void;
@@ -113,6 +114,38 @@ const ModernLoginForm: React.FC<ModernLoginFormProps> = ({ onSwitchToRegister, o
         form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
       }
     }, 100);
+  };
+
+  // Admin account setup
+  const handleAdminSetup = async () => {
+    setIsSubmitting(true);
+    try {
+      const result = await triggerAdminSetup();
+      if (result.success) {
+        addToast({
+          type: 'success',
+          title: 'Admin Account Ready',
+          message: 'Admin account created! Email: admin@fbms.com'
+        });
+        // Auto-fill admin credentials
+        setEmail('admin@fbms.com');
+        setPassword('Qweasd145698@');
+      } else {
+        addToast({
+          type: 'error',
+          title: 'Setup Failed',
+          message: result.message
+        });
+      }
+    } catch (error) {
+      addToast({
+        type: 'error',
+        title: 'Setup Error',
+        message: 'Failed to setup admin account'
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -274,15 +307,41 @@ const ModernLoginForm: React.FC<ModernLoginFormProps> = ({ onSwitchToRegister, o
             )}
           </button>
 
-          {/* Demo Login Button */}
-          <button
-            type="button"
-            onClick={handleDemoLogin}
-            className="w-full bg-gray-100 dark:bg-dark-700 hover:bg-gray-200 dark:hover:bg-dark-600 text-gray-700 dark:text-gray-300 font-medium py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center"
-          >
-            <LogIn className="h-4 w-4 mr-2" />
-            Try Demo Account
-          </button>
+          {/* Development Buttons */}
+          {import.meta.env.DEV && (
+            <div className="space-y-3">
+              <button
+                type="button"
+                onClick={handleDemoLogin}
+                className="w-full bg-gray-100 dark:bg-dark-700 hover:bg-gray-200 dark:hover:bg-dark-600 text-gray-700 dark:text-gray-300 font-medium py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center"
+              >
+                <LogIn className="h-4 w-4 mr-2" />
+                Try Demo Account
+              </button>
+
+              <button
+                type="button"
+                onClick={handleAdminSetup}
+                disabled={isSubmitting || isLoading}
+                className="w-full bg-orange-100 dark:bg-orange-900 hover:bg-orange-200 dark:hover:bg-orange-800 text-orange-700 dark:text-orange-300 font-medium py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center disabled:opacity-50"
+              >
+                <Shield className="h-4 w-4 mr-2" />
+                Setup Admin Account
+              </button>
+            </div>
+          )}
+
+          {/* Production Demo Button */}
+          {!import.meta.env.DEV && (
+            <button
+              type="button"
+              onClick={handleDemoLogin}
+              className="w-full bg-gray-100 dark:bg-dark-700 hover:bg-gray-200 dark:hover:bg-dark-600 text-gray-700 dark:text-gray-300 font-medium py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center"
+            >
+              <LogIn className="h-4 w-4 mr-2" />
+              Try Demo Account
+            </button>
+          )}
         </form>
 
         <div className="mt-8 text-center">
