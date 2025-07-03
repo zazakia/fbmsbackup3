@@ -99,7 +99,7 @@ FBMS is a complete ERP solution tailored for Philippine small businesses, featur
 
 ## 🌐 Live Demo
 
-**🚀 Live Application:** [https://sme1.zapweb.app](https://sme1.zapweb.app)
+**🚀 Live Application:** [https://sme3.zapweb.app](https://sme3.zapweb.app)
 
 **Demo Credentials:**
 - **Email:** `admin@fbms.com`
@@ -271,7 +271,7 @@ src/
 
 The application is deployed on **Netlify** and **Vercel**:
 
-- **Primary:** [https://sme1.zapweb.app](https://sme1.zapweb.app)
+- **Primary:** [https://sme3.zapweb.app](https://sme3.zapweb.app)
 - **Backup:** [https://sme3zap.netlify.app](https://sme3zap.netlify.app)
 
 ## 🤝 Contributing

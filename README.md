@@ -76,7 +76,7 @@ pnpm lint         # Run ESLint
 
 ## 🌐 Live Demo
 
-**🚀 Live Application:** [https://sme1.zapweb.app](https://sme1.zapweb.app)
+**🚀 Live Application:** [https://sme3.zapweb.app](https://sme3.zapweb.app)
 
 **Demo Credentials:**
 - **Email:** `admin@fbms.com`
