@@ -87,7 +87,7 @@ const ToastComponent: React.FC<ToastComponentProps> = ({ toast, onClose }) => {
       className={`
         transform transition-all duration-300 ease-in-out
         ${isVisible && !isExiting ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'}
-        max-w-sm w-full ${getBackgroundColor()} border rounded-lg shadow-lg pointer-events-auto
+        min-w-80 max-w-md w-auto ${getBackgroundColor()} border rounded-lg shadow-lg pointer-events-auto
       `}
     >
       <div className="p-4">
@@ -95,12 +95,12 @@ const ToastComponent: React.FC<ToastComponentProps> = ({ toast, onClose }) => {
           <div className="flex-shrink-0">
             {getIcon()}
           </div>
-          <div className="ml-3 w-0 flex-1">
-            <p className={`text-sm font-medium ${getTextColor()}`}>
+          <div className="ml-3 flex-1 min-w-0">
+            <p className={`text-sm font-medium ${getTextColor()} break-words`}>
               {toast.title}
             </p>
             {toast.message && (
-              <p className={`mt-1 text-sm ${getTextColor()} opacity-75`}>
+              <p className={`mt-1 text-sm ${getTextColor()} opacity-75 break-words`}>
                 {toast.message}
               </p>
             )}
