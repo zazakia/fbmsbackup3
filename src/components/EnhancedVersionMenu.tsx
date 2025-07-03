@@ -9,10 +9,6 @@ import {
   Calculator,
   Receipt,
   BarChart3,
-  Settings,
-  Eye,
-  ToggleLeft,
-  ToggleRight,
   Sparkles
 } from 'lucide-react';
 

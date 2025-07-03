@@ -21,14 +21,8 @@ export const supabase = createClient(
   }
 );
 
-// Export anon client for auth operations
-export const supabaseAnon = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: true
-  }
-});
+// Export the same client for auth operations to avoid multiple instances
+export const supabaseAnon = supabase;
 
 // Function to setup development authentication
 export async function setupDevAuth() {
@@ -47,26 +41,8 @@ export async function setupDevAuth() {
         });
         
         if (error) {
-          console.log('Test user login failed, trying to create one...');
-          
-          // Try to create a test user
-          const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-            email: 'admin@example.com',
-            password: 'admin123',
-            options: {
-              data: {
-                first_name: 'Admin',
-                last_name: 'User'
-              }
-            }
-          });
-          
-          if (signUpError) {
-            console.log('Failed to create test user:', signUpError.message);
-            console.log('Please create a user manually in Supabase or use the login form');
-          } else {
-            console.log('Test user created successfully');
-          }
+          console.log('Test user login failed:', error.message);
+          console.log('You can use the login form to sign in or create a new account');
         } else {
           console.log('Development authentication successful');
         }

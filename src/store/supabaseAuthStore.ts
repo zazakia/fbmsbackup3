@@ -54,12 +54,13 @@ export const useSupabaseAuthStore = create<SupabaseAuthStore>()(
               };
             } else {
               // Create basic user from auth data
+              console.warn('User profile not found in database, creating basic user object');
               user = {
                 id: data.user.id,
                 email: data.user.email || '',
                 firstName: data.user.user_metadata?.first_name || '',
                 lastName: data.user.user_metadata?.last_name || '',
-                role: 'user',
+                role: 'cashier', // Default to lowest privilege role
                 isActive: true,
                 createdAt: new Date(),
               };
@@ -123,7 +124,7 @@ export const useSupabaseAuthStore = create<SupabaseAuthStore>()(
               email: authData.user.email || '',
               firstName: data.firstName,
               lastName: data.lastName,
-              role: data.role || 'user',
+              role: data.role || 'cashier', // Default to lowest privilege role
               department: data.department,
               isActive: true,
               createdAt: new Date(),
@@ -195,12 +196,13 @@ export const useSupabaseAuthStore = create<SupabaseAuthStore>()(
                 createdAt: new Date(userProfile.created_at),
               };
             } else {
+              console.warn('User profile not found in database during auth check');
               user = {
                 id: session.user.id,
                 email: session.user.email || '',
                 firstName: session.user.user_metadata?.first_name || '',
                 lastName: session.user.user_metadata?.last_name || '',
-                role: 'user',
+                role: 'cashier', // Default to lowest privilege role
                 isActive: true,
                 createdAt: new Date(),
               };

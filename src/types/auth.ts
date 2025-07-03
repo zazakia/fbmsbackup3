@@ -4,7 +4,7 @@ export interface User {
   firstName: string;
   lastName: string;
   role: UserRole;
-  businessId: string;
+  department?: string;
   isActive: boolean;
   createdAt: Date;
   lastLogin?: Date;
@@ -29,6 +29,6 @@ export interface RegisterData {
   password: string;
   firstName: string;
   lastName: string;
-  businessName: string;
   role?: UserRole;
+  department?: string;
 }

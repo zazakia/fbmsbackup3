@@ -55,22 +55,38 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
 
 export function hasPermission(userRole: UserRole, module: string, action: string): boolean {
   const rolePermissions = ROLE_PERMISSIONS[userRole];
+  if (!rolePermissions) {
+    console.warn(`No permissions found for role: ${userRole}`);
+    return false;
+  }
   const modulePermission = rolePermissions.find(p => p.module === module);
   return modulePermission ? modulePermission.actions.includes(action) : false;
 }
 
 export function canAccessModule(userRole: UserRole, module: string): boolean {
   const rolePermissions = ROLE_PERMISSIONS[userRole];
+  if (!rolePermissions) {
+    console.warn(`No permissions found for role: ${userRole}`);
+    return false;
+  }
   return rolePermissions.some(p => p.module === module);
 }
 
 export function getModuleActions(userRole: UserRole, module: string): string[] {
   const rolePermissions = ROLE_PERMISSIONS[userRole];
+  if (!rolePermissions) {
+    console.warn(`No permissions found for role: ${userRole}`);
+    return [];
+  }
   const modulePermission = rolePermissions.find(p => p.module === module);
   return modulePermission ? modulePermission.actions : [];
 }
 
 export function getUserAccessibleModules(userRole: UserRole): string[] {
   const rolePermissions = ROLE_PERMISSIONS[userRole];
+  if (!rolePermissions) {
+    console.warn(`No permissions found for role: ${userRole}`);
+    return [];
+  }
   return rolePermissions.map(p => p.module);
 }
