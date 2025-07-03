@@ -168,6 +168,10 @@ export const useSupabaseAuthStore = create<SupabaseAuthStore>()(
           // Clear persisted state
           localStorage.removeItem('fbms-supabase-auth');
           
+          // Clear any other stored auth data
+          localStorage.removeItem('supabase.auth.token');
+          sessionStorage.clear();
+          
           console.log('Logout successful');
           
         } catch (error) {
@@ -183,6 +187,10 @@ export const useSupabaseAuthStore = create<SupabaseAuthStore>()(
           
           // Clear persisted state
           localStorage.removeItem('fbms-supabase-auth');
+          
+          // Clear any other stored auth data
+          localStorage.removeItem('supabase.auth.token');
+          sessionStorage.clear();
           
           console.log('Forced local logout completed');
         }

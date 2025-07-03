@@ -1,27 +1,75 @@
 import React from 'react';
 import { ShoppingCart, Package, Receipt, FileText } from 'lucide-react';
+import { useNavigation } from '../contexts/NavigationContext';
+import { useSupabaseAuthStore } from '../store/supabaseAuthStore';
+import { canAccessModule } from '../utils/permissions';
 
 const QuickActions: React.FC = () => {
+  const { onModuleChange } = useNavigation();
+  const { user } = useSupabaseAuthStore();
+
   const actions = [
-    { icon: ShoppingCart, label: 'New Sale', color: 'bg-blue-500 hover:bg-blue-600' },
-    { icon: Package, label: 'Add Product', color: 'bg-green-500 hover:bg-green-600' },
-    { icon: Receipt, label: 'Record Expense', color: 'bg-purple-500 hover:bg-purple-600' },
-    { icon: FileText, label: 'Generate Report', color: 'bg-indigo-500 hover:bg-indigo-600' }
+    { 
+      icon: ShoppingCart, 
+      label: 'New Sale', 
+      color: 'bg-blue-500 hover:bg-blue-600',
+      moduleId: 'sales',
+      module: 'pos'
+    },
+    { 
+      icon: Package, 
+      label: 'Add Product', 
+      color: 'bg-green-500 hover:bg-green-600',
+      moduleId: 'inventory',
+      module: 'inventory'
+    },
+    { 
+      icon: Receipt, 
+      label: 'Record Expense', 
+      color: 'bg-purple-500 hover:bg-purple-600',
+      moduleId: 'expenses',
+      module: 'expenses'
+    },
+    { 
+      icon: FileText, 
+      label: 'Generate Report', 
+      color: 'bg-indigo-500 hover:bg-indigo-600',
+      moduleId: 'reports',
+      module: 'reports'
+    }
   ];
+
+  const handleActionClick = (action: typeof actions[0]) => {
+    // Check if user has permission to access this module
+    if (user && !canAccessModule(user.role, action.module)) {
+      return; // Don't navigate if no permission
+    }
+    onModuleChange(action.moduleId);
+  };
 
   return (
     <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
       <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
       <div className="grid grid-cols-2 gap-4">
-        {actions.map((action, index) => (
-          <button
-            key={index}
-            className={`${action.color} text-white p-4 rounded-lg transition-colors flex flex-col items-center space-y-2 hover:shadow-md`}
-          >
-            <action.icon className="h-6 w-6" />
-            <span className="text-sm font-medium">{action.label}</span>
-          </button>
-        ))}
+        {actions.map((action, index) => {
+          const hasPermission = !user || canAccessModule(user.role, action.module);
+          return (
+            <button
+              key={index}
+              onClick={() => handleActionClick(action)}
+              disabled={!hasPermission}
+              className={`${
+                hasPermission 
+                  ? `${action.color} hover:shadow-md` 
+                  : 'bg-gray-300 cursor-not-allowed'
+              } text-white p-4 rounded-lg transition-colors flex flex-col items-center space-y-2`}
+              title={hasPermission ? `Go to ${action.label}` : `No permission to access ${action.label}`}
+            >
+              <action.icon className="h-6 w-6" />
+              <span className="text-sm font-medium">{action.label}</span>
+            </button>
+          );
+        })}
       </div>
       
       <div className="mt-6 pt-4 border-t border-gray-200">
