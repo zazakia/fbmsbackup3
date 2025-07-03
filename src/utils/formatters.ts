@@ -19,24 +19,49 @@ export const formatPercentage = (value: number, decimals: number = 1): string =>
   return `${value.toFixed(decimals)}%`;
 };
 
-export const formatDate = (date: Date | string, format: 'short' | 'long' | 'time' = 'short'): string => {
-  const dateObj = typeof date === 'string' ? new Date(date) : date;
-  
-  switch (format) {
-    case 'long':
-      return dateObj.toLocaleDateString('en-PH', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      });
-    case 'time':
-      return dateObj.toLocaleTimeString('en-PH', {
-        hour: '2-digit',
-        minute: '2-digit'
-      });
-    default:
-      return dateObj.toLocaleDateString('en-PH');
+// Safe date parsing function
+export const parseDate = (date: Date | string | null | undefined): Date | null => {
+  if (!date) return null;
+  try {
+    if (date instanceof Date) {
+      return isNaN(date.getTime()) ? null : date;
+    }
+    if (typeof date === 'string') {
+      const parsed = new Date(date);
+      return isNaN(parsed.getTime()) ? null : parsed;
+    }
+    return null;
+  } catch (error) {
+    console.warn('Invalid date value:', date, error);
+    return null;
+  }
+};
+
+export const formatDate = (date: Date | string | null | undefined, format: 'short' | 'long' | 'time' = 'short'): string => {
+  const dateObj = parseDate(date);
+  if (!dateObj) {
+    return 'Invalid Date';
+  }
+  try {
+    switch (format) {
+      case 'long':
+        return dateObj.toLocaleDateString('en-PH', {
+          weekday: 'long',
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        });
+      case 'time':
+        return dateObj.toLocaleTimeString('en-PH', {
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+      default:
+        return dateObj.toLocaleDateString('en-PH');
+    }
+  } catch (error) {
+    console.warn('Error formatting date:', date, error);
+    return 'Invalid Date';
   }
 };
 
@@ -83,11 +108,18 @@ export const formatInvoiceNumber = (prefix: string = 'INV', number: number): str
 };
 
 export const formatReceiptNumber = (prefix: string = 'RCP', timestamp: number): string => {
-  const date = new Date(timestamp);
-  const year = date.getFullYear();
-  const month = (date.getMonth() + 1).toString().padStart(2, '0');
-  const day = date.getDate().toString().padStart(2, '0');
-  const time = timestamp.toString().slice(-6);
-  
-  return `${prefix}-${year}${month}${day}-${time}`;
+  try {
+    const date = new Date(timestamp);
+    if (isNaN(date.getTime())) {
+      throw new Error('Invalid timestamp');
+    }
+    const year = date.getFullYear();
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    const time = timestamp.toString().slice(-6);
+    return `${prefix}-${year}${month}${day}-${time}`;
+  } catch (error) {
+    console.warn('Error formatting receipt number:', timestamp, error);
+    return `${prefix}-${Date.now()}`;
+  }
 };
