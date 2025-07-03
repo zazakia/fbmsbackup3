@@ -33,6 +33,7 @@ import { useThemeStore } from './store/themeStore';
 import { useSupabaseAuthStore } from './store/supabaseAuthStore';
 import { canAccessModule } from './utils/permissions';
 import { setupDevAuth } from './utils/supabase';
+import { NavigationProvider } from './contexts/NavigationContext';
 import TestDashboard from './components/test/TestDashboard';
 import {
   LazyDashboard,
@@ -238,48 +239,50 @@ const App: React.FC = () => {
   return (
     <ErrorBoundary>
       <ProtectedRoute>
-        <div className="min-h-screen bg-gray-50 dark:bg-dark-950 flex transition-colors duration-300">
-        {/* Sidebar */}
-        <Sidebar 
-          isOpen={sidebarOpen}
-          menuItems={menuItems}
-          activeModule={activeModule}
-          onModuleChange={setActiveModule}
-          onClose={() => setSidebarOpen(false)}
-        />
-
-        {/* Main Content */}
-        <div className="flex-1 flex flex-col lg:ml-64">
-          {/* Header */}
-          <Header 
-            onMenuToggle={() => setSidebarOpen(!sidebarOpen)}
-            activeModule={menuItems.find(item => item.id === activeModule)?.label || 'Dashboard'}
+        <NavigationProvider activeModule={activeModule} onModuleChange={setActiveModule}>
+          <div className="min-h-screen bg-gray-50 dark:bg-dark-950 flex transition-colors duration-300">
+          {/* Sidebar */}
+          <Sidebar 
+            isOpen={sidebarOpen}
+            menuItems={menuItems}
+            activeModule={activeModule}
+            onModuleChange={setActiveModule}
+            onClose={() => setSidebarOpen(false)}
           />
 
-          {/* Content Area */}
-          <main className="flex-1 overflow-y-auto bg-gray-50 dark:bg-dark-950 transition-colors duration-300">
-            <div className="p-3 sm:p-6">
-              
-              <VersionSelector 
-                currentModule={activeModule}
-                isEnhanced={enhancedVersions[activeModule] || false}
-                onVersionChange={(isEnhanced) => handleVersionChange(activeModule, isEnhanced)}
-              />
-              <Suspense fallback={<LoadingSpinner message="Loading module..." size="lg" className="min-h-[400px]" />}>
-                {renderContent()}
-              </Suspense>
-            </div>
-          </main>
-        </div>
+          {/* Main Content */}
+          <div className="flex-1 flex flex-col lg:ml-64">
+            {/* Header */}
+            <Header 
+              onMenuToggle={() => setSidebarOpen(!sidebarOpen)}
+              activeModule={menuItems.find(item => item.id === activeModule)?.label || 'Dashboard'}
+            />
 
-        {/* Mobile Sidebar Overlay */}
-        {sidebarOpen && (
-          <div 
-            className="fixed inset-0 bg-black bg-opacity-50 z-20 lg:hidden"
-            onClick={() => setSidebarOpen(false)}
-          />
-        )}
-        </div>
+            {/* Content Area */}
+            <main className="flex-1 overflow-y-auto bg-gray-50 dark:bg-dark-950 transition-colors duration-300">
+              <div className="p-3 sm:p-6">
+                
+                <VersionSelector 
+                  currentModule={activeModule}
+                  isEnhanced={enhancedVersions[activeModule] || false}
+                  onVersionChange={(isEnhanced) => handleVersionChange(activeModule, isEnhanced)}
+                />
+                <Suspense fallback={<LoadingSpinner message="Loading module..." size="lg" className="min-h-[400px]" />}>
+                  {renderContent()}
+                </Suspense>
+              </div>
+            </main>
+          </div>
+
+          {/* Mobile Sidebar Overlay */}
+          {sidebarOpen && (
+            <div 
+              className="fixed inset-0 bg-black bg-opacity-50 z-20 lg:hidden"
+              onClick={() => setSidebarOpen(false)}
+            />
+          )}
+          </div>
+        </NavigationProvider>
         
         {/* Enhanced Version Menu */}
         <EnhancedVersionMenu 
