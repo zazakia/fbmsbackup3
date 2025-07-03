@@ -11,7 +11,12 @@ import {
   FileText,
   UserCheck,
   Building2,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Megaphone,
+  Gift,
+  Cloud,
+  Activity,
+  CreditCard
 } from 'lucide-react';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
@@ -19,6 +24,8 @@ import ProtectedRoute from './components/ProtectedRoute';
 import LoadingSpinner from './components/LoadingSpinner';
 import ErrorBoundary from './components/ErrorBoundary';
 import { ToastContainer } from './components/Toast';
+import VersionSelector from './components/VersionSelector';
+import EnhancedVersionMenu from './components/EnhancedVersionMenu';
 import { useToastStore } from './store/toastStore';
 import { useThemeStore } from './store/themeStore';
 import {
@@ -26,19 +33,36 @@ import {
   LazyPOSSystem,
   LazyInventoryManagement,
   LazyPurchaseManagement,
-  LazyExpenseTracking,
   LazyAccountingManagement,
-  LazyPayrollManagement,
   LazyReportsDashboard,
+  LazyEnhancedPOSSystem,
+  LazyEnhancedInventoryManagement,
+  LazyEnhancedPurchaseManagement,
+  LazyEnhancedAccountingManagement,
+  LazyEnhancedReportsDashboard,
+  LazyExpenseTracking,
+  LazyPayrollManagement,
   LazyBIRForms,
   LazyBranchManagement,
   LazySettingsPage,
-  LazyCustomerManagement
+  LazyCustomerManagement,
+  LazyManagerOperations,
+  LazyCashierPOS,
+  LazyMarketingCampaigns,
+  LazyLoyaltyPrograms,
+  LazyCloudBackup
 } from './utils/lazyComponents';
 
 const App: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeModule, setActiveModule] = useState('dashboard');
+  const [enhancedVersions, setEnhancedVersions] = useState<Record<string, boolean>>({
+    sales: false,
+    inventory: false,
+    accounting: false,
+    purchases: false,
+    reports: false
+  });
   const { toasts, removeToast } = useToastStore();
   const { initializeTheme } = useThemeStore();
 
@@ -59,19 +83,31 @@ const App: React.FC = () => {
     { id: 'reports', label: 'Reports & Analytics', icon: FileText },
     { id: 'bir', label: 'BIR Forms', icon: FileSpreadsheet },
     { id: 'branches', label: 'Multi-Branch', icon: Building2 },
+    { id: 'operations', label: 'Operations', icon: Activity },
+    { id: 'cashier', label: 'Cashier POS', icon: CreditCard },
+    { id: 'marketing', label: 'Marketing', icon: Megaphone },
+    { id: 'loyalty', label: 'Loyalty Programs', icon: Gift },
+    { id: 'backup', label: 'Cloud Backup', icon: Cloud },
     { id: 'settings', label: 'Settings', icon: Settings }
   ];
+
+  const handleVersionChange = (module: string, isEnhanced: boolean) => {
+    setEnhancedVersions(prev => ({
+      ...prev,
+      [module]: isEnhanced
+    }));
+  };
 
   const renderContent = () => {
     switch (activeModule) {
       case 'dashboard':
         return <LazyDashboard />;
       case 'sales':
-        return <LazyPOSSystem />;
+        return enhancedVersions.sales ? <LazyEnhancedPOSSystem /> : <LazyPOSSystem />;
       case 'inventory':
-        return <LazyInventoryManagement />;
+        return enhancedVersions.inventory ? <LazyEnhancedInventoryManagement /> : <LazyInventoryManagement />;
       case 'purchases':
-        return <LazyPurchaseManagement />;
+        return enhancedVersions.purchases ? <LazyEnhancedPurchaseManagement /> : <LazyPurchaseManagement />;
       case 'customers':
         return <LazyCustomerManagement />;
       case 'expenses':
@@ -79,13 +115,23 @@ const App: React.FC = () => {
       case 'payroll':
         return <LazyPayrollManagement />;
       case 'accounting':
-        return <LazyAccountingManagement />;
+        return enhancedVersions.accounting ? <LazyEnhancedAccountingManagement /> : <LazyAccountingManagement />;
       case 'reports':
-        return <LazyReportsDashboard />;
+        return enhancedVersions.reports ? <LazyEnhancedReportsDashboard /> : <LazyReportsDashboard />;
       case 'bir':
         return <LazyBIRForms />;
       case 'branches':
         return <LazyBranchManagement />;
+      case 'operations':
+        return <LazyManagerOperations />;
+      case 'cashier':
+        return <LazyCashierPOS />;
+      case 'marketing':
+        return <LazyMarketingCampaigns />;
+      case 'loyalty':
+        return <LazyLoyaltyPrograms />;
+      case 'backup':
+        return <LazyCloudBackup />;
       case 'settings':
         return <LazySettingsPage />;
       default:
@@ -116,9 +162,16 @@ const App: React.FC = () => {
 
           {/* Content Area */}
           <main className="flex-1 overflow-y-auto bg-gray-50 dark:bg-dark-950 transition-colors duration-300">
-            <Suspense fallback={<LoadingSpinner message="Loading module..." size="lg" className="min-h-[400px]" />}>
-              {renderContent()}
-            </Suspense>
+            <div className="p-6">
+              <VersionSelector 
+                currentModule={activeModule}
+                isEnhanced={enhancedVersions[activeModule] || false}
+                onVersionChange={(isEnhanced) => handleVersionChange(activeModule, isEnhanced)}
+              />
+              <Suspense fallback={<LoadingSpinner message="Loading module..." size="lg" className="min-h-[400px]" />}>
+                {renderContent()}
+              </Suspense>
+            </div>
           </main>
         </div>
 
@@ -130,6 +183,13 @@ const App: React.FC = () => {
           />
         )}
         </div>
+        
+        {/* Enhanced Version Menu */}
+        <EnhancedVersionMenu 
+          enhancedVersions={enhancedVersions}
+          onVersionChange={handleVersionChange}
+          activeModule={activeModule}
+        />
         
         {/* Toast Notifications */}
         <ToastContainer toasts={toasts} onClose={removeToast} />
