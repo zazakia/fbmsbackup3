@@ -26,8 +26,10 @@ import ErrorBoundary from './components/ErrorBoundary';
 import { ToastContainer } from './components/Toast';
 import VersionSelector from './components/VersionSelector';
 import EnhancedVersionMenu from './components/EnhancedVersionMenu';
+import SupabaseAuthBanner from './components/auth/SupabaseAuthBanner';
 import { useToastStore } from './store/toastStore';
 import { useThemeStore } from './store/themeStore';
+import { setupDevAuth } from './utils/supabase';
 import {
   LazyDashboard,
   LazyPOSSystem,
@@ -66,9 +68,10 @@ const App: React.FC = () => {
   const { toasts, removeToast } = useToastStore();
   const { initializeTheme } = useThemeStore();
 
-  // Initialize theme on app load
+  // Initialize theme and development auth on app load
   useEffect(() => {
     initializeTheme();
+    setupDevAuth(); // Setup development authentication
   }, [initializeTheme]);
 
   const menuItems = [
@@ -163,6 +166,9 @@ const App: React.FC = () => {
           {/* Content Area */}
           <main className="flex-1 overflow-y-auto bg-gray-50 dark:bg-dark-950 transition-colors duration-300">
             <div className="p-6">
+              {/* Supabase Authentication Banner */}
+              <SupabaseAuthBanner />
+              
               <VersionSelector 
                 currentModule={activeModule}
                 isEnhanced={enhancedVersions[activeModule] || false}
