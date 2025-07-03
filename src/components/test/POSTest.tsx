@@ -102,13 +102,13 @@ const POSTest: React.FC = () => {
     ));
   };
 
-  const runTest = async (testName: string, testFn: () => Promise<void>) => {
+  const runTest = async (testName: string, testFn: (currentState: POSState) => Promise<POSState>, currentState: POSState): Promise<POSState> => {
     const startTime = Date.now();
     setCurrentTest(testName);
     updateTestResult(testName, 'running');
     
     try {
-      await testFn();
+      const newState = await testFn(currentState);
       const duration = Date.now() - startTime;
       updateTestResult(testName, 'passed', 'Test completed successfully', duration);
       addToast({
@@ -116,6 +116,7 @@ const POSTest: React.FC = () => {
         title: 'Test Passed',
         message: `${testName} completed successfully`
       });
+      return newState;
     } catch (error) {
       const duration = Date.now() - startTime;
       const message = error instanceof Error ? error.message : 'Test failed';
@@ -125,10 +126,11 @@ const POSTest: React.FC = () => {
         title: 'Test Failed',
         message: `${testName}: ${message}`
       });
+      return currentState;
     }
   };
 
-  const addToCart = (productId: string, quantity: number = 1) => {
+  const addToCart = (currentState: POSState, productId: string, quantity: number = 1): POSState => {
     const product = mockProducts.find(p => p.id === productId);
     if (!product) {
       throw new Error('Product not found');
@@ -138,17 +140,15 @@ const POSTest: React.FC = () => {
       throw new Error('Insufficient stock');
     }
 
-    const existingItem = posState.cart.find(item => item.productId === productId);
+    const existingItem = currentState.cart.find(item => item.productId === productId);
     
+    let newCart;
     if (existingItem) {
-      setPosState(prev => ({
-        ...prev,
-        cart: prev.cart.map(item =>
-          item.productId === productId
-            ? { ...item, quantity: item.quantity + quantity, total: (item.quantity + quantity) * item.price }
-            : item
-        )
-      }));
+      newCart = currentState.cart.map(item =>
+        item.productId === productId
+          ? { ...item, quantity: item.quantity + quantity, total: (item.quantity + quantity) * item.price }
+          : item
+      );
     } else {
       const newItem: CartItem = {
         id: `cart-${Date.now()}`,
@@ -158,193 +158,204 @@ const POSTest: React.FC = () => {
         quantity,
         total: product.price * quantity
       };
-
-      setPosState(prev => ({
-        ...prev,
-        cart: [...prev.cart, newItem]
-      }));
+      newCart = [...currentState.cart, newItem];
     }
 
-    calculateTotals();
+    const newState = { ...currentState, cart: newCart };
+    return calculateTotals(newState);
   };
 
-  const updateCartItemQuantity = (cartItemId: string, newQuantity: number) => {
+  const updateCartItemQuantity = (currentState: POSState, cartItemId: string, newQuantity: number): POSState => {
     if (newQuantity <= 0) {
       throw new Error('Quantity must be greater than 0');
     }
 
-    setPosState(prev => ({
-      ...prev,
-      cart: prev.cart.map(item =>
-        item.id === cartItemId
-          ? { ...item, quantity: newQuantity, total: newQuantity * item.price }
-          : item
-      )
-    }));
+    const newCart = currentState.cart.map(item =>
+      item.id === cartItemId
+        ? { ...item, quantity: newQuantity, total: newQuantity * item.price }
+        : item
+    );
 
-    calculateTotals();
+    const newState = { ...currentState, cart: newCart };
+    return calculateTotals(newState);
   };
 
-  const removeFromCart = (cartItemId: string) => {
-    setPosState(prev => ({
-      ...prev,
-      cart: prev.cart.filter(item => item.id !== cartItemId)
-    }));
-
-    calculateTotals();
+  const removeFromCart = (currentState: POSState, cartItemId: string): POSState => {
+    const newCart = currentState.cart.filter(item => item.id !== cartItemId);
+    const newState = { ...currentState, cart: newCart };
+    return calculateTotals(newState);
   };
 
-  const calculateTotals = () => {
-    setPosState(prev => {
-      const subtotal = prev.cart.reduce((sum, item) => sum + item.total, 0);
-      const tax = subtotal * 0.12; // 12% VAT
-      const total = subtotal + tax;
+  const calculateTotals = (currentState: POSState): POSState => {
+    const subtotal = currentState.cart.reduce((sum, item) => sum + item.total, 0);
+    const tax = subtotal * 0.12; // 12% VAT
+    const total = subtotal + tax;
 
-      return {
-        ...prev,
-        subtotal,
-        tax,
-        total
-      };
-    });
+    return {
+      ...currentState,
+      subtotal,
+      tax,
+      total
+    };
   };
 
-  const testAddProductToCart = async () => {
+  const testAddProductToCart = async (currentState: POSState): Promise<POSState> => {
     await delay(300);
     
-    const initialCartLength = posState.cart.length;
-    addToCart('prod1', 2);
+    const initialCartLength = currentState.cart.length;
+    const newState = addToCart(currentState, 'prod1', 2);
     
-    if (posState.cart.length <= initialCartLength) {
+    if (newState.cart.length <= initialCartLength) {
       throw new Error('Product not added to cart');
     }
 
-    const addedItem = posState.cart.find(item => item.productId === 'prod1');
+    const addedItem = newState.cart.find(item => item.productId === 'prod1');
     if (!addedItem || addedItem.quantity !== 2) {
       throw new Error('Product quantity incorrect');
     }
+
+    return newState;
   };
 
-  const testUpdateCartItemQuantity = async () => {
+  const testUpdateCartItemQuantity = async (currentState: POSState): Promise<POSState> => {
     await delay(300);
     
-    if (posState.cart.length === 0) {
-      addToCart('prod2', 1);
+    let workingState = currentState;
+    if (workingState.cart.length === 0) {
+      workingState = addToCart(workingState, 'prod2', 1);
     }
 
-    const cartItem = posState.cart[0];
+    const cartItem = workingState.cart[0];
     const newQuantity = cartItem.quantity + 1;
-    updateCartItemQuantity(cartItem.id, newQuantity);
+    const newState = updateCartItemQuantity(workingState, cartItem.id, newQuantity);
 
-    const updatedItem = posState.cart.find(item => item.id === cartItem.id);
+    const updatedItem = newState.cart.find(item => item.id === cartItem.id);
     if (!updatedItem || updatedItem.quantity !== newQuantity) {
       throw new Error('Cart item quantity not updated');
     }
+
+    return newState;
   };
 
-  const testRemoveItemFromCart = async () => {
+  const testRemoveItemFromCart = async (currentState: POSState): Promise<POSState> => {
     await delay(300);
     
-    if (posState.cart.length === 0) {
-      addToCart('prod3', 1);
+    let workingState = currentState;
+    if (workingState.cart.length === 0) {
+      workingState = addToCart(workingState, 'prod3', 1);
     }
 
-    const initialCartLength = posState.cart.length;
-    const itemToRemove = posState.cart[0];
-    removeFromCart(itemToRemove.id);
+    const initialCartLength = workingState.cart.length;
+    const itemToRemove = workingState.cart[0];
+    const newState = removeFromCart(workingState, itemToRemove.id);
 
-    if (posState.cart.length >= initialCartLength) {
+    if (newState.cart.length >= initialCartLength) {
       throw new Error('Item not removed from cart');
     }
 
-    const removedItem = posState.cart.find(item => item.id === itemToRemove.id);
+    const removedItem = newState.cart.find(item => item.id === itemToRemove.id);
     if (removedItem) {
       throw new Error('Item still exists in cart');
     }
+
+    return newState;
   };
 
-  const testCalculateSubtotal = async () => {
+  const testCalculateSubtotal = async (currentState: POSState): Promise<POSState> => {
     await delay(200);
     
     // Add known items to cart
-    setPosState(prev => ({ ...prev, cart: [] }));
-    addToCart('prod1', 1); // ₱65,990
-    addToCart('prod2', 2); // ₱299 × 2 = ₱598
+    let workingState = { ...currentState, cart: [] };
+    workingState = addToCart(workingState, 'prod1', 1); // ₱65,990
+    workingState = addToCart(workingState, 'prod2', 2); // ₱299 × 2 = ₱598
 
-    calculateTotals();
+    const newState = calculateTotals(workingState);
 
     const expectedSubtotal = 65990 + (299 * 2);
-    if (Math.abs(posState.subtotal - expectedSubtotal) > 0.01) {
-      throw new Error(`Subtotal calculation incorrect. Expected: ${expectedSubtotal}, Got: ${posState.subtotal}`);
+    if (Math.abs(newState.subtotal - expectedSubtotal) > 0.01) {
+      throw new Error(`Subtotal calculation incorrect. Expected: ${expectedSubtotal}, Got: ${newState.subtotal}`);
     }
+
+    return newState;
   };
 
-  const testCalculateTax = async () => {
+  const testCalculateTax = async (currentState: POSState): Promise<POSState> => {
     await delay(200);
     
-    if (posState.cart.length === 0) {
-      addToCart('prod1', 1);
+    let workingState = currentState;
+    if (workingState.cart.length === 0) {
+      workingState = addToCart(workingState, 'prod1', 1);
     }
 
-    calculateTotals();
+    const newState = calculateTotals(workingState);
 
-    const expectedTax = posState.subtotal * 0.12;
-    if (Math.abs(posState.tax - expectedTax) > 0.01) {
-      throw new Error(`Tax calculation incorrect. Expected: ${expectedTax}, Got: ${posState.tax}`);
+    const expectedTax = newState.subtotal * 0.12;
+    if (Math.abs(newState.tax - expectedTax) > 0.01) {
+      throw new Error(`Tax calculation incorrect. Expected: ${expectedTax}, Got: ${newState.tax}`);
     }
+
+    return newState;
   };
 
-  const testCalculateTotal = async () => {
+  const testCalculateTotal = async (currentState: POSState): Promise<POSState> => {
     await delay(200);
     
-    calculateTotals();
+    const newState = calculateTotals(currentState);
 
-    const expectedTotal = posState.subtotal + posState.tax;
-    if (Math.abs(posState.total - expectedTotal) > 0.01) {
-      throw new Error(`Total calculation incorrect. Expected: ${expectedTotal}, Got: ${posState.total}`);
+    const expectedTotal = newState.subtotal + newState.tax;
+    if (Math.abs(newState.total - expectedTotal) > 0.01) {
+      throw new Error(`Total calculation incorrect. Expected: ${expectedTotal}, Got: ${newState.total}`);
     }
+
+    return newState;
   };
 
-  const testSelectCustomer = async () => {
+  const testSelectCustomer = async (currentState: POSState): Promise<POSState> => {
     await delay(300);
     
     const customerId = mockCustomers[0].id;
-    setPosState(prev => ({ ...prev, selectedCustomer: customerId }));
+    const newState = { ...currentState, selectedCustomer: customerId };
 
-    if (posState.selectedCustomer !== customerId) {
+    if (newState.selectedCustomer !== customerId) {
       throw new Error('Customer not selected');
     }
+
+    return newState;
   };
 
-  const testClearCart = async () => {
+  const testClearCart = async (currentState: POSState): Promise<POSState> => {
     await delay(300);
     
-    if (posState.cart.length === 0) {
-      addToCart('prod1', 1);
+    let workingState = currentState;
+    if (workingState.cart.length === 0) {
+      workingState = addToCart(workingState, 'prod1', 1);
     }
 
-    setPosState(prev => ({
-      ...prev,
+    const newState = {
+      ...workingState,
       cart: [],
       subtotal: 0,
       tax: 0,
       total: 0
-    }));
+    };
 
-    if (posState.cart.length > 0) {
+    if (newState.cart.length > 0) {
       throw new Error('Cart not cleared');
     }
+
+    return newState;
   };
 
-  const testProcessCashPayment = async () => {
+  const testProcessCashPayment = async (currentState: POSState): Promise<POSState> => {
     await delay(400);
     
-    if (posState.cart.length === 0) {
-      addToCart('prod2', 1);
-      calculateTotals();
+    let workingState = currentState;
+    if (workingState.cart.length === 0) {
+      workingState = addToCart(workingState, 'prod2', 1);
+      workingState = calculateTotals(workingState);
     }
 
-    const paymentAmount = posState.total;
+    const paymentAmount = workingState.total;
     const cashReceived = paymentAmount + 100; // Give extra cash
 
     if (cashReceived < paymentAmount) {
@@ -354,29 +365,32 @@ const POSTest: React.FC = () => {
     const change = cashReceived - paymentAmount;
     
     // Process sale
-    setPosState(prev => ({
-      ...prev,
+    const newState = {
+      ...workingState,
       cart: [],
       subtotal: 0,
       tax: 0,
       total: 0,
-      completedSales: prev.completedSales + 1
-    }));
+      completedSales: workingState.completedSales + 1
+    };
 
     if (change < 0) {
       throw new Error('Change calculation error');
     }
+
+    return newState;
   };
 
-  const testProcessCardPayment = async () => {
+  const testProcessCardPayment = async (currentState: POSState): Promise<POSState> => {
     await delay(400);
     
-    if (posState.cart.length === 0) {
-      addToCart('prod3', 1);
-      calculateTotals();
+    let workingState = currentState;
+    if (workingState.cart.length === 0) {
+      workingState = addToCart(workingState, 'prod3', 1);
+      workingState = calculateTotals(workingState);
     }
 
-    const paymentAmount = posState.total;
+    const paymentAmount = workingState.total;
     
     // Simulate card payment processing
     const cardPaymentSuccess = true; // Mock successful payment
@@ -386,22 +400,25 @@ const POSTest: React.FC = () => {
     }
 
     // Process sale
-    setPosState(prev => ({
-      ...prev,
+    const newState = {
+      ...workingState,
       cart: [],
       subtotal: 0,
       tax: 0,
       total: 0,
-      completedSales: prev.completedSales + 1
-    }));
+      completedSales: workingState.completedSales + 1
+    };
+
+    return newState;
   };
 
-  const testProcessDigitalPayment = async () => {
+  const testProcessDigitalPayment = async (currentState: POSState): Promise<POSState> => {
     await delay(400);
     
-    if (posState.cart.length === 0) {
-      addToCart('prod4', 1);
-      calculateTotals();
+    let workingState = currentState;
+    if (workingState.cart.length === 0) {
+      workingState = addToCart(workingState, 'prod4', 1);
+      workingState = calculateTotals(workingState);
     }
 
     const paymentMethods = ['gcash', 'paymaya', 'bank_transfer'];
@@ -415,91 +432,101 @@ const POSTest: React.FC = () => {
     }
 
     // Process sale
-    setPosState(prev => ({
-      ...prev,
+    const newState = {
+      ...workingState,
       cart: [],
       subtotal: 0,
       tax: 0,
       total: 0,
-      completedSales: prev.completedSales + 1
-    }));
+      completedSales: workingState.completedSales + 1
+    };
+
+    return newState;
   };
 
-  const testHandleInsufficientStock = async () => {
+  const testHandleInsufficientStock = async (currentState: POSState): Promise<POSState> => {
     await delay(300);
     
     try {
       // Try to add more items than available stock
       const product = mockProducts.find(p => p.stock < 1000);
       if (product) {
-        addToCart(product.id, product.stock + 1);
+        addToCart(currentState, product.id, product.stock + 1);
         throw new Error('Should have failed due to insufficient stock');
       }
     } catch (error) {
       if (error instanceof Error && error.message.includes('Insufficient stock')) {
-        return; // Expected behavior
+        return currentState; // Expected behavior
       }
       throw error;
     }
+
+    return currentState;
   };
 
-  const testApplyDiscount = async () => {
+  const testApplyDiscount = async (currentState: POSState): Promise<POSState> => {
     await delay(300);
     
-    if (posState.cart.length === 0) {
-      addToCart('prod1', 1);
+    let workingState = currentState;
+    if (workingState.cart.length === 0) {
+      workingState = addToCart(workingState, 'prod1', 1);
     }
 
-    const originalSubtotal = posState.subtotal;
+    const originalSubtotal = workingState.subtotal;
     const discountPercentage = 10; // 10% discount
     const discountAmount = originalSubtotal * (discountPercentage / 100);
     const discountedSubtotal = originalSubtotal - discountAmount;
 
-    setPosState(prev => ({
-      ...prev,
+    const newState = {
+      ...workingState,
       subtotal: discountedSubtotal,
       tax: discountedSubtotal * 0.12,
       total: discountedSubtotal + (discountedSubtotal * 0.12)
-    }));
+    };
 
-    if (posState.subtotal >= originalSubtotal) {
+    if (newState.subtotal >= originalSubtotal) {
       throw new Error('Discount not applied correctly');
     }
+
+    return newState;
   };
 
-  const testValidateEmptyCart = async () => {
+  const testValidateEmptyCart = async (currentState: POSState): Promise<POSState> => {
     await delay(200);
     
-    setPosState(prev => ({ ...prev, cart: [] }));
+    const newState = { ...currentState, cart: [] };
     
     try {
-      if (posState.cart.length === 0) {
+      if (newState.cart.length === 0) {
         throw new Error('Cannot checkout with empty cart');
       }
     } catch (error) {
       if (error instanceof Error && error.message.includes('empty cart')) {
-        return; // Expected behavior
+        return newState; // Expected behavior
       }
       throw error;
     }
+
+    return newState;
   };
 
-  const testGenerateReceipt = async () => {
+  const testGenerateReceipt = async (currentState: POSState): Promise<POSState> => {
     await delay(400);
     
-    if (posState.cart.length === 0) {
-      addToCart('prod1', 1);
-      addToCart('prod2', 2);
+    let workingState = currentState;
+    if (workingState.cart.length === 0) {
+      workingState = addToCart(workingState, 'prod1', 1);
+      workingState = addToCart(workingState, 'prod2', 2);
     }
 
     const receipt = {
       receiptNumber: `RCP-${Date.now()}`,
       timestamp: new Date().toISOString(),
-      items: posState.cart,
-      subtotal: posState.subtotal,
-      tax: posState.tax,
-      total: posState.total,
-      customer: posState.selectedCustomer ? mockCustomers.find(c => c.id === posState.selectedCustomer) : null,
+      items: workingState.cart,
+      subtotal: workingState.subtotal,
+      tax: workingState.tax,
+      total: workingState.total,
+      customer: workingState.selectedCustomer ? mockCustomers.find(c => c.id === workingState.selectedCustomer) : null,
       paymentMethod: 'cash'
     };
 
@@ -507,21 +534,24 @@ const POSTest: React.FC = () => {
       throw new Error('Receipt generation failed');
     }
 
-    if (receipt.total !== posState.total) {
+    if (receipt.total !== workingState.total) {
       throw new Error('Receipt total mismatch');
     }
+
+    return workingState;
   };
 
   const runAllTests = async () => {
     setIsRunning(true);
-    setPosState({
+    let currentPosState: POSState = {
       cart: [],
       selectedCustomer: null,
       subtotal: 0,
       tax: 0,
       total: 0,
       completedSales: 0
-    });
+    };
+    setPosState(currentPosState);
     initializeTests();
     
     const tests = [
@@ -543,7 +573,8 @@ const POSTest: React.FC = () => {
     ];
 
     for (const test of tests) {
-      await runTest(test.name, test.fn);
+      currentPosState = await runTest(test.name, test.fn, currentPosState);
+      setPosState(currentPosState); // Update UI state
       await delay(100);
     }
     
