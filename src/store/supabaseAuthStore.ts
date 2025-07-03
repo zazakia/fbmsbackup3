@@ -9,6 +9,7 @@ interface SupabaseAuthStore extends AuthState {
   logout: () => Promise<void>;
   checkAuth: () => Promise<void>;
   clearError: () => void;
+  hasLoggedOut: boolean;
 }
 
 export const useSupabaseAuthStore = create<SupabaseAuthStore>()(
@@ -18,9 +19,10 @@ export const useSupabaseAuthStore = create<SupabaseAuthStore>()(
       isAuthenticated: false,
       isLoading: false,
       error: null,
+      hasLoggedOut: false,
 
       login: async (credentials: LoginCredentials) => {
-        set({ isLoading: true, error: null });
+        set({ isLoading: true, error: null, hasLoggedOut: false });
         
         try {
           const { data, error } = await supabaseAnon.auth.signInWithPassword({
@@ -70,7 +72,8 @@ export const useSupabaseAuthStore = create<SupabaseAuthStore>()(
               user,
               isAuthenticated: true,
               isLoading: false,
-              error: null
+              error: null,
+              hasLoggedOut: false
             });
           }
         } catch (error) {
@@ -83,7 +86,7 @@ export const useSupabaseAuthStore = create<SupabaseAuthStore>()(
       },
 
       register: async (data: RegisterData) => {
-        set({ isLoading: true, error: null });
+        set({ isLoading: true, error: null, hasLoggedOut: false });
         
         try {
           const { data: authData, error: authError } = await supabaseAnon.auth.signUp({
@@ -134,7 +137,8 @@ export const useSupabaseAuthStore = create<SupabaseAuthStore>()(
               user,
               isAuthenticated: true,
               isLoading: false,
-              error: null
+              error: null,
+              hasLoggedOut: false
             });
           }
         } catch (error) {
@@ -162,7 +166,8 @@ export const useSupabaseAuthStore = create<SupabaseAuthStore>()(
             user: null,
             isAuthenticated: false,
             isLoading: false,
-            error: null
+            error: null,
+            hasLoggedOut: true
           });
           
           // Clear persisted state
@@ -182,7 +187,8 @@ export const useSupabaseAuthStore = create<SupabaseAuthStore>()(
             user: null,
             isAuthenticated: false,
             isLoading: false,
-            error: null
+            error: null,
+            hasLoggedOut: true
           });
           
           // Clear persisted state
@@ -240,20 +246,23 @@ export const useSupabaseAuthStore = create<SupabaseAuthStore>()(
             set({
               user,
               isAuthenticated: true,
-              error: null
+              error: null,
+              hasLoggedOut: false
             });
           } else {
             set({
               user: null,
               isAuthenticated: false,
-              error: null
+              error: null,
+              hasLoggedOut: false
             });
           }
         } catch (error) {
           set({
             user: null,
             isAuthenticated: false,
-            error: error instanceof Error ? error.message : 'Authentication check failed'
+            error: error instanceof Error ? error.message : 'Authentication check failed',
+            hasLoggedOut: false
           });
         }
       },
@@ -266,7 +275,8 @@ export const useSupabaseAuthStore = create<SupabaseAuthStore>()(
       name: 'fbms-supabase-auth',
       partialize: (state) => ({
         user: state.user,
-        isAuthenticated: state.isAuthenticated
+        isAuthenticated: state.isAuthenticated,
+        hasLoggedOut: state.hasLoggedOut
       })
     }
   )
@@ -285,7 +295,8 @@ supabaseAnon.auth.onAuthStateChange((event, session) => {
       user: null,
       isAuthenticated: false,
       isLoading: false,
-      error: null
+      error: null,
+      hasLoggedOut: true
     });
   } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
     store.checkAuth();
