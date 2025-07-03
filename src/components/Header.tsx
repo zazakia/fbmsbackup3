@@ -1,6 +1,7 @@
-import React from 'react';
-import { Menu, Search, User, LogOut } from 'lucide-react';
-import { useAuthStore } from '../store/authStore';
+import React, { useState } from 'react';
+import { Menu, Search, User, LogOut, Loader2 } from 'lucide-react';
+import { useSupabaseAuthStore } from '../store/supabaseAuthStore';
+import { useToastStore } from '../store/toastStore';
 import SupabaseStatusIndicator from './SupabaseStatusIndicator';
 import DatabaseStatus from './DatabaseStatus';
 import NotificationBell from './NotificationBell';
@@ -12,10 +13,31 @@ interface HeaderProps {
 }
 
 const Header: React.FC<HeaderProps> = ({ onMenuToggle, activeModule }) => {
-  const { user, logout } = useAuthStore();
+  const { user, logout, isLoading } = useSupabaseAuthStore();
+  const { addToast } = useToastStore();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    if (isLoggingOut) return; // Prevent double-click
+    
+    setIsLoggingOut(true);
+    
+    try {
+      await logout();
+      addToast({
+        type: 'success',
+        title: 'Logged Out',
+        message: 'You have been successfully logged out.'
+      });
+    } catch (error) {
+      addToast({
+        type: 'error',
+        title: 'Logout Error',
+        message: 'There was an issue logging out, but you have been signed out locally.'
+      });
+    } finally {
+      setIsLoggingOut(false);
+    }
   };
 
   return (
@@ -80,10 +102,15 @@ const Header: React.FC<HeaderProps> = ({ onMenuToggle, activeModule }) => {
             </div>
             <button
               onClick={handleLogout}
-              className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-700 transition-colors"
-              title="Logout"
+              disabled={isLoggingOut}
+              className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              title={isLoggingOut ? "Logging out..." : "Logout"}
             >
-              <LogOut className="h-4 w-4 text-gray-600 dark:text-gray-300" />
+              {isLoggingOut ? (
+                <Loader2 className="h-4 w-4 text-gray-600 dark:text-gray-300 animate-spin" />
+              ) : (
+                <LogOut className="h-4 w-4 text-gray-600 dark:text-gray-300" />
+              )}
             </button>
           </div>
         </div>

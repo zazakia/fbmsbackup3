@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { useAuthStore } from '../store/authStore';
+import { useSupabaseAuthStore } from '../store/supabaseAuthStore';
 import AuthPage from './auth/AuthPage';
 
 interface ProtectedRouteProps {
@@ -7,7 +7,7 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
-  const { isAuthenticated, checkAuth } = useAuthStore();
+  const { isAuthenticated, checkAuth } = useSupabaseAuthStore();
 
   useEffect(() => {
     checkAuth();
