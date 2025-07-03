@@ -13,7 +13,11 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     checkAuth();
   }, [checkAuth]);
 
-  if (!isAuthenticated) {
+  // Temporarily bypass authentication for development
+  const isDevelopment = import.meta.env.DEV;
+  const shouldBypassAuth = isDevelopment;
+
+  if (!isAuthenticated && !shouldBypassAuth) {
     return <AuthPage />;
   }
 
