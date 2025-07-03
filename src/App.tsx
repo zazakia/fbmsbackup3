@@ -24,11 +24,14 @@ import Header from './components/Header';
 import ProtectedRoute from './components/ProtectedRoute';
 import LoadingSpinner from './components/LoadingSpinner';
 import ErrorBoundary from './components/ErrorBoundary';
+import PermissionGuard from './components/PermissionGuard';
 import { ToastContainer } from './components/Toast';
 import VersionSelector from './components/VersionSelector';
 import EnhancedVersionMenu from './components/EnhancedVersionMenu';
 import { useToastStore } from './store/toastStore';
 import { useThemeStore } from './store/themeStore';
+import { useSupabaseAuthStore } from './store/supabaseAuthStore';
+import { canAccessModule } from './utils/permissions';
 import { setupDevAuth } from './utils/supabase';
 import TestDashboard from './components/test/TestDashboard';
 import {
@@ -68,6 +71,7 @@ const App: React.FC = () => {
   });
   const { toasts, removeToast } = useToastStore();
   const { initializeTheme } = useThemeStore();
+  const { user } = useSupabaseAuthStore();
 
   // Initialize theme and development auth on app load
   useEffect(() => {
@@ -75,26 +79,35 @@ const App: React.FC = () => {
     setupDevAuth(); // Setup development authentication
   }, [initializeTheme]);
 
-  const menuItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: Home },
-    { id: 'sales', label: 'Sales & POS', icon: ShoppingCart },
-    { id: 'inventory', label: 'Inventory', icon: Package },
-    { id: 'purchases', label: 'Purchases', icon: Receipt },
-    { id: 'customers', label: 'Customers', icon: Users },
-    { id: 'expenses', label: 'Expenses', icon: DollarSign },
-    { id: 'payroll', label: 'Payroll', icon: UserCheck },
-    { id: 'accounting', label: 'Accounting', icon: Calculator },
-    { id: 'reports', label: 'Reports & Analytics', icon: FileText },
-    { id: 'bir', label: 'BIR Forms', icon: FileSpreadsheet },
-    { id: 'branches', label: 'Multi-Branch', icon: Building2 },
-    { id: 'operations', label: 'Operations', icon: Activity },
-    { id: 'cashier', label: 'Cashier POS', icon: CreditCard },
-    { id: 'marketing', label: 'Marketing', icon: Megaphone },
-    { id: 'loyalty', label: 'Loyalty Programs', icon: Gift },
-    { id: 'backup', label: 'Cloud Backup', icon: Cloud },
-    { id: 'testing', label: 'Testing Suite', icon: TestTube },
-    { id: 'settings', label: 'Settings', icon: Settings }
+  const allMenuItems = [
+    { id: 'dashboard', label: 'Dashboard', icon: Home, module: 'dashboard' },
+    { id: 'sales', label: 'Sales & POS', icon: ShoppingCart, module: 'pos' },
+    { id: 'inventory', label: 'Inventory', icon: Package, module: 'inventory' },
+    { id: 'purchases', label: 'Purchases', icon: Receipt, module: 'purchases' },
+    { id: 'customers', label: 'Customers', icon: Users, module: 'customers' },
+    { id: 'expenses', label: 'Expenses', icon: DollarSign, module: 'expenses' },
+    { id: 'payroll', label: 'Payroll', icon: UserCheck, module: 'payroll' },
+    { id: 'accounting', label: 'Accounting', icon: Calculator, module: 'accounting' },
+    { id: 'reports', label: 'Reports & Analytics', icon: FileText, module: 'reports' },
+    { id: 'bir', label: 'BIR Forms', icon: FileSpreadsheet, module: 'bir' },
+    { id: 'branches', label: 'Multi-Branch', icon: Building2, module: 'branches' },
+    { id: 'operations', label: 'Operations', icon: Activity, module: 'dashboard' }, // Map to dashboard permissions
+    { id: 'cashier', label: 'Cashier POS', icon: CreditCard, module: 'pos' },
+    { id: 'marketing', label: 'Marketing', icon: Megaphone, module: 'reports' }, // Map to reports permissions for now
+    { id: 'loyalty', label: 'Loyalty Programs', icon: Gift, module: 'customers' }, // Map to customers permissions
+    { id: 'backup', label: 'Cloud Backup', icon: Cloud, module: 'settings' }, // Map to settings permissions
+    { id: 'testing', label: 'Testing Suite', icon: TestTube, module: 'settings' }, // Map to settings permissions
+    { id: 'settings', label: 'Settings', icon: Settings, module: 'settings' }
   ];
+
+  // Filter menu items based on user role permissions
+  const menuItems = allMenuItems.filter(item => {
+    if (!user || !user.role) {
+      // Show basic items for unauthenticated users
+      return ['dashboard', 'settings'].includes(item.id);
+    }
+    return canAccessModule(user.role, item.module);
+  });
 
   const handleVersionChange = (module: string, isEnhanced: boolean) => {
     setEnhancedVersions(prev => ({
@@ -106,43 +119,119 @@ const App: React.FC = () => {
   const renderContent = () => {
     switch (activeModule) {
       case 'dashboard':
-        return <LazyDashboard />;
+        return (
+          <PermissionGuard module="dashboard">
+            <LazyDashboard />
+          </PermissionGuard>
+        );
       case 'sales':
-        return enhancedVersions.sales ? <LazyEnhancedPOSSystem /> : <LazyPOSSystem />;
+        return (
+          <PermissionGuard module="pos">
+            {enhancedVersions.sales ? <LazyEnhancedPOSSystem /> : <LazyPOSSystem />}
+          </PermissionGuard>
+        );
       case 'inventory':
-        return enhancedVersions.inventory ? <LazyEnhancedInventoryManagement /> : <LazyInventoryManagement />;
+        return (
+          <PermissionGuard module="inventory">
+            {enhancedVersions.inventory ? <LazyEnhancedInventoryManagement /> : <LazyInventoryManagement />}
+          </PermissionGuard>
+        );
       case 'purchases':
-        return enhancedVersions.purchases ? <LazyEnhancedPurchaseManagement /> : <LazyPurchaseManagement />;
+        return (
+          <PermissionGuard module="purchases">
+            {enhancedVersions.purchases ? <LazyEnhancedPurchaseManagement /> : <LazyPurchaseManagement />}
+          </PermissionGuard>
+        );
       case 'customers':
-        return <LazyCustomerManagement />;
+        return (
+          <PermissionGuard module="customers">
+            <LazyCustomerManagement />
+          </PermissionGuard>
+        );
       case 'expenses':
-        return <LazyExpenseTracking />;
+        return (
+          <PermissionGuard module="expenses">
+            <LazyExpenseTracking />
+          </PermissionGuard>
+        );
       case 'payroll':
-        return <LazyPayrollManagement />;
+        return (
+          <PermissionGuard module="payroll">
+            <LazyPayrollManagement />
+          </PermissionGuard>
+        );
       case 'accounting':
-        return enhancedVersions.accounting ? <LazyEnhancedAccountingManagement /> : <LazyAccountingManagement />;
+        return (
+          <PermissionGuard module="accounting">
+            {enhancedVersions.accounting ? <LazyEnhancedAccountingManagement /> : <LazyAccountingManagement />}
+          </PermissionGuard>
+        );
       case 'reports':
-        return enhancedVersions.reports ? <LazyEnhancedReportsDashboard /> : <LazyReportsDashboard />;
+        return (
+          <PermissionGuard module="reports">
+            {enhancedVersions.reports ? <LazyEnhancedReportsDashboard /> : <LazyReportsDashboard />}
+          </PermissionGuard>
+        );
       case 'bir':
-        return <LazyBIRForms />;
+        return (
+          <PermissionGuard module="bir">
+            <LazyBIRForms />
+          </PermissionGuard>
+        );
       case 'branches':
-        return <LazyBranchManagement />;
+        return (
+          <PermissionGuard module="branches">
+            <LazyBranchManagement />
+          </PermissionGuard>
+        );
       case 'operations':
-        return <LazyManagerOperations />;
+        return (
+          <PermissionGuard module="dashboard" requiredRole="manager">
+            <LazyManagerOperations />
+          </PermissionGuard>
+        );
       case 'cashier':
-        return <LazyCashierPOS />;
+        return (
+          <PermissionGuard module="pos">
+            <LazyCashierPOS />
+          </PermissionGuard>
+        );
       case 'marketing':
-        return <LazyMarketingCampaigns />;
+        return (
+          <PermissionGuard module="reports">
+            <LazyMarketingCampaigns />
+          </PermissionGuard>
+        );
       case 'loyalty':
-        return <LazyLoyaltyPrograms />;
+        return (
+          <PermissionGuard module="customers">
+            <LazyLoyaltyPrograms />
+          </PermissionGuard>
+        );
       case 'backup':
-        return <LazyCloudBackup />;
+        return (
+          <PermissionGuard module="settings" requiredRole="admin">
+            <LazyCloudBackup />
+          </PermissionGuard>
+        );
       case 'testing':
-        return <TestDashboard />;
+        return (
+          <PermissionGuard module="settings" requiredRole="admin">
+            <TestDashboard />
+          </PermissionGuard>
+        );
       case 'settings':
-        return <LazySettingsPage />;
+        return (
+          <PermissionGuard module="settings">
+            <LazySettingsPage />
+          </PermissionGuard>
+        );
       default:
-        return <LazyDashboard />;
+        return (
+          <PermissionGuard module="dashboard">
+            <LazyDashboard />
+          </PermissionGuard>
+        );
     }
   };
 

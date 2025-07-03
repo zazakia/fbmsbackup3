@@ -3,6 +3,9 @@ import { Save, Bell, Calendar, Database, Shield, User, Monitor, Download } from 
 import { useNotificationStore } from '../../store/notificationStore';
 import { useInventoryMonitor } from '../../services/inventoryMonitor';
 import { useToastStore } from '../../store/toastStore';
+import { useSupabaseAuthStore } from '../../store/supabaseAuthStore';
+import { hasPermission } from '../../utils/permissions';
+import UserManagement from './UserManagement';
 
 interface SettingsSection {
   id: string;
@@ -16,6 +19,7 @@ const SettingsPage: React.FC = () => {
   const { settings, updateSettings, isEnabled, toggleNotifications } = useNotificationStore();
   const { updateThresholds, getStatus } = useInventoryMonitor();
   const { addToast } = useToastStore();
+  const { user } = useSupabaseAuthStore();
 
   const [inventoryThresholds, setInventoryThresholds] = useState({
     lowStock: 10,
@@ -32,7 +36,7 @@ const SettingsPage: React.FC = () => {
     autoExport: false
   });
 
-  const sections: SettingsSection[] = [
+  const allSections: SettingsSection[] = [
     {
       id: 'notifications',
       title: 'Notifications',
@@ -70,6 +74,14 @@ const SettingsPage: React.FC = () => {
       description: 'Update personal information and preferences'
     }
   ];
+
+  // Filter sections based on user permissions
+  const sections = allSections.filter(section => {
+    if (section.id === 'security') {
+      return user && hasPermission(user.role, 'users', 'view');
+    }
+    return true; // All other sections are accessible to all users
+  });
 
   const handleSaveSettings = () => {
     // Save notification settings
@@ -241,13 +253,7 @@ const SettingsPage: React.FC = () => {
           </div>
         );
       case 'security':
-        return (
-          <div className="text-center py-8">
-            <Shield className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">Security Settings</h3>
-            <p className="text-gray-600">Security configuration options coming soon...</p>
-          </div>
-        );
+        return <UserManagement />;
       case 'profile':
         return (
           <div className="text-center py-8">
