@@ -13,8 +13,12 @@
     "test:coverage": "vitest --coverage",
     "push": "node scripts/quick-push.js",
     "push:msg": "node scripts/quick-push.js",
+    "push:deploy": "node scripts/quick-push.js --deploy",
     "git:workflow": "./scripts/git-workflow.sh",
-    "deploy": "npm run build && netlify deploy --prod --dir=dist"
+    "git:deploy": "./scripts/git-workflow.sh --deploy",
+    "deploy": "npm run build && netlify deploy --prod --dir=dist",
+    "deploy:build": "npm run build",
+    "deploy:netlify": "netlify deploy --prod --dir=dist"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.50.2",

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Git Workflow Script for FBMS
-# Usage: ./scripts/git-workflow.sh [commit_message] [branch_name]
+# Usage: ./scripts/git-workflow.sh [commit_message] [branch_name] [--deploy]
 
 set -e  # Exit on any error
 
@@ -31,34 +31,79 @@ print_header() {
     echo -e "${BLUE}================================${NC}"
 }
 
+# Function to deploy to Netlify
+deploy_to_netlify() {
+    print_header "Deploying to Netlify"
+    
+    # Check if Netlify CLI is installed
+    if ! command -v netlify &> /dev/null; then
+        print_error "Netlify CLI not found. Please install it with: npm install -g netlify-cli"
+        return 1
+    fi
+
+    # Build the project
+    print_status "Building project..."
+    npm run build
+
+    # Deploy to Netlify
+    print_status "Deploying to Netlify..."
+    netlify deploy --prod --dir=dist
+
+    print_status "Deployment completed successfully!"
+}
+
 # Check if we're in a git repository
 if ! git rev-parse --git-dir > /dev/null 2>&1; then
     print_error "Not in a git repository!"
     exit 1
 fi
 
+# Parse arguments
+COMMIT_MESSAGE=""
+BRANCH_NAME=""
+SHOULD_DEPLOY=false
+
+# Parse command line arguments
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --deploy|-d)
+            SHOULD_DEPLOY=true
+            shift
+            ;;
+        *)
+            if [ -z "$COMMIT_MESSAGE" ]; then
+                COMMIT_MESSAGE="$1"
+            elif [ -z "$BRANCH_NAME" ]; then
+                BRANCH_NAME="$1"
+            fi
+            shift
+            ;;
+    esac
+done
+
 # Get current branch
 CURRENT_BRANCH=$(git branch --show-current)
 print_status "Current branch: $CURRENT_BRANCH"
 
 # Get commit message from argument or prompt
-if [ -n "$1" ]; then
-    COMMIT_MESSAGE="$1"
-else
+if [ -z "$COMMIT_MESSAGE" ]; then
     echo -n "Enter commit message: "
     read COMMIT_MESSAGE
 fi
 
 # Get branch name from argument or use current
-if [ -n "$2" ]; then
-    BRANCH_NAME="$2"
-else
+if [ -z "$BRANCH_NAME" ]; then
     BRANCH_NAME="$CURRENT_BRANCH"
 fi
 
 # Check if there are changes to commit
 if git diff-index --quiet HEAD --; then
     print_warning "No changes to commit!"
+    
+    # If no changes but deploy flag is set, still deploy
+    if [ "$SHOULD_DEPLOY" = true ]; then
+        deploy_to_netlify
+    fi
     exit 0
 fi
 
@@ -80,7 +125,12 @@ git commit -m "$COMMIT_MESSAGE"
 print_status "Pushing to remote repository..."
 git push origin "$BRANCH_NAME"
 
-# Step 5: Create pull request (if not on main branch)
+# Step 5: Deploy if flag is set
+if [ "$SHOULD_DEPLOY" = true ]; then
+    deploy_to_netlify
+fi
+
+# Step 6: Create pull request (if not on main branch)
 if [ "$BRANCH_NAME" != "main" ]; then
     print_status "Creating pull request..."
     
@@ -96,10 +146,14 @@ else
     print_status "On main branch - no pull request needed"
 fi
 
-# Step 6: Show summary
+# Step 7: Show summary
 print_header "Workflow Complete!"
 print_status "Changes committed and pushed to: $BRANCH_NAME"
 print_status "Commit message: $COMMIT_MESSAGE"
+
+if [ "$SHOULD_DEPLOY" = true ]; then
+    print_status "Deployment completed"
+fi
 
 # Show recent commits
 print_status "Recent commits:"

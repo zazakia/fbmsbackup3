@@ -13,11 +13,23 @@ npm run push
 # Quick push with custom message
 npm run push "Your commit message here"
 
+# Quick push with deployment
+npm run push:deploy "Your commit message here"
+
 # Full git workflow (staging, commit, push, PR)
 npm run git:workflow
 
+# Full git workflow with deployment
+npm run git:deploy "Your commit message here"
+
 # Build and deploy to Netlify
 npm run deploy
+
+# Build only
+npm run deploy:build
+
+# Deploy to Netlify only (assumes build is done)
+npm run deploy:netlify
 ```
 
 ### Option 2: Direct Script Execution
@@ -25,9 +37,11 @@ npm run deploy
 ```bash
 # Quick push script
 ./scripts/quick-push.js "Your commit message"
+./scripts/quick-push.js "Your commit message" --deploy
 
 # Full workflow script
 ./scripts/git-workflow.sh "Your commit message" "branch-name"
+./scripts/git-workflow.sh "Your commit message" "branch-name" --deploy
 ```
 
 ## Scripts Overview
@@ -46,6 +60,7 @@ npm run deploy
 ```bash
 npm run push                    # Default message: "Update FBMS"
 npm run push "Fix mobile layout"  # Custom message
+npm run push:deploy "Fix mobile layout"  # Push + deploy
 ```
 
 ### 2. `git-workflow.sh` (Bash)
@@ -60,8 +75,10 @@ npm run push "Fix mobile layout"  # Custom message
 **Usage**:
 ```bash
 npm run git:workflow                    # Interactive mode
+npm run git:deploy "Message"            # Interactive mode + deploy
 ./scripts/git-workflow.sh "Message"     # With commit message
 ./scripts/git-workflow.sh "Message" "feature-branch"  # With branch
+./scripts/git-workflow.sh "Message" "feature-branch" --deploy  # With branch + deploy
 ```
 
 ### 3. `deploy` (NPM Script)
@@ -73,7 +90,9 @@ npm run git:workflow                    # Interactive mode
 
 **Usage**:
 ```bash
-npm run deploy
+npm run deploy              # Build + deploy
+npm run deploy:build        # Build only
+npm run deploy:netlify      # Deploy only (assumes build is done)
 ```
 
 ## Workflow Examples
@@ -86,6 +105,9 @@ npm run push "Add customer search feature"
 
 # 3. Deploy (if needed)
 npm run deploy
+
+# OR combine push + deploy in one command
+npm run push:deploy "Add customer search feature"
 ```
 
 ### Feature Branch Workflow
@@ -107,6 +129,9 @@ npm run push "Fix critical bug in POS system"
 
 # 2. Deploy immediately
 npm run deploy
+
+# OR combine fix + push + deploy in one command
+npm run push:deploy "Fix critical bug in POS system"
 ```
 
 ## GitHub CLI Setup (Optional)
@@ -125,6 +150,21 @@ winget install GitHub.cli
 
 # Then authenticate
 gh auth login
+```
+
+## Netlify CLI Setup (Required for Deployment)
+
+For automatic deployment, install Netlify CLI:
+
+```bash
+# Install globally
+npm install -g netlify-cli
+
+# Login to Netlify
+netlify login
+
+# Link your project (first time only)
+netlify link
 ```
 
 ## Tips

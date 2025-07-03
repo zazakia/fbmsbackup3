@@ -30,8 +30,9 @@ function header(message) {
     console.log(`${colors.blue}================================${colors.reset}`);
 }
 
-// Get commit message from command line arguments
+// Get commit message and deploy flag from command line arguments
 const commitMessage = process.argv[2] || 'Update FBMS';
+const shouldDeploy = process.argv.includes('--deploy') || process.argv.includes('-d');
 
 async function quickPush() {
     try {
@@ -53,6 +54,11 @@ async function quickPush() {
         try {
             execSync('git diff-index --quiet HEAD --', { stdio: 'ignore' });
             warn('No changes to commit!');
+            
+            // If no changes but deploy flag is set, still deploy
+            if (shouldDeploy) {
+                await deployToNetlify();
+            }
             return;
         } catch {
             // Changes exist, continue
@@ -73,6 +79,11 @@ async function quickPush() {
         // Push
         log('Pushing to remote...');
         execSync(`git push origin ${currentBranch}`, { stdio: 'inherit' });
+
+        // Deploy if flag is set
+        if (shouldDeploy) {
+            await deployToNetlify();
+        }
 
         // Summary
         header('Push Complete!');
@@ -98,6 +109,34 @@ async function quickPush() {
     } catch (err) {
         error(`Script failed: ${err.message}`);
         process.exit(1);
+    }
+}
+
+async function deployToNetlify() {
+    try {
+        header('Deploying to Netlify');
+        
+        // Check if Netlify CLI is installed
+        try {
+            execSync('netlify --version', { stdio: 'ignore' });
+        } catch {
+            error('Netlify CLI not found. Please install it with: npm install -g netlify-cli');
+            return;
+        }
+
+        // Build the project
+        log('Building project...');
+        execSync('npm run build', { stdio: 'inherit' });
+
+        // Deploy to Netlify
+        log('Deploying to Netlify...');
+        execSync('netlify deploy --prod --dir=dist', { stdio: 'inherit' });
+
+        log('Deployment completed successfully!');
+        
+    } catch (err) {
+        error(`Deployment failed: ${err.message}`);
+        warn('You can still deploy manually with: npm run deploy');
     }
 }
 
