@@ -5,12 +5,28 @@ export interface Product {
   sku: string;
   barcode?: string;
   category: string;
+  categoryId: string;
   price: number;
   cost: number;
   stock: number;
   minStock: number;
+  reorderQuantity?: number;
   unit: string;
   isActive: boolean;
+  expiryDate?: Date;
+  manufacturingDate?: Date;
+  batchNumber?: string;
+  soldQuantity?: number;
+  weight?: number;
+  dimensions?: {
+    length: number;
+    width: number;
+    height: number;
+  };
+  supplier?: string;
+  location?: string;
+  tags: string[];
+  images: string[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -404,4 +420,73 @@ export interface WithholdingTaxBracket {
   baseTax: number;
   rate: number;
   description: string;
+}
+
+// Enhanced Inventory Management Types
+export interface StockMovement {
+  id: string;
+  productId: string;
+  type: 'stock_in' | 'stock_out' | 'adjustment' | 'transfer' | 'return';
+  quantity: number;
+  reason: string;
+  performedBy: string;
+  batchNumber?: string;
+  cost?: number;
+  referenceId?: string; // Reference to sale, purchase, etc.
+  notes?: string;
+  createdAt: Date;
+}
+
+export interface InventoryBatch {
+  id: string;
+  productId: string;
+  batchNumber: string;
+  quantity: number;
+  cost: number;
+  manufacturingDate: Date;
+  expiryDate?: Date;
+  supplier?: string;
+  receivedDate: Date;
+  status: 'active' | 'expired' | 'recalled' | 'sold';
+  notes?: string;
+  createdAt: Date;
+}
+
+export interface StockAlert {
+  id: string;
+  type: 'low_stock' | 'out_of_stock' | 'expiring' | 'expired';
+  productId: string;
+  productName: string;
+  message: string;
+  severity: 'low' | 'medium' | 'high' | 'critical';
+  isRead: boolean;
+  createdAt: Date;
+}
+
+export interface InventoryLocation {
+  id: string;
+  name: string;
+  description?: string;
+  type: 'warehouse' | 'store' | 'display' | 'storage';
+  address?: string;
+  isActive: boolean;
+  createdAt: Date;
+}
+
+export interface StockTransfer {
+  id: string;
+  fromLocationId: string;
+  toLocationId: string;
+  items: {
+    productId: string;
+    quantity: number;
+    batchNumber?: string;
+  }[];
+  status: 'pending' | 'in_transit' | 'received' | 'cancelled';
+  transferDate: Date;
+  receivedDate?: Date;
+  transferredBy: string;
+  receivedBy?: string;
+  notes?: string;
+  createdAt: Date;
 }
