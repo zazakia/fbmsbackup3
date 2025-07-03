@@ -1,8 +1,8 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 /* Custom CSS Variables for theming */
 :root {
@@ -115,6 +115,87 @@ body {
   
   .philippine-gradient {
     @apply bg-gradient-to-r from-philippine-blue via-philippine-red to-philippine-yellow;
+  }
+  
+  /* Mobile-specific component styles */
+  .mobile-card {
+    @apply bg-white dark:bg-dark-800 border border-gray-200 dark:border-dark-700 rounded-lg shadow-sm p-4 mb-4;
+  }
+  
+  .mobile-table-card {
+    @apply bg-white dark:bg-dark-800 border border-gray-200 dark:border-dark-700 rounded-lg shadow-sm p-4 mb-3;
+  }
+  
+  .mobile-form-container {
+    @apply px-4 py-6 max-w-full;
+  }
+  
+  .mobile-btn {
+    @apply w-full py-3 px-4 text-center font-medium rounded-lg transition-colors duration-200;
+  }
+  
+  .mobile-btn-primary {
+    @apply mobile-btn bg-primary-600 hover:bg-primary-700 dark:bg-primary-500 dark:hover:bg-primary-600 text-white;
+  }
+  
+  .mobile-btn-secondary {
+    @apply mobile-btn bg-gray-100 hover:bg-gray-200 dark:bg-dark-700 dark:hover:bg-dark-600 text-gray-700 dark:text-gray-200;
+  }
+  
+  .mobile-input {
+    @apply w-full px-4 py-3 border border-gray-300 dark:border-dark-600 rounded-lg bg-white dark:bg-dark-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent transition-colors duration-200;
+  }
+  
+  .mobile-header {
+    @apply px-4 py-3 bg-white dark:bg-dark-800 border-b border-gray-200 dark:border-dark-700 sticky top-0 z-10;
+  }
+  
+  .mobile-search {
+    @apply w-full px-4 py-2 border border-gray-300 dark:border-dark-600 rounded-lg bg-white dark:bg-dark-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent;
+  }
+  
+  .mobile-tab {
+    @apply flex-1 py-3 px-4 text-center font-medium border-b-2 transition-colors duration-200;
+  }
+  
+  .mobile-tab-active {
+    @apply border-primary-600 text-primary-700 dark:text-primary-300 bg-primary-50 dark:bg-primary-900/20;
+  }
+  
+  .mobile-tab-inactive {
+    @apply border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300;
+  }
+  
+  .mobile-section {
+    @apply px-4 py-6 space-y-4;
+  }
+  
+  .mobile-grid {
+    @apply grid grid-cols-1 gap-4;
+  }
+  
+  .mobile-grid-2 {
+    @apply grid grid-cols-2 gap-3;
+  }
+  
+  .mobile-modal {
+    @apply fixed inset-0 z-50 flex items-end sm:items-center justify-center;
+  }
+  
+  .mobile-modal-content {
+    @apply bg-white dark:bg-dark-800 rounded-t-2xl sm:rounded-lg w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto;
+  }
+  
+  .mobile-stats-grid {
+    @apply grid grid-cols-1 sm:grid-cols-2 gap-4;
+  }
+  
+  .mobile-chart-container {
+    @apply w-full overflow-x-auto;
+  }
+  
+  .mobile-table-wrapper {
+    @apply overflow-x-auto -mx-4 px-4;
   }
 }
 

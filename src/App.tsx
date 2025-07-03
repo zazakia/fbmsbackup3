@@ -16,7 +16,8 @@ import {
   Gift,
   Cloud,
   Activity,
-  CreditCard
+  CreditCard,
+  TestTube
 } from 'lucide-react';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
@@ -26,10 +27,10 @@ import ErrorBoundary from './components/ErrorBoundary';
 import { ToastContainer } from './components/Toast';
 import VersionSelector from './components/VersionSelector';
 import EnhancedVersionMenu from './components/EnhancedVersionMenu';
-import SupabaseAuthBanner from './components/auth/SupabaseAuthBanner';
 import { useToastStore } from './store/toastStore';
 import { useThemeStore } from './store/themeStore';
 import { setupDevAuth } from './utils/supabase';
+import TestDashboard from './components/test/TestDashboard';
 import {
   LazyDashboard,
   LazyPOSSystem,
@@ -91,6 +92,7 @@ const App: React.FC = () => {
     { id: 'marketing', label: 'Marketing', icon: Megaphone },
     { id: 'loyalty', label: 'Loyalty Programs', icon: Gift },
     { id: 'backup', label: 'Cloud Backup', icon: Cloud },
+    { id: 'testing', label: 'Testing Suite', icon: TestTube },
     { id: 'settings', label: 'Settings', icon: Settings }
   ];
 
@@ -135,6 +137,8 @@ const App: React.FC = () => {
         return <LazyLoyaltyPrograms />;
       case 'backup':
         return <LazyCloudBackup />;
+      case 'testing':
+        return <TestDashboard />;
       case 'settings':
         return <LazySettingsPage />;
       default:
@@ -165,9 +169,7 @@ const App: React.FC = () => {
 
           {/* Content Area */}
           <main className="flex-1 overflow-y-auto bg-gray-50 dark:bg-dark-950 transition-colors duration-300">
-            <div className="p-6">
-              {/* Supabase Authentication Banner */}
-              <SupabaseAuthBanner />
+            <div className="p-3 sm:p-6">
               
               <VersionSelector 
                 currentModule={activeModule}
