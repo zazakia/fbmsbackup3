@@ -147,16 +147,32 @@ export const useSupabaseAuthStore = create<SupabaseAuthStore>()(
       },
 
       logout: async () => {
+        set({ isLoading: true });
+        
         try {
-          await supabaseAnon.auth.signOut();
+          // Sign out from Supabase
+          const { error } = await supabaseAnon.auth.signOut();
+          
+          if (error) {
+            console.warn('Supabase logout error:', error.message);
+          }
+          
+          // Clear all auth state
           set({
             user: null,
             isAuthenticated: false,
             isLoading: false,
             error: null
           });
+          
+          // Clear persisted state
+          localStorage.removeItem('fbms-supabase-auth');
+          
+          console.log('Logout successful');
+          
         } catch (error) {
           console.error('Logout error:', error);
+          
           // Force logout locally even if Supabase call fails
           set({
             user: null,
@@ -164,6 +180,11 @@ export const useSupabaseAuthStore = create<SupabaseAuthStore>()(
             isLoading: false,
             error: null
           });
+          
+          // Clear persisted state
+          localStorage.removeItem('fbms-supabase-auth');
+          
+          console.log('Forced local logout completed');
         }
       },
 
@@ -247,8 +268,17 @@ export const useSupabaseAuthStore = create<SupabaseAuthStore>()(
 supabaseAnon.auth.onAuthStateChange((event, session) => {
   const store = useSupabaseAuthStore.getState();
   
+  console.log('Auth state change:', event, !!session);
+  
   if (event === 'SIGNED_OUT' || !session) {
-    store.logout();
+    // Only clear state, don't call logout() to avoid infinite loop
+    store.clearError();
+    useSupabaseAuthStore.setState({
+      user: null,
+      isAuthenticated: false,
+      isLoading: false,
+      error: null
+    });
   } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
     store.checkAuth();
   }
