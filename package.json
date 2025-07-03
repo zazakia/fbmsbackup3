@@ -10,7 +10,11 @@
     "preview": "vite preview",
     "test": "vitest",
     "test:ui": "vitest --ui",
-    "test:coverage": "vitest --coverage"
+    "test:coverage": "vitest --coverage",
+    "push": "node scripts/quick-push.js",
+    "push:msg": "node scripts/quick-push.js",
+    "git:workflow": "./scripts/git-workflow.sh",
+    "deploy": "npm run build && netlify deploy --prod --dir=dist"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.50.2",

@@ -104,13 +104,18 @@ const CustomerCRUDTest: React.FC = () => {
 
   const generateId = () => Math.random().toString(36).substring(2) + Date.now().toString(36);
 
-  const runTest = async (testName: string, testFn: () => Promise<void>) => {
+  const runTestWithCustomers = async (testName: string, testFn: (currentCustomers: Customer[]) => Promise<Customer[]>, currentCustomers: Customer[]) => {
     const startTime = Date.now();
     setCurrentTest(testName);
     updateTestResult(testName, 'running');
     
     try {
-      await testFn();
+      const updatedCustomers = await testFn(currentCustomers);
+      setCustomers(updatedCustomers);
+      
+      // Wait for state to update
+      await delay(100);
+      
       const duration = Date.now() - startTime;
       updateTestResult(testName, 'passed', 'Test completed successfully', duration);
       addToast({
@@ -118,6 +123,8 @@ const CustomerCRUDTest: React.FC = () => {
         title: 'Test Passed',
         message: `${testName} completed successfully`
       });
+      
+      return updatedCustomers;
     } catch (error) {
       const duration = Date.now() - startTime;
       const message = error instanceof Error ? error.message : 'Test failed';
@@ -127,10 +134,11 @@ const CustomerCRUDTest: React.FC = () => {
         title: 'Test Failed',
         message: `${testName}: ${message}`
       });
+      return currentCustomers;
     }
   };
 
-  const testCreateIndividualCustomer = async () => {
+  const testCreateIndividualCustomer = async (currentCustomers: Customer[]): Promise<Customer[]> => {
     await delay(500);
     const customerData = mockCustomers[0];
     const newCustomer: Customer = {
@@ -144,10 +152,10 @@ const CustomerCRUDTest: React.FC = () => {
       throw new Error('Required fields missing');
     }
     
-    setCustomers(prev => [...prev, newCustomer]);
+    return [...currentCustomers, newCustomer];
   };
 
-  const testCreateBusinessCustomer = async () => {
+  const testCreateBusinessCustomer = async (currentCustomers: Customer[]): Promise<Customer[]> => {
     await delay(500);
     const customerData = mockCustomers[1];
     const newCustomer: Customer = {
@@ -161,27 +169,29 @@ const CustomerCRUDTest: React.FC = () => {
       throw new Error('Business name required for business customers');
     }
     
-    setCustomers(prev => [...prev, newCustomer]);
+    return [...currentCustomers, newCustomer];
   };
 
-  const testReadCustomers = async () => {
+  const testReadCustomers = async (currentCustomers: Customer[]): Promise<Customer[]> => {
     await delay(300);
-    if (customers.length === 0) {
+    if (currentCustomers.length === 0) {
       throw new Error('No customers found');
     }
     
-    if (customers.length < 2) {
-      throw new Error('Expected at least 2 customers');
+    if (currentCustomers.length < 2) {
+      throw new Error(`Expected at least 2 customers, found ${currentCustomers.length}`);
     }
+    
+    return currentCustomers;
   };
 
-  const testUpdateCustomer = async () => {
+  const testUpdateCustomer = async (currentCustomers: Customer[]): Promise<Customer[]> => {
     await delay(400);
-    if (customers.length === 0) {
+    if (currentCustomers.length === 0) {
       throw new Error('No customers to update');
     }
     
-    const customerToUpdate = customers[0];
+    const customerToUpdate = currentCustomers[0];
     const updatedCustomer = {
       ...customerToUpdate,
       firstName: 'Updated Juan',
@@ -189,40 +199,40 @@ const CustomerCRUDTest: React.FC = () => {
       updatedAt: new Date().toISOString()
     };
     
-    setCustomers(prev => prev.map(c => 
+    return currentCustomers.map(c => 
       c.id === customerToUpdate.id ? updatedCustomer : c
-    ));
+    );
   };
 
-  const testUpdateCustomerStatus = async () => {
+  const testUpdateCustomerStatus = async (currentCustomers: Customer[]): Promise<Customer[]> => {
     await delay(300);
-    if (customers.length === 0) {
+    if (currentCustomers.length === 0) {
       throw new Error('No customers to update');
     }
     
-    const customerToUpdate = customers[0];
+    const customerToUpdate = currentCustomers[0];
     const updatedCustomer = {
       ...customerToUpdate,
       isActive: !customerToUpdate.isActive,
       updatedAt: new Date().toISOString()
     };
     
-    setCustomers(prev => prev.map(c => 
+    return currentCustomers.map(c => 
       c.id === customerToUpdate.id ? updatedCustomer : c
-    ));
+    );
   };
 
-  const testDeleteCustomer = async () => {
+  const testDeleteCustomer = async (currentCustomers: Customer[]): Promise<Customer[]> => {
     await delay(400);
-    if (customers.length === 0) {
+    if (currentCustomers.length === 0) {
       throw new Error('No customers to delete');
     }
     
-    const customerToDelete = customers[customers.length - 1];
-    setCustomers(prev => prev.filter(c => c.id !== customerToDelete.id));
+    const customerToDelete = currentCustomers[currentCustomers.length - 1];
+    return currentCustomers.filter(c => c.id !== customerToDelete.id);
   };
 
-  const testValidateRequiredFields = async () => {
+  const testValidateRequiredFields = async (currentCustomers: Customer[]): Promise<Customer[]> => {
     await delay(200);
     try {
       const invalidCustomer = {
@@ -233,16 +243,17 @@ const CustomerCRUDTest: React.FC = () => {
       };
       
       if (!invalidCustomer.firstName || !invalidCustomer.lastName || !invalidCustomer.email) {
-        return; // Expected to fail validation
+        return currentCustomers; // Expected to fail validation
       }
       
       throw new Error('Validation should have failed');
     } catch (error) {
       // Expected behavior
+      return currentCustomers;
     }
   };
 
-  const testEmailValidation = async () => {
+  const testEmailValidation = async (currentCustomers: Customer[]): Promise<Customer[]> => {
     await delay(200);
     const invalidEmails = ['invalid-email', 'test@', '@domain.com', ''];
     
@@ -256,9 +267,11 @@ const CustomerCRUDTest: React.FC = () => {
       }
       throw new Error(`Email validation failed for: ${email}`);
     }
+    
+    return currentCustomers;
   };
 
-  const testPhoneValidation = async () => {
+  const testPhoneValidation = async (currentCustomers: Customer[]): Promise<Customer[]> => {
     await delay(200);
     const validPhones = ['+63 917 123 4567', '09171234567', '(02) 123-4567'];
     const invalidPhones = ['123', 'abc', ''];
@@ -277,9 +290,11 @@ const CustomerCRUDTest: React.FC = () => {
       }
       throw new Error(`Invalid phone accepted: ${phone}`);
     }
+    
+    return currentCustomers;
   };
 
-  const testCreditLimitValidation = async () => {
+  const testCreditLimitValidation = async (currentCustomers: Customer[]): Promise<Customer[]> => {
     await delay(200);
     const invalidLimits = [-100, -1];
     
@@ -289,6 +304,8 @@ const CustomerCRUDTest: React.FC = () => {
       }
       throw new Error(`Negative credit limit should be rejected: ${limit}`);
     }
+    
+    return currentCustomers;
   };
 
   const runAllTests = async () => {
@@ -309,9 +326,11 @@ const CustomerCRUDTest: React.FC = () => {
       { name: 'Test Credit Limit Validation', fn: testCreditLimitValidation }
     ];
 
+    let currentCustomers: Customer[] = [];
+    
     for (const test of tests) {
-      await runTest(test.name, test.fn);
-      await delay(100);
+      currentCustomers = await runTestWithCustomers(test.name, test.fn, currentCustomers);
+      await delay(200); // Increased delay to ensure state updates
     }
     
     setIsRunning(false);
