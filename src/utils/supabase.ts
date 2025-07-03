@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { createAdminAccountIfNeeded } from './setupAdmin';
 
 const supabaseUrl = import.meta.env.VITE_PUBLIC_SUPABASE_URL as string;
 const supabaseAnonKey = import.meta.env.VITE_PUBLIC_SUPABASE_ANON_KEY as string;
@@ -28,23 +29,27 @@ export const supabaseAnon = supabase;
 export async function setupDevAuth() {
   if (import.meta.env.DEV) {
     try {
+      // First, setup admin account if needed
+      await createAdminAccountIfNeeded();
+      
       // Check if we already have a session
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session) {
         console.log('Setting up development authentication...');
+        console.log('🔐 Admin credentials: admin@fbms.com / Qweasd145698@');
         
-        // Try to sign in with a test user
+        // Try to sign in with the admin user
         const { data, error } = await supabase.auth.signInWithPassword({
-          email: 'admin@example.com',
-          password: 'admin123'
+          email: 'admin@fbms.com',
+          password: 'Qweasd145698@'
         });
         
         if (error) {
-          console.log('Test user login failed:', error.message);
-          console.log('You can use the login form to sign in or create a new account');
+          console.log('Admin login failed:', error.message);
+          console.log('You can use the login form to sign in with admin@fbms.com');
         } else {
-          console.log('Development authentication successful');
+          console.log('✅ Development authentication successful - logged in as admin');
         }
       } else {
         console.log('Already authenticated with Supabase');
