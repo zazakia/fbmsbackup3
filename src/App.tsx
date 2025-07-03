@@ -35,6 +35,7 @@ import { canAccessModule } from './utils/permissions';
 import { setupDevAuth } from './utils/supabase';
 import { NavigationProvider } from './contexts/NavigationContext';
 import TestDashboard from './components/test/TestDashboard';
+import AuthCallback from './components/auth/AuthCallback';
 import {
   LazyDashboard,
   LazyPOSSystem,
@@ -74,11 +75,18 @@ const App: React.FC = () => {
   const { initializeTheme } = useThemeStore();
   const { user } = useSupabaseAuthStore();
 
+  // Check for OAuth callback
+  const isOAuthCallback = window.location.hash.includes('access_token') || 
+                         window.location.search.includes('code=') ||
+                         window.location.pathname.includes('/auth/callback');
+
   // Initialize theme and development auth on app load
   useEffect(() => {
     initializeTheme();
-    setupDevAuth(); // Setup development authentication
-  }, [initializeTheme]);
+    if (!isOAuthCallback) {
+      setupDevAuth(); // Setup development authentication
+    }
+  }, [initializeTheme, isOAuthCallback]);
 
   const allMenuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: Home, module: 'dashboard' },
@@ -235,6 +243,15 @@ const App: React.FC = () => {
         );
     }
   };
+
+  // Handle OAuth callback
+  if (isOAuthCallback) {
+    return (
+      <ErrorBoundary>
+        <AuthCallback />
+      </ErrorBoundary>
+    );
+  }
 
   return (
     <ErrorBoundary>

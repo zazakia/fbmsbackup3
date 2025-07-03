@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useSupabaseAuthStore } from '../store/supabaseAuthStore';
-import AuthPage from './auth/AuthPage';
+import ModernAuthPage from './auth/ModernAuthPage';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -20,7 +20,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const shouldBypassAuth = isDevelopment && !hasLoggedOut;
 
   if (!isAuthenticated && !shouldBypassAuth) {
-    return <AuthPage />;
+    return <ModernAuthPage />;
   }
 
   return <>{children}</>;

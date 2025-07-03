@@ -10,6 +10,17 @@ interface SupabaseAuthStore extends AuthState {
   checkAuth: () => Promise<void>;
   clearError: () => void;
   hasLoggedOut: boolean;
+  // Enhanced auth methods
+  forgotPassword: (email: string) => Promise<void>;
+  resetPassword: (token: string, password: string) => Promise<void>;
+  resendVerification: (email: string) => Promise<void>;
+  signInWithGoogle: () => Promise<void>;
+  signInWithGithub: () => Promise<void>;
+  updateProfile: (profile: Partial<User>) => Promise<void>;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
+  // Auth state
+  pendingEmailVerification: boolean;
+  passwordResetSent: boolean;
 }
 
 export const useSupabaseAuthStore = create<SupabaseAuthStore>()(
@@ -20,6 +31,8 @@ export const useSupabaseAuthStore = create<SupabaseAuthStore>()(
       isLoading: false,
       error: null,
       hasLoggedOut: false,
+      pendingEmailVerification: false,
+      passwordResetSent: false,
 
       login: async (credentials: LoginCredentials) => {
         set({ isLoading: true, error: null, hasLoggedOut: false });
@@ -269,6 +282,221 @@ export const useSupabaseAuthStore = create<SupabaseAuthStore>()(
 
       clearError: () => {
         set({ error: null });
+      },
+
+      // Enhanced authentication methods
+      forgotPassword: async (email: string) => {
+        set({ isLoading: true, error: null, passwordResetSent: false });
+        
+        try {
+          const { error } = await supabaseAnon.auth.resetPasswordForEmail(email, {
+            redirectTo: `${window.location.origin}/reset-password`,
+          });
+          
+          if (error) {
+            throw new Error(error.message);
+          }
+          
+          set({ 
+            isLoading: false, 
+            passwordResetSent: true,
+            error: null 
+          });
+        } catch (error) {
+          set({
+            isLoading: false,
+            error: error instanceof Error ? error.message : 'Failed to send reset email'
+          });
+          throw error;
+        }
+      },
+
+      resetPassword: async (token: string, password: string) => {
+        set({ isLoading: true, error: null });
+        
+        try {
+          const { error } = await supabaseAnon.auth.updateUser({
+            password: password
+          });
+          
+          if (error) {
+            throw new Error(error.message);
+          }
+          
+          set({ 
+            isLoading: false, 
+            error: null 
+          });
+        } catch (error) {
+          set({
+            isLoading: false,
+            error: error instanceof Error ? error.message : 'Failed to reset password'
+          });
+          throw error;
+        }
+      },
+
+      resendVerification: async (email: string) => {
+        set({ isLoading: true, error: null });
+        
+        try {
+          const { error } = await supabaseAnon.auth.resend({
+            type: 'signup',
+            email: email,
+          });
+          
+          if (error) {
+            throw new Error(error.message);
+          }
+          
+          set({ 
+            isLoading: false, 
+            pendingEmailVerification: true,
+            error: null 
+          });
+        } catch (error) {
+          set({
+            isLoading: false,
+            error: error instanceof Error ? error.message : 'Failed to resend verification'
+          });
+          throw error;
+        }
+      },
+
+      signInWithGoogle: async () => {
+        set({ isLoading: true, error: null, hasLoggedOut: false });
+        
+        try {
+          const { error } = await supabaseAnon.auth.signInWithOAuth({
+            provider: 'google',
+            options: {
+              redirectTo: `${window.location.origin}/auth/callback`
+            }
+          });
+          
+          if (error) {
+            throw new Error(error.message);
+          }
+          
+          // Note: The actual login will be handled by the auth state change listener
+          set({ isLoading: false });
+        } catch (error) {
+          set({
+            isLoading: false,
+            error: error instanceof Error ? error.message : 'Google sign-in failed'
+          });
+          throw error;
+        }
+      },
+
+      signInWithGithub: async () => {
+        set({ isLoading: true, error: null, hasLoggedOut: false });
+        
+        try {
+          const { error } = await supabaseAnon.auth.signInWithOAuth({
+            provider: 'github',
+            options: {
+              redirectTo: `${window.location.origin}/auth/callback`
+            }
+          });
+          
+          if (error) {
+            throw new Error(error.message);
+          }
+          
+          // Note: The actual login will be handled by the auth state change listener
+          set({ isLoading: false });
+        } catch (error) {
+          set({
+            isLoading: false,
+            error: error instanceof Error ? error.message : 'GitHub sign-in failed'
+          });
+          throw error;
+        }
+      },
+
+      updateProfile: async (profile: Partial<User>) => {
+        set({ isLoading: true, error: null });
+        
+        try {
+          const currentUser = get().user;
+          if (!currentUser) {
+            throw new Error('No user logged in');
+          }
+          
+          // Update user profile in our users table
+          const { error: profileError } = await supabase
+            .from('users')
+            .update({
+              first_name: profile.firstName,
+              last_name: profile.lastName,
+              department: profile.department,
+            })
+            .eq('id', currentUser.id);
+          
+          if (profileError) {
+            throw new Error(profileError.message);
+          }
+          
+          // Update local state
+          const updatedUser = {
+            ...currentUser,
+            ...profile
+          };
+          
+          set({
+            user: updatedUser,
+            isLoading: false,
+            error: null
+          });
+        } catch (error) {
+          set({
+            isLoading: false,
+            error: error instanceof Error ? error.message : 'Failed to update profile'
+          });
+          throw error;
+        }
+      },
+
+      changePassword: async (currentPassword: string, newPassword: string) => {
+        set({ isLoading: true, error: null });
+        
+        try {
+          const currentUser = get().user;
+          if (!currentUser) {
+            throw new Error('No user logged in');
+          }
+          
+          // First verify current password by attempting to sign in
+          const { error: signInError } = await supabaseAnon.auth.signInWithPassword({
+            email: currentUser.email,
+            password: currentPassword,
+          });
+          
+          if (signInError) {
+            throw new Error('Current password is incorrect');
+          }
+          
+          // Update password
+          const { error: updateError } = await supabaseAnon.auth.updateUser({
+            password: newPassword
+          });
+          
+          if (updateError) {
+            throw new Error(updateError.message);
+          }
+          
+          set({ 
+            isLoading: false, 
+            error: null 
+          });
+        } catch (error) {
+          set({
+            isLoading: false,
+            error: error instanceof Error ? error.message : 'Failed to change password'
+          });
+          throw error;
+        }
       }
     }),
     {
@@ -276,7 +504,9 @@ export const useSupabaseAuthStore = create<SupabaseAuthStore>()(
       partialize: (state) => ({
         user: state.user,
         isAuthenticated: state.isAuthenticated,
-        hasLoggedOut: state.hasLoggedOut
+        hasLoggedOut: state.hasLoggedOut,
+        pendingEmailVerification: state.pendingEmailVerification,
+        passwordResetSent: state.passwordResetSent
       })
     }
   )
@@ -300,5 +530,42 @@ supabaseAnon.auth.onAuthStateChange((event, session) => {
     });
   } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
     store.checkAuth();
+    
+    // If this is an OAuth login, we need to create user profile if it doesn't exist
+    if (event === 'SIGNED_IN' && session?.user?.app_metadata?.provider !== 'email') {
+      // Handle OAuth user profile creation
+      const handleOAuthProfile = async () => {
+        if (!session?.user) return;
+        
+        // Check if user profile exists
+        const { data: existingProfile } = await supabase
+          .from('users')
+          .select('id')
+          .eq('id', session.user.id)
+          .single();
+        
+        if (!existingProfile) {
+          // Create user profile for OAuth user
+          const { error: profileError } = await supabase
+            .from('users')
+            .insert({
+              id: session.user.id,
+              email: session.user.email,
+              first_name: session.user.user_metadata?.first_name || 
+                         session.user.user_metadata?.full_name?.split(' ')[0] || '',
+              last_name: session.user.user_metadata?.last_name || 
+                        session.user.user_metadata?.full_name?.split(' ').slice(1).join(' ') || '',
+              role: 'cashier', // Default role for OAuth users
+              is_active: true,
+            });
+          
+          if (profileError) {
+            console.warn('Failed to create OAuth user profile:', profileError.message);
+          }
+        }
+      };
+      
+      handleOAuthProfile();
+    }
   }
 });

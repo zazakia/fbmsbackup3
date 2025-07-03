@@ -53,6 +53,8 @@
 - **Search Functionality**: Implemented working search dropdown with module filtering
 - **Navigation Context**: Created app-wide navigation system for consistent module switching
 - **Permission-Based UI**: QuickActions buttons respect user role permissions
+- **Logout Redirect Fix**: Added hasLoggedOut flag to ensure logout always redirects to login
+- **Development Mode Fix**: Dev bypass now respects explicit logout actions
 
 ## Notes
 - All critical runtime errors resolved ✅
