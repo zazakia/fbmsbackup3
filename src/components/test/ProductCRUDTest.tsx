@@ -161,13 +161,18 @@ const ProductCRUDTest: React.FC = () => {
 
   const generateId = () => Math.random().toString(36).substring(2) + Date.now().toString(36);
 
-  const runTest = async (testName: string, testFn: () => Promise<void>) => {
+  const runTest = async (
+    testName: string, 
+    testFn: (products: Product[], categories: Category[]) => Promise<{ products: Product[], categories: Category[] }>,
+    currentProducts: Product[],
+    currentCategories: Category[]
+  ) => {
     const startTime = Date.now();
     setCurrentTest(testName);
     updateTestResult(testName, 'running');
     
     try {
-      await testFn();
+      const result = await testFn(currentProducts, currentCategories);
       const duration = Date.now() - startTime;
       updateTestResult(testName, 'passed', 'Test completed successfully', duration);
       addToast({
@@ -175,6 +180,7 @@ const ProductCRUDTest: React.FC = () => {
         title: 'Test Passed',
         message: `${testName} completed successfully`
       });
+      return result;
     } catch (error) {
       const duration = Date.now() - startTime;
       const message = error instanceof Error ? error.message : 'Test failed';
@@ -184,10 +190,11 @@ const ProductCRUDTest: React.FC = () => {
         title: 'Test Failed',
         message: `${testName}: ${message}`
       });
+      return { products: currentProducts, categories: currentCategories };
     }
   };
 
-  const testCreateCategories = async () => {
+  const testCreateCategories = async (products: Product[], categories: Category[]) => {
     await delay(300);
     const newCategories: Category[] = mockCategories.map(cat => ({
       ...cat,
@@ -200,10 +207,10 @@ const ProductCRUDTest: React.FC = () => {
       throw new Error('Failed to create all categories');
     }
     
-    setCategories(newCategories);
+    return { products, categories: newCategories };
   };
 
-  const testCreateElectronicsProduct = async () => {
+  const testCreateElectronicsProduct = async (products: Product[], categories: Category[]) => {
     await delay(500);
     const productData = mockProducts[0];
     const category = categories.find(c => c.name === 'Electronics');
@@ -224,10 +231,10 @@ const ProductCRUDTest: React.FC = () => {
       throw new Error('Required fields missing or invalid');
     }
     
-    setProducts(prev => [...prev, newProduct]);
+    return { products: [...products, newProduct], categories };
   };
 
-  const testCreateClothingProduct = async () => {
+  const testCreateClothingProduct = async (products: Product[], categories: Category[]) => {
     await delay(400);
     const productData = mockProducts[1];
     const category = categories.find(c => c.name === 'Clothing');
@@ -249,10 +256,10 @@ const ProductCRUDTest: React.FC = () => {
       throw new Error('SKU already exists');
     }
     
-    setProducts(prev => [...prev, newProduct]);
+    return { products: [...products, newProduct], categories };
   };
 
-  const testCreateFoodProduct = async () => {
+  const testCreateFoodProduct = async (products: Product[], categories: Category[]) => {
     await delay(400);
     const productData = mockProducts[2];
     const category = categories.find(c => c.name === 'Food & Beverages');
@@ -269,10 +276,10 @@ const ProductCRUDTest: React.FC = () => {
       updatedAt: new Date().toISOString()
     };
     
-    setProducts(prev => [...prev, newProduct]);
+    return { products: [...products, newProduct], categories };
   };
 
-  const testReadProducts = async () => {
+  const testReadProducts = async (products: Product[], categories: Category[]) => {
     await delay(300);
     if (products.length === 0) {
       throw new Error('No products found');
@@ -290,9 +297,11 @@ const ProductCRUDTest: React.FC = () => {
         throw new Error('No electronics products found');
       }
     }
+    
+    return { products, categories };
   };
 
-  const testUpdateProductInfo = async () => {
+  const testUpdateProductInfo = async (products: Product[], categories: Category[]) => {
     await delay(400);
     if (products.length === 0) {
       throw new Error('No products to update');
@@ -307,12 +316,14 @@ const ProductCRUDTest: React.FC = () => {
       updatedAt: new Date().toISOString()
     };
     
-    setProducts(prev => prev.map(p => 
+    const updatedProducts = products.map(p => 
       p.id === productToUpdate.id ? updatedProduct : p
-    ));
+    );
+    
+    return { products: updatedProducts, categories };
   };
 
-  const testUpdateProductStock = async () => {
+  const testUpdateProductStock = async (products: Product[], categories: Category[]) => {
     await delay(300);
     if (products.length === 0) {
       throw new Error('No products to update');
@@ -330,12 +341,14 @@ const ProductCRUDTest: React.FC = () => {
       throw new Error('Stock cannot be negative');
     }
     
-    setProducts(prev => prev.map(p => 
+    const updatedProducts = products.map(p => 
       p.id === productToUpdate.id ? updatedProduct : p
-    ));
+    );
+    
+    return { products: updatedProducts, categories };
   };
 
-  const testUpdateProductPrice = async () => {
+  const testUpdateProductPrice = async (products: Product[], categories: Category[]) => {
     await delay(300);
     if (products.length === 0) {
       throw new Error('No products to update');
@@ -353,12 +366,14 @@ const ProductCRUDTest: React.FC = () => {
       throw new Error('Price must be greater than 0');
     }
     
-    setProducts(prev => prev.map(p => 
+    const updatedProducts = products.map(p => 
       p.id === productToUpdate.id ? updatedProduct : p
-    ));
+    );
+    
+    return { products: updatedProducts, categories };
   };
 
-  const testLowStockDetection = async () => {
+  const testLowStockDetection = async (products: Product[], categories: Category[]) => {
     await delay(200);
     if (products.length === 0) {
       throw new Error('No products to test');
@@ -376,26 +391,29 @@ const ProductCRUDTest: React.FC = () => {
     }
     
     // Update the product
-    setProducts(prev => prev.map(p => 
+    const updatedProducts = products.map(p => 
       p.id === lowStockProduct.id ? lowStockProduct : p
-    ));
+    );
+    
+    return { products: updatedProducts, categories };
   };
 
-  const testStockValidation = async () => {
+  const testStockValidation = async (products: Product[], categories: Category[]) => {
     await delay(200);
     // Test negative stock
     try {
       const invalidStock = -5;
       if (invalidStock < 0) {
-        return; // Expected to fail validation
+        return { products, categories }; // Expected to fail validation
       }
       throw new Error('Negative stock should be rejected');
     } catch (error) {
       // Expected behavior
+      return { products, categories };
     }
   };
 
-  const testSKUUniqueness = async () => {
+  const testSKUUniqueness = async (products: Product[], categories: Category[]) => {
     await delay(300);
     if (products.length < 2) {
       throw new Error('Need at least 2 products to test SKU uniqueness');
@@ -413,9 +431,11 @@ const ProductCRUDTest: React.FC = () => {
     if (duplicateCount > 1) {
       throw new Error('Duplicate SKU found');
     }
+    
+    return { products, categories };
   };
 
-  const testPriceValidation = async () => {
+  const testPriceValidation = async (products: Product[], categories: Category[]) => {
     await delay(200);
     const invalidPrices = [0, -100, -0.01];
     
@@ -425,9 +445,11 @@ const ProductCRUDTest: React.FC = () => {
       }
       throw new Error(`Invalid price should be rejected: ${price}`);
     }
+    
+    return { products, categories };
   };
 
-  const testToggleProductStatus = async () => {
+  const testToggleProductStatus = async (products: Product[], categories: Category[]) => {
     await delay(300);
     if (products.length === 0) {
       throw new Error('No products to update');
@@ -440,22 +462,26 @@ const ProductCRUDTest: React.FC = () => {
       updatedAt: new Date().toISOString()
     };
     
-    setProducts(prev => prev.map(p => 
+    const updatedProducts = products.map(p => 
       p.id === productToToggle.id ? updatedProduct : p
-    ));
+    );
+    
+    return { products: updatedProducts, categories };
   };
 
-  const testDeleteProduct = async () => {
+  const testDeleteProduct = async (products: Product[], categories: Category[]) => {
     await delay(400);
     if (products.length === 0) {
       throw new Error('No products to delete');
     }
     
     const productToDelete = products[products.length - 1];
-    setProducts(prev => prev.filter(p => p.id !== productToDelete.id));
+    const updatedProducts = products.filter(p => p.id !== productToDelete.id);
+    
+    return { products: updatedProducts, categories };
   };
 
-  const testValidateRequiredFields = async () => {
+  const testValidateRequiredFields = async (products: Product[], categories: Category[]) => {
     await delay(200);
     try {
       const invalidProduct = {
@@ -466,12 +492,13 @@ const ProductCRUDTest: React.FC = () => {
       };
       
       if (!invalidProduct.name || !invalidProduct.sku || invalidProduct.price <= 0 || !invalidProduct.category) {
-        return; // Expected to fail validation
+        return { products, categories }; // Expected to fail validation
       }
       
       throw new Error('Validation should have failed');
     } catch (error) {
       // Expected behavior
+      return { products, categories };
     }
   };
 
@@ -499,8 +526,18 @@ const ProductCRUDTest: React.FC = () => {
       { name: 'Validate Required Fields', fn: testValidateRequiredFields }
     ];
 
+    let currentProducts: Product[] = [];
+    let currentCategories: Category[] = [];
+
     for (const test of tests) {
-      await runTest(test.name, test.fn);
+      const result = await runTest(test.name, test.fn, currentProducts, currentCategories);
+      currentProducts = result.products;
+      currentCategories = result.categories;
+      
+      // Update React state for UI display
+      setProducts(currentProducts);
+      setCategories(currentCategories);
+      
       await delay(100);
     }
     
