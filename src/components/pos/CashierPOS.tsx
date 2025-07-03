@@ -44,6 +44,7 @@ const CashierPOS: React.FC = () => {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
   const [amountPaid, setAmountPaid] = useState<number>(0);
   const [showPayment, setShowPayment] = useState(false);
+  const [showCustomerModal, setShowCustomerModal] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
 
   // Filter products based on search term
@@ -171,10 +172,10 @@ const CashierPOS: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="flex h-screen">
+    <div className="bg-gray-50">
+      <div className="flex" style={{ minHeight: '80vh' }}>
         {/* Product Selection */}
-        <div className="flex-1 p-6">
+        <div className="flex-1 p-6 overflow-y-auto">
           <div className="mb-6">
             <h1 className="text-2xl font-bold text-gray-900 mb-2">Point of Sale</h1>
             <p className="text-gray-600">Select products to add to cart</p>
@@ -226,7 +227,7 @@ const CashierPOS: React.FC = () => {
         </div>
 
         {/* Cart Sidebar */}
-        <div className="w-96 bg-white border-l border-gray-200 flex flex-col">
+        <div className="w-96 bg-white border-l border-gray-200 flex flex-col" style={{ minHeight: '80vh' }}>
           {/* Cart Header */}
           <div className="p-6 border-b border-gray-200">
             <div className="flex items-center justify-between">
@@ -237,15 +238,34 @@ const CashierPOS: React.FC = () => {
 
           {/* Customer Selection */}
           <div className="p-4 border-b border-gray-200">
-            <CustomerSelector
-              customers={customers}
-              selectedCustomer={selectedCustomer}
-              onCustomerSelect={setSelectedCustomer}
-            />
+            <div className="space-y-3">
+              <label className="block text-sm font-medium text-gray-700">Customer</label>
+              <div className="flex items-center justify-between p-3 border border-gray-300 rounded-lg bg-gray-50">
+                <div className="flex items-center space-x-3">
+                  <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
+                    <User className="h-4 w-4 text-gray-500" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">
+                      {selectedCustomer ? `${selectedCustomer.firstName} ${selectedCustomer.lastName}` : 'Walk-in Customer'}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {selectedCustomer?.email || 'No customer selected'}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowCustomerModal(true)}
+                  className="text-xs text-blue-600 hover:text-blue-800"
+                >
+                  Change
+                </button>
+              </div>
+            </div>
           </div>
 
           {/* Cart Items */}
-          <div className="flex-1 overflow-y-auto p-4">
+          <div className="flex-1 overflow-y-auto p-4" style={{ maxHeight: '60vh' }}>
             {cart.length === 0 ? (
               <div className="text-center py-8">
                 <ShoppingCart className="h-12 w-12 text-gray-400 mx-auto mb-4" />
@@ -407,6 +427,20 @@ const CashierPOS: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Customer Selection Modal */}
+      {showCustomerModal && (
+        <CustomerSelector
+          customers={customers}
+          selectedCustomer={selectedCustomer}
+          onCustomerSelect={(customer) => {
+            setSelectedCustomer(customer);
+            setShowCustomerModal(false);
+          }}
+          showModal={true}
+          onClose={() => setShowCustomerModal(false)}
+        />
+      )}
     </div>
   );
 };

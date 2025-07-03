@@ -37,7 +37,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuToggle, activeModule }) => {
         </div>
 
         {/* Right section */}
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-2 sm:space-x-4">
           {/* Database Status */}
           <DatabaseStatus className="hidden lg:flex" />
           
@@ -48,21 +48,26 @@ const Header: React.FC<HeaderProps> = ({ onMenuToggle, activeModule }) => {
           <ThemeToggle />
 
           {/* Search */}
-          <div className="relative hidden md:block">
+          <div className="relative hidden sm:block">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 dark:text-gray-500" />
             <input
               type="text"
               placeholder="Search..."
-              className="pl-10 pr-4 py-2 border border-gray-300 dark:border-dark-600 rounded-lg bg-white dark:bg-dark-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent transition-colors duration-200"
+              className="pl-10 pr-4 py-2 border border-gray-300 dark:border-dark-600 rounded-lg bg-white dark:bg-dark-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent transition-colors duration-200 w-32 sm:w-48 md:w-64"
             />
           </div>
+
+          {/* Mobile Search Button */}
+          <button className="sm:hidden p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-700 transition-colors">
+            <Search className="h-5 w-5 text-gray-600 dark:text-gray-300" />
+          </button>
 
           {/* Notifications */}
           <NotificationBell />
 
           {/* User menu */}
-          <div className="flex items-center space-x-3">
-            <div className="hidden md:block text-right">
+          <div className="flex items-center space-x-2 sm:space-x-3">
+            <div className="hidden sm:block text-right">
               <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
                 {user ? `${user.firstName} ${user.lastName}` : 'User'}
               </p>

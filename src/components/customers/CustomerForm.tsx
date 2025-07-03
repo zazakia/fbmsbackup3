@@ -214,40 +214,40 @@ const CustomerForm: React.FC<CustomerFormProps> = ({ customer, onSuccess, onCanc
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+    <div className="mobile-modal">
+      <div className="mobile-modal-content">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <h2 className="text-xl font-semibold text-gray-900 flex items-center">
+        <div className="mobile-header">
+          <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100 flex items-center">
             <User className="h-5 w-5 mr-2" />
             {customer ? 'Edit Customer' : 'Add New Customer'}
           </h2>
           <button
             onClick={onCancel}
-            className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
+            className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+        <form onSubmit={handleSubmit} className="mobile-form-container space-y-6">
           {/* Basic Information */}
           <div>
-            <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4 flex items-center">
               <User className="h-4 w-4 mr-2" />
               Basic Information
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="mobile-grid gap-4 sm:grid-cols-2">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   First Name *
                 </label>
                 <input
                   type="text"
                   value={formData.firstName}
                   onChange={(e) => handleInputChange('firstName', e.target.value)}
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                    errors.firstName ? 'border-red-300' : 'border-gray-300'
+                  className={`mobile-input ${
+                    errors.firstName ? 'border-red-300 dark:border-red-600' : ''
                   }`}
                   placeholder="Enter first name"
                 />
@@ -257,15 +257,15 @@ const CustomerForm: React.FC<CustomerFormProps> = ({ customer, onSuccess, onCanc
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Last Name *
                 </label>
                 <input
                   type="text"
                   value={formData.lastName}
                   onChange={(e) => handleInputChange('lastName', e.target.value)}
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                    errors.lastName ? 'border-red-300' : 'border-gray-300'
+                  className={`mobile-input ${
+                    errors.lastName ? 'border-red-300 dark:border-red-600' : ''
                   }`}
                   placeholder="Enter last name"
                 />
@@ -275,13 +275,13 @@ const CustomerForm: React.FC<CustomerFormProps> = ({ customer, onSuccess, onCanc
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Customer Type
                 </label>
                 <select
                   value={formData.customerType}
                   onChange={(e) => handleInputChange('customerType', e.target.value as CustomerType)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="mobile-input"
                 >
                   {customerTypes.map(type => (
                     <option key={type.value} value={type.value}>

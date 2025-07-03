@@ -86,7 +86,7 @@ const ToastComponent: React.FC<ToastComponentProps> = ({ toast, onClose }) => {
     <div
       className={`
         transform transition-all duration-300 ease-in-out
-        ${isVisible && !isExiting ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'}
+        ${isVisible && !isExiting ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'}
         max-w-sm w-full ${getBackgroundColor()} border rounded-lg shadow-lg pointer-events-auto
       `}
     >
@@ -136,7 +136,7 @@ interface ToastContainerProps {
 
 const ToastContainer: React.FC<ToastContainerProps> = ({ toasts, onClose }) => {
   return (
-    <div className="fixed top-4 right-4 z-50 flex flex-col space-y-2">
+    <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 flex flex-col space-y-2">
       {toasts.map((toast) => (
         <ToastComponent key={toast.id} toast={toast} onClose={onClose} />
       ))}

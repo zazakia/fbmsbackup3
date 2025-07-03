@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, LineChart, Line, PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import { useBusinessStore } from '../../store/businessStore';
 import FinancialStatements from './FinancialStatements';
 import SalesReports from './SalesReports';
@@ -191,29 +191,37 @@ const ReportsDashboard: React.FC = () => {
   const renderSalesReport = () => (
     <div className="space-y-6">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="bg-white p-6 rounded-lg shadow">
-          <h3 className="text-lg font-semibold mb-4">Monthly Sales Trend</h3>
-          <LineChart width={300} height={200} data={salesData}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="month" />
-            <YAxis />
-            <Tooltip />
-            <Legend />
-            <Line type="monotone" dataKey="sales" stroke="#8884d8" />
-          </LineChart>
+        <div className="bg-white dark:bg-dark-800 p-4 sm:p-6 rounded-lg shadow">
+          <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">Monthly Sales Trend</h3>
+          <div className="mobile-chart-container h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={salesData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="month" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Line type="monotone" dataKey="sales" stroke="#8884d8" />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
         </div>
         
-        <div className="bg-white p-6 rounded-lg shadow">
-          <h3 className="text-lg font-semibold mb-4">Sales vs Transactions</h3>
-          <BarChart width={300} height={200} data={salesData}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="month" />
-            <YAxis />
-            <Tooltip />
-            <Legend />
-            <Bar dataKey="sales" fill="#8884d8" />
-            <Bar dataKey="transactions" fill="#82ca9d" />
-          </BarChart>
+        <div className="bg-white dark:bg-dark-800 p-4 sm:p-6 rounded-lg shadow">
+          <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">Sales vs Transactions</h3>
+          <div className="mobile-chart-container h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={salesData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="month" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="sales" fill="#8884d8" />
+                <Bar dataKey="transactions" fill="#82ca9d" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
         </div>
         
         <div className="bg-white p-6 rounded-lg shadow">

@@ -24,9 +24,8 @@ const SupabaseStatusIndicator: React.FC = () => {
   if (status === 'error') color = 'bg-red-500';
 
   return (
-    <div className="flex items-center space-x-2">
-      <span className={`inline-block w-3 h-3 rounded-full ${color}`}></span>
-      <span className="text-sm">{message}</span>
+    <div className="flex items-center" title={message}>
+      <span className={`inline-block w-2 h-2 rounded-full ${color}`}></span>
     </div>
   );
 };

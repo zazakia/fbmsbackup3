@@ -63,10 +63,17 @@ const NotificationPanel: React.FC<NotificationPanelProps> = ({ isOpen, onClose }
   return (
     <>
       {/* Backdrop */}
-      <div className="fixed inset-0 bg-black bg-opacity-25 z-40" onClick={onClose} />
+      <div 
+        className="fixed inset-0 bg-black bg-opacity-25 z-[60]" 
+        onClick={onClose}
+        onKeyDown={(e) => e.key === 'Escape' && onClose()}
+      />
       
       {/* Panel */}
-      <div className="fixed top-16 right-4 w-96 max-h-[calc(100vh-5rem)] bg-white rounded-lg shadow-2xl border border-gray-200 z-50 flex flex-col">
+      <div 
+        className="fixed top-20 right-4 w-96 max-h-[calc(100vh-7rem)] bg-white rounded-lg shadow-2xl border border-gray-200 z-[70] flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-200">
           <div className="flex items-center space-x-2">

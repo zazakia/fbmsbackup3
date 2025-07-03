@@ -4,13 +4,17 @@ import { Customer } from '../../types/business';
 
 interface CustomerSelectorProps {
   customers: Customer[];
-  onSelect: (customerId: string) => void;
-  onClose: () => void;
+  selectedCustomer?: Customer | null;
+  onCustomerSelect: (customer: Customer | null) => void;
+  showModal?: boolean;
+  onClose?: () => void;
 }
 
 const CustomerSelector: React.FC<CustomerSelectorProps> = ({ 
   customers, 
-  onSelect, 
+  selectedCustomer,
+  onCustomerSelect,
+  showModal = false,
   onClose 
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -24,9 +28,51 @@ const CustomerSelector: React.FC<CustomerSelectorProps> = ({
     )
   );
 
+  const handleCustomerSelect = (customer: Customer | null) => {
+    onCustomerSelect(customer);
+    if (onClose) onClose();
+  };
+
+  if (!showModal) {
+    // Inline customer display for cart
+    return (
+      <div className="space-y-3">
+        <label className="block text-sm font-medium text-gray-700">Customer</label>
+        <div className="flex items-center justify-between p-3 border border-gray-300 rounded-lg bg-gray-50">
+          <div className="flex items-center space-x-3">
+            <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
+              <User className="h-4 w-4 text-gray-500" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-gray-900">
+                {selectedCustomer ? `${selectedCustomer.firstName} ${selectedCustomer.lastName}` : 'Walk-in Customer'}
+              </p>
+              <p className="text-xs text-gray-500">
+                {selectedCustomer?.email || 'No customer selected'}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => onCustomerSelect(null)}
+            className="text-xs text-blue-600 hover:text-blue-800"
+          >
+            Change
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Modal display
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-md mx-4 max-h-[80vh] flex flex-col">
+    <div 
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+      onClick={onClose}
+    >
+      <div 
+        className="bg-white rounded-xl shadow-xl w-full max-w-md mx-4 max-h-[80vh] flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
         <div className="p-6 border-b border-gray-200">
           <div className="flex items-center justify-between mb-4">
@@ -56,7 +102,7 @@ const CustomerSelector: React.FC<CustomerSelectorProps> = ({
         <div className="flex-1 overflow-y-auto p-4">
           {/* Walk-in Customer Option */}
           <button
-            onClick={() => onSelect('')}
+            onClick={() => handleCustomerSelect(null)}
             className="w-full p-3 text-left hover:bg-gray-50 rounded-lg transition-colors border-b border-gray-100 mb-2"
           >
             <div className="flex items-center">
@@ -81,7 +127,7 @@ const CustomerSelector: React.FC<CustomerSelectorProps> = ({
               {filteredCustomers.map((customer) => (
                 <button
                   key={customer.id}
-                  onClick={() => onSelect(customer.id)}
+                  onClick={() => handleCustomerSelect(customer)}
                   className="w-full p-3 text-left hover:bg-gray-50 rounded-lg transition-colors"
                 >
                   <div className="flex items-center">
@@ -112,7 +158,13 @@ const CustomerSelector: React.FC<CustomerSelectorProps> = ({
 
         {/* Footer */}
         <div className="p-4 border-t border-gray-200">
-          <button className="w-full flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+          <button 
+            onClick={() => {
+              // For now, just close the modal - you can add customer creation logic later
+              if (onClose) onClose();
+            }}
+            className="w-full flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
             <Plus className="h-4 w-4 mr-2" />
             Add New Customer
           </button>
