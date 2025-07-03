@@ -7,16 +7,17 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
-  const { isAuthenticated, checkAuth, user } = useSupabaseAuthStore();
+  const { isAuthenticated, checkAuth, hasLoggedOut } = useSupabaseAuthStore();
 
   useEffect(() => {
     checkAuth();
   }, [checkAuth]);
 
-  // Allow development bypass only if no user session exists
-  // This ensures logout properly redirects to login
+  // Only allow development bypass if:
+  // 1. We're in development mode
+  // 2. User hasn't explicitly logged out
   const isDevelopment = import.meta.env.DEV;
-  const shouldBypassAuth = isDevelopment && !user;
+  const shouldBypassAuth = isDevelopment && !hasLoggedOut;
 
   if (!isAuthenticated && !shouldBypassAuth) {
     return <AuthPage />;
