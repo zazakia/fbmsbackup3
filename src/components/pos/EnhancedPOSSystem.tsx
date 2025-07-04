@@ -429,29 +429,29 @@ const EnhancedPOSSystem: React.FC = () => {
   };
 
   return (
-    <div className="h-screen flex bg-gray-50 dark:bg-dark-950">
+    <div className="h-screen flex flex-col lg:flex-row bg-gray-50 dark:bg-dark-950">
       {/* Left Panel - Products */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col order-2 lg:order-1">
         {/* Header Controls */}
-        <div className="bg-white dark:bg-dark-800 border-b border-gray-200 dark:border-dark-700 p-4">
-          <div className="flex items-center justify-between mb-4">
-            <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-              Point of Sale - {posMode.charAt(0).toUpperCase() + posMode.slice(1)} Mode
+        <div className="bg-white dark:bg-dark-800 border-b border-gray-200 dark:border-dark-700 p-2 sm:p-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 space-y-2 sm:space-y-0">
+            <h1 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100">
+              <span className="hidden sm:inline">Point of Sale - </span><span className="sm:hidden">POS - </span>{posMode.charAt(0).toUpperCase() + posMode.slice(1)}
             </h1>
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-1 sm:space-x-2 overflow-x-auto">
               {/* Mode Selector */}
               <div className="flex bg-gray-100 dark:bg-dark-700 rounded-lg p-1">
                 {['retail', 'wholesale', 'quote'].map((mode) => (
                   <button
                     key={mode}
                     onClick={() => setPosMode(mode as POSMode['mode'])}
-                    className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+                    className={`px-2 sm:px-3 py-1 text-xs font-medium rounded-md transition-colors whitespace-nowrap ${
                       posMode === mode
                         ? 'bg-white dark:bg-dark-600 text-gray-900 dark:text-gray-100 shadow-sm'
                         : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
                     }`}
                   >
-                    {mode.charAt(0).toUpperCase() + mode.slice(1)} {mode === 'retail' ? '(F1)' : mode === 'wholesale' ? '(F2)' : '(F3)'}
+                    {mode.charAt(0).toUpperCase() + mode.slice(1)} <span className="hidden sm:inline">{mode === 'retail' ? '(F1)' : mode === 'wholesale' ? '(F2)' : '(F3)'}</span>
                   </button>
                 ))}
               </div>
@@ -460,10 +460,10 @@ const EnhancedPOSSystem: React.FC = () => {
               <button
                 onClick={handleHoldTransaction}
                 disabled={cart.length === 0}
-                className="px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-yellow-100 dark:bg-yellow-900/20 border border-yellow-300 dark:border-yellow-800 rounded-lg hover:bg-yellow-200 dark:hover:bg-yellow-900/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="px-2 sm:px-3 py-2 text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 bg-yellow-100 dark:bg-yellow-900/20 border border-yellow-300 dark:border-yellow-800 rounded-lg hover:bg-yellow-200 dark:hover:bg-yellow-900/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
               >
-                <Save className="h-4 w-4 mr-1 inline" />
-                Hold (Ctrl+H)
+                <Save className="h-4 w-4 sm:mr-1 inline" />
+                <span className="hidden sm:inline">Hold (Ctrl+H)</span>
               </button>
               
               {savedCarts.length > 0 && (
@@ -471,12 +471,12 @@ const EnhancedPOSSystem: React.FC = () => {
                   <select
                     value=""
                     onChange={(e) => e.target.value && handleRecallHold(e.target.value)}
-                    className="px-3 py-2 text-sm border border-gray-300 dark:border-dark-600 rounded-lg bg-white dark:bg-dark-800 text-gray-900 dark:text-gray-100"
+                    className="px-2 sm:px-3 py-2 text-xs sm:text-sm border border-gray-300 dark:border-dark-600 rounded-lg bg-white dark:bg-dark-800 text-gray-900 dark:text-gray-100 min-w-0"
                   >
-                    <option value="">Recall Hold...</option>
+                    <option value="">Recall...</option>
                     {savedCarts.map(hold => (
                       <option key={hold.id} value={hold.id}>
-                        {hold.name} ({hold.items.length} items)
+                        {hold.name} ({hold.items.length})
                       </option>
                     ))}
                   </select>
@@ -486,57 +486,59 @@ const EnhancedPOSSystem: React.FC = () => {
           </div>
 
           {/* Search and Barcode */}
-          <div className="flex space-x-4">
+          <div className="space-y-2 sm:space-y-0 sm:flex sm:space-x-4">
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
               <input
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Search products by name, SKU, or barcode... (Ctrl+F)"
+                placeholder="Search products..."
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-dark-600 rounded-lg bg-white dark:bg-dark-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
             
-            <div className="relative">
-              <Scan className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <input
-                ref={barcodeRef}
-                type="text"
-                value={barcodeInput}
-                onChange={(e) => setBarcodeInput(e.target.value)}
-                onKeyPress={(e) => {
-                  if (e.key === 'Enter') {
-                    handleBarcodeInput(barcodeInput);
-                  }
-                }}
-                placeholder="Scan barcode"
-                className="w-48 pl-10 pr-4 py-2 border border-gray-300 dark:border-dark-600 rounded-lg bg-white dark:bg-dark-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
+            <div className="flex space-x-2 sm:space-x-4">
+              <div className="relative flex-1 sm:flex-none">
+                <Scan className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <input
+                  ref={barcodeRef}
+                  type="text"
+                  value={barcodeInput}
+                  onChange={(e) => setBarcodeInput(e.target.value)}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      handleBarcodeInput(barcodeInput);
+                    }
+                  }}
+                  placeholder="Scan barcode"
+                  className="w-full sm:w-48 pl-10 pr-4 py-2 border border-gray-300 dark:border-dark-600 rounded-lg bg-white dark:bg-dark-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
 
-            <select
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              className="px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-lg bg-white dark:bg-dark-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="all">All Categories</option>
-              {categories.map(category => (
-                <option key={category.id} value={category.id}>{category.name}</option>
-              ))}
-            </select>
+              <select
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                className="px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-lg bg-white dark:bg-dark-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="all">All</option>
+                {categories.map(category => (
+                  <option key={category.id} value={category.id}>{category.name}</option>
+                ))}
+              </select>
+            </div>
           </div>
         </div>
 
         {/* Quick Access Products */}
-        <div className="bg-white dark:bg-dark-800 border-b border-gray-200 dark:border-dark-700 p-4">
+        <div className="bg-white dark:bg-dark-800 border-b border-gray-200 dark:border-dark-700 p-2 sm:p-4">
           <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Quick Access</h3>
-          <div className="grid grid-cols-6 gap-2">
-            {quickProducts.map(product => (
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
+            {quickProducts.slice(0, 12).map(product => (
               <button
                 key={`quick-${product.id}`}
                 onClick={() => handleProductSelect(product)}
-                className="p-2 text-xs bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg transition-colors text-center"
+                className="p-2 text-xs bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg transition-colors text-center min-h-[60px] flex flex-col justify-center"
               >
                 <div className="font-medium text-blue-900 dark:text-blue-100 truncate">{product.name}</div>
                 <div className="text-blue-600 dark:text-blue-400">₱{product.price.toFixed(2)}</div>
@@ -546,33 +548,33 @@ const EnhancedPOSSystem: React.FC = () => {
         </div>
 
         {/* Products Grid */}
-        <div className="flex-1 overflow-y-auto p-4">
-          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3">
+        <div className="flex-1 overflow-y-auto p-2 sm:p-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 sm:gap-3">
             {filteredProducts.map(product => {
               const effectivePrice = product.price * getCurrentModeMultiplier();
               return (
                 <button
                   key={product.id}
                   onClick={() => handleProductSelect(product)}
-                  className="group bg-white dark:bg-dark-800 border border-gray-200 dark:border-dark-700 rounded-lg p-3 hover:border-blue-300 dark:hover:border-blue-600 hover:shadow-md transition-all text-left"
+                  className="group bg-white dark:bg-dark-800 border border-gray-200 dark:border-dark-700 rounded-lg p-2 sm:p-3 hover:border-blue-300 dark:hover:border-blue-600 hover:shadow-md transition-all text-left min-h-[120px] flex flex-col"
                 >
-                  <div className="aspect-square bg-gray-100 dark:bg-dark-700 rounded-lg mb-2 flex items-center justify-center">
-                    <Package className="h-8 w-8 text-gray-400" />
+                  <div className="aspect-square bg-gray-100 dark:bg-dark-700 rounded-lg mb-2 flex items-center justify-center flex-shrink-0">
+                    <Package className="h-6 w-6 sm:h-8 sm:w-8 text-gray-400" />
                   </div>
-                  <div className="space-y-1">
-                    <h3 className="font-medium text-sm text-gray-900 dark:text-gray-100 truncate group-hover:text-blue-600 dark:group-hover:text-blue-400">
+                  <div className="space-y-1 flex-1 flex flex-col justify-between">
+                    <h3 className="font-medium text-xs sm:text-sm text-gray-900 dark:text-gray-100 line-clamp-2 group-hover:text-blue-600 dark:group-hover:text-blue-400">
                       {product.name}
                     </h3>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">SKU: {product.sku}</p>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-semibold text-green-600 dark:text-green-400">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 hidden sm:block">SKU: {product.sku}</p>
+                    <div className="flex flex-col space-y-1">
+                      <span className="text-xs sm:text-sm font-semibold text-green-600 dark:text-green-400">
                         ₱{effectivePrice.toFixed(2)}
                         {posMode === 'wholesale' && (
                           <span className="text-xs text-gray-500 line-through ml-1">₱{product.price.toFixed(2)}</span>
                         )}
                       </span>
                       <span className="text-xs text-gray-500 dark:text-gray-400">
-                        {product.stock} in stock
+                        {product.stock}
                       </span>
                     </div>
                   </div>
@@ -584,12 +586,12 @@ const EnhancedPOSSystem: React.FC = () => {
       </div>
 
       {/* Right Panel - Cart */}
-      <div className="w-96 bg-white dark:bg-dark-800 border-l border-gray-200 dark:border-dark-700 flex flex-col">
+      <div className="w-full lg:w-96 bg-white dark:bg-dark-800 border-t lg:border-t-0 lg:border-l border-gray-200 dark:border-dark-700 flex flex-col order-1 lg:order-2 max-h-[50vh] lg:max-h-none">
         {/* Cart Header */}
-        <div className="p-4 border-b border-gray-200 dark:border-dark-700">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center">
-              <ShoppingCart className="h-5 w-5 mr-2" />
+        <div className="p-2 sm:p-4 border-b border-gray-200 dark:border-dark-700">
+          <div className="flex items-center justify-between mb-2 sm:mb-4">
+            <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center">
+              <ShoppingCart className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
               Cart ({cart.length})
             </h2>
             <div className="flex space-x-2">
@@ -597,7 +599,7 @@ const EnhancedPOSSystem: React.FC = () => {
                 onClick={handleClearCart}
                 disabled={cart.length === 0}
                 className="p-2 text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 disabled:opacity-50 disabled:cursor-not-allowed"
-                title="Clear Cart (Ctrl+R)"
+                title="Clear Cart"
               >
                 <RotateCcw className="h-4 w-4" />
               </button>
@@ -605,26 +607,26 @@ const EnhancedPOSSystem: React.FC = () => {
           </div>
 
           {/* Customer Selection */}
-          <div className="mb-4">
+          <div className="mb-2 sm:mb-4 lg:block hidden">
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Customer</label>
             <div className="flex space-x-2">
               <button
                 onClick={() => setShowCustomerSelector(true)}
-                className="flex-1 px-3 py-2 text-left border border-gray-300 dark:border-dark-600 rounded-lg bg-white dark:bg-dark-800 text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-dark-700 transition-colors"
+                className="flex-1 px-3 py-2 text-left border border-gray-300 dark:border-dark-600 rounded-lg bg-white dark:bg-dark-800 text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-dark-700 transition-colors min-h-[44px]"
               >
                 {selectedCustomer ? (
                   <div>
-                    <div className="font-medium">{selectedCustomer.firstName} {selectedCustomer.lastName}</div>
+                    <div className="font-medium text-sm">{selectedCustomer.firstName} {selectedCustomer.lastName}</div>
                     <div className="text-xs text-gray-500 dark:text-gray-400">{selectedCustomer.email}</div>
                   </div>
                 ) : (
-                  <div className="text-gray-500 dark:text-gray-400">Select customer (optional)</div>
+                  <div className="text-gray-500 dark:text-gray-400 text-sm">Select customer</div>
                 )}
               </button>
               {selectedCustomer && (
                 <button
                   onClick={() => setSelectedCustomer(null)}
-                  className="p-2 text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400"
+                  className="p-2 text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 min-h-[44px]"
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -636,22 +638,22 @@ const EnhancedPOSSystem: React.FC = () => {
         {/* Cart Items */}
         <div className="flex-1 overflow-y-auto">
           {cart.length === 0 ? (
-            <div className="p-8 text-center text-gray-500 dark:text-gray-400">
-              <ShoppingCart className="h-12 w-12 mx-auto mb-4 text-gray-300 dark:text-gray-600" />
-              <p>Cart is empty</p>
-              <p className="text-sm">Add products to start a sale</p>
+            <div className="p-4 sm:p-8 text-center text-gray-500 dark:text-gray-400">
+              <ShoppingCart className="h-8 w-8 sm:h-12 sm:w-12 mx-auto mb-4 text-gray-300 dark:text-gray-600" />
+              <p className="text-sm sm:text-base">Cart is empty</p>
+              <p className="text-xs sm:text-sm">Add products to start a sale</p>
             </div>
           ) : (
-            <div className="p-4 space-y-3">
+            <div className="p-2 sm:p-4 space-y-2 sm:space-y-3">
               {cart.map(item => {
                 const effectivePrice = item.product.price * getCurrentModeMultiplier();
                 const itemTotal = effectivePrice * item.quantity;
                 
                 return (
-                  <div key={item.product.id} className="bg-gray-50 dark:bg-dark-700 rounded-lg p-3">
+                  <div key={item.product.id} className="bg-gray-50 dark:bg-dark-700 rounded-lg p-2 sm:p-3">
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex-1 min-w-0">
-                        <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                        <h4 className="text-xs sm:text-sm font-medium text-gray-900 dark:text-gray-100 line-clamp-2">
                           {item.product.name}
                         </h4>
                         <p className="text-xs text-gray-500 dark:text-gray-400">
@@ -663,32 +665,32 @@ const EnhancedPOSSystem: React.FC = () => {
                       </div>
                       <button
                         onClick={() => removeFromCart(item.product.id)}
-                        className="p-1 text-gray-400 hover:text-red-600 dark:hover:text-red-400"
+                        className="p-1 text-gray-400 hover:text-red-600 dark:hover:text-red-400 min-h-[32px] min-w-[32px] flex items-center justify-center"
                       >
                         <X className="h-4 w-4" />
                       </button>
                     </div>
                     
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-2">
+                      <div className="flex items-center space-x-1 sm:space-x-2">
                         <button
                           onClick={() => handleQuantityChange(item.product.id, item.quantity - 1)}
-                          className="p-1 rounded-md bg-gray-200 dark:bg-dark-600 hover:bg-gray-300 dark:hover:bg-dark-500 text-gray-700 dark:text-gray-300"
+                          className="p-1 sm:p-2 rounded-md bg-gray-200 dark:bg-dark-600 hover:bg-gray-300 dark:hover:bg-dark-500 text-gray-700 dark:text-gray-300 min-h-[32px] min-w-[32px] flex items-center justify-center"
                         >
                           <Minus className="h-3 w-3" />
                         </button>
-                        <span className="w-8 text-center text-sm font-medium text-gray-900 dark:text-gray-100">
+                        <span className="w-8 text-center text-xs sm:text-sm font-medium text-gray-900 dark:text-gray-100">
                           {item.quantity}
                         </span>
                         <button
                           onClick={() => handleQuantityChange(item.product.id, item.quantity + 1)}
                           disabled={item.quantity >= item.product.stock}
-                          className="p-1 rounded-md bg-gray-200 dark:bg-dark-600 hover:bg-gray-300 dark:hover:bg-dark-500 text-gray-700 dark:text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="p-1 sm:p-2 rounded-md bg-gray-200 dark:bg-dark-600 hover:bg-gray-300 dark:hover:bg-dark-500 text-gray-700 dark:text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed min-h-[32px] min-w-[32px] flex items-center justify-center"
                         >
                           <Plus className="h-3 w-3" />
                         </button>
                       </div>
-                      <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                      <div className="text-xs sm:text-sm font-semibold text-gray-900 dark:text-gray-100">
                         ₱{itemTotal.toFixed(2)}
                       </div>
                     </div>
@@ -701,9 +703,9 @@ const EnhancedPOSSystem: React.FC = () => {
 
         {/* Cart Summary */}
         {cart.length > 0 && (
-          <div className="border-t border-gray-200 dark:border-dark-700 p-4 space-y-4">
-            {/* Discount Controls */}
-            <div>
+          <div className="border-t border-gray-200 dark:border-dark-700 p-2 sm:p-4 space-y-2 sm:space-y-4">
+            {/* Discount Controls - Hidden on mobile in collapsed mode */}
+            <div className="lg:block hidden">
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Discount</label>
               <div className="flex space-x-2">
                 <select
@@ -728,7 +730,7 @@ const EnhancedPOSSystem: React.FC = () => {
             </div>
 
             {/* Totals */}
-            <div className="space-y-2 text-sm">
+            <div className="space-y-1 sm:space-y-2 text-xs sm:text-sm">
               <div className="flex justify-between text-gray-600 dark:text-gray-400">
                 <span>Subtotal:</span>
                 <span>₱{getCartSubtotal().toFixed(2)}</span>
@@ -746,7 +748,7 @@ const EnhancedPOSSystem: React.FC = () => {
                 <span>₱{(calculateFinalTotal() - calculateDiscountedSubtotal()).toFixed(2)}</span>
               </div>
               
-              <div className="flex justify-between text-lg font-bold text-gray-900 dark:text-gray-100 pt-2 border-t border-gray-200 dark:border-dark-700">
+              <div className="flex justify-between text-base sm:text-lg font-bold text-gray-900 dark:text-gray-100 pt-2 border-t border-gray-200 dark:border-dark-700">
                 <span>Total:</span>
                 <span>₱{calculateFinalTotal().toFixed(2)}</span>
               </div>
@@ -755,10 +757,11 @@ const EnhancedPOSSystem: React.FC = () => {
             {/* Payment Button */}
             <button
               onClick={() => setShowPaymentModal(true)}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors flex items-center justify-center"
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors flex items-center justify-center min-h-[48px] text-sm sm:text-base"
             >
               <CreditCard className="h-5 w-5 mr-2" />
-              Process Payment (Ctrl+P)
+              <span className="hidden sm:inline">Process Payment (Ctrl+P)</span>
+              <span className="sm:hidden">Pay Now</span>
             </button>
           </div>
         )}

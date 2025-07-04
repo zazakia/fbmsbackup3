@@ -22,20 +22,23 @@ import {
 } from 'lucide-react';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
+import BottomNavigation from './components/BottomNavigation';
 import ProtectedRoute from './components/ProtectedRoute';
 import LoadingSpinner from './components/LoadingSpinner';
 import ErrorBoundary from './components/ErrorBoundary';
 import PermissionGuard from './components/PermissionGuard';
 import { ToastContainer } from './components/Toast';
 import VersionSelector from './components/VersionSelector';
-import EnhancedVersionMenu from './components/EnhancedVersionMenu';
+// import EnhancedVersionMenu from './components/EnhancedVersionMenu'; // Moved to settings
 import { useToastStore } from './store/toastStore';
 import { useThemeStore } from './store/themeStore';
 import { useSupabaseAuthStore } from './store/supabaseAuthStore';
+import { useSettingsStore } from './store/settingsStore';
 import { canAccessModule } from './utils/permissions';
 import { setupDevAuth } from './utils/supabase';
 import { NavigationProvider } from './contexts/NavigationContext';
 import './utils/devCommands'; // Initialize dev commands
+import './styles/mobile-responsive.css'; // Mobile responsive styles
 import TestDashboard from './components/test/TestDashboard';
 import AdminDashboard from './components/admin/AdminDashboard';
 import AuthCallback from './components/auth/AuthCallback';
@@ -68,16 +71,10 @@ import {
 const App: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeModule, setActiveModule] = useState('dashboard');
-  const [enhancedVersions, setEnhancedVersions] = useState<Record<string, boolean>>({
-    sales: false,
-    inventory: false,
-    accounting: false,
-    purchases: false,
-    reports: false
-  });
   const { toasts, removeToast } = useToastStore();
   const { initializeTheme } = useThemeStore();
   const { user } = useSupabaseAuthStore();
+  const { enhancedVersions } = useSettingsStore();
 
   // Check for OAuth callback
   const isOAuthCallback = window.location.hash.includes('access_token') || 
@@ -124,12 +121,7 @@ const App: React.FC = () => {
       return canAccessModule(user.role, item.module);
     }), [user?.role]);
 
-  const handleVersionChange = useCallback((module: string, isEnhanced: boolean) => {
-    setEnhancedVersions(prev => ({
-      ...prev,
-      [module]: isEnhanced
-    }));
-  }, []);
+  // Version change handling is now in settings store
 
   const handleModuleChange = useCallback((moduleId: string) => {
     setActiveModule(moduleId);
@@ -301,13 +293,9 @@ const App: React.FC = () => {
 
             {/* Content Area */}
             <main className="flex-1 overflow-y-auto bg-gray-50 dark:bg-dark-950 transition-colors duration-300">
-              <div className="p-3 sm:p-6">
+              <div className="p-2 sm:p-4 md:p-6 pb-20 lg:pb-6 w-full max-w-full overflow-x-hidden">
                 
-                <VersionSelector 
-                  currentModule={activeModule}
-                  isEnhanced={enhancedVersions[activeModule] || false}
-                  onVersionChange={(isEnhanced) => handleVersionChange(activeModule, isEnhanced)}
-                />
+                {/* Version selector removed - now in settings */}
                 <Suspense fallback={<LoadingSpinner message="Loading module..." size="lg" className="min-h-[400px]" />}>
                   {renderContent()}
                 </Suspense>
@@ -322,15 +310,17 @@ const App: React.FC = () => {
               onClick={closeSidebar}
             />
           )}
+
+          {/* Bottom Navigation (Mobile Only) */}
+          <BottomNavigation 
+            menuItems={menuItems}
+            activeModule={activeModule}
+            onModuleChange={handleModuleChange}
+          />
           </div>
         </NavigationProvider>
         
-        {/* Enhanced Version Menu */}
-        <EnhancedVersionMenu 
-          enhancedVersions={enhancedVersions}
-          onVersionChange={handleVersionChange}
-          activeModule={activeModule}
-        />
+        {/* Enhanced Version Menu moved to Settings */}
         
         {/* Toast Notifications */}
         <ToastContainer toasts={toasts} onClose={removeToast} />
