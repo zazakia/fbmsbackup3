@@ -14,7 +14,7 @@ interface HeaderProps {
 }
 
 const Header: React.FC<HeaderProps> = ({ onMenuToggle, activeModule }) => {
-  const { user, logout, isLoading } = useSupabaseAuthStore();
+  const { user, logout } = useSupabaseAuthStore();
   const { addToast } = useToastStore();
   const { onModuleChange } = useNavigation();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -44,7 +44,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuToggle, activeModule }) => {
         title: 'Logged Out',
         message: 'You have been successfully logged out.'
       });
-    } catch (error) {
+    } catch {
       addToast({
         type: 'error',
         title: 'Logout Error',

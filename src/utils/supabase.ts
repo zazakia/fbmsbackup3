@@ -40,7 +40,7 @@ export async function setupDevAuth() {
         console.log('🔐 Admin credentials: admin@fbms.com / Qweasd145698@');
         
         // Try to sign in with the admin user
-        const { data, error } = await supabase.auth.signInWithPassword({
+        const { error } = await supabase.auth.signInWithPassword({
           email: 'admin@fbms.com',
           password: 'Qweasd145698@'
         });
