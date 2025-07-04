@@ -32,9 +32,8 @@ echo "✅ Backup created: $BACKUP_DIR/${BACKUP_NAME}.tar.gz"
 # 2. Protect important files by making them read-only
 echo "🔒 Protecting critical files..."
 
-# Protect the chat session file
-chmod 444 "$PROJECT_DIR/CHAT_SESSION.md"
-echo "   - CHAT_SESSION.md protected (read-only)"
+# Protect the chat session file (now in Docu folder)
+chmod 444 "$PROJECT_DIR/Docu/CHAT_SESSION.md" 2>/dev/null && echo "   - CHAT_SESSION.md protected (read-only)" || echo "   - CHAT_SESSION.md not found (may be moved)"
 
 # Protect package.json and important config files
 chmod 444 "$PROJECT_DIR/package.json"
@@ -103,7 +102,7 @@ echo "Recovery script: $BACKUP_DIR/restore_${TIMESTAMP}.sh"
 echo "Checksums file:  $BACKUP_DIR/checksums_${TIMESTAMP}.txt"
 echo ""
 echo "Protected files:"
-echo "  - CHAT_SESSION.md (read-only)"
+echo "  - CHAT_SESSION.md in Docu/ (read-only)"
 echo "  - Configuration files (read-only)"
 echo "  - Environment files (owner-only)"
 echo ""
