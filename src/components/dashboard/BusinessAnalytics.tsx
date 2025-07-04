@@ -157,25 +157,21 @@ const BusinessAnalytics: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-1 sm:space-y-3 md:space-y-6">
       {/* Key Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-1 sm:gap-3 md:gap-6">
         {analytics.metrics.map((metric, index) => (
-          <div key={index} className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between mb-4">
-              <div className={`p-2 rounded-lg bg-gray-50 ${metric.color}`}>
-                {metric.icon}
-              </div>
+          <div key={index} className="bg-white rounded-lg border border-gray-200 p-1 sm:p-3 md:p-6 shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between mb-1 sm:mb-3 md:mb-4">
+              <div className={`p-1 rounded-lg bg-gray-50 ${metric.color}`}>{metric.icon}</div>
               <div className="flex items-center space-x-1">
                 {getChangeIcon(metric.changeType)}
-                <span className={`text-sm font-medium ${getChangeColor(metric.changeType)}`}>
-                  {Math.abs(metric.change).toFixed(1)}%
-                </span>
+                <span className={`text-xs font-medium ${getChangeColor(metric.changeType)}`}>{Math.abs(metric.change).toFixed(1)}%</span>
               </div>
             </div>
             <div>
-              <p className="text-2xl font-bold text-gray-900 mb-1">{metric.value}</p>
-              <p className="text-sm text-gray-600">{metric.label}</p>
+              <p className="text-xs sm:text-xl md:text-2xl font-bold text-gray-900 mb-1">{metric.value}</p>
+              <p className="text-xs text-gray-600">{metric.label}</p>
             </div>
           </div>
         ))}
@@ -183,29 +179,29 @@ const BusinessAnalytics: React.FC = () => {
 
       {/* Alert Summary */}
       {(analytics.alerts.lowStock > 0 || analytics.alerts.outOfStock > 0 || analytics.alerts.profitMargin < 10) && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-          <div className="flex items-center space-x-2 mb-3">
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-1 sm:p-3">
+          <div className="flex items-center space-x-2 mb-1 sm:mb-3">
             <AlertTriangle className="h-5 w-5 text-yellow-600" />
-            <h3 className="text-lg font-medium text-yellow-800">Business Alerts</h3>
+            <h3 className="text-xs sm:text-lg font-medium text-yellow-800">Business Alerts</h3>
           </div>
-          <div className="space-y-2">
+          <div className="space-y-1 sm:space-y-2">
             {analytics.alerts.outOfStock > 0 && (
-              <p className="text-sm text-yellow-700">
+              <p className="text-xs text-yellow-700">
                 <span className="font-medium">{analytics.alerts.outOfStock}</span> products are out of stock
               </p>
             )}
             {analytics.alerts.lowStock > 0 && (
-              <p className="text-sm text-yellow-700">
+              <p className="text-xs text-yellow-700">
                 <span className="font-medium">{analytics.alerts.lowStock}</span> products have low stock
               </p>
             )}
             {analytics.alerts.profitMargin < 10 && analytics.alerts.profitMargin > 0 && (
-              <p className="text-sm text-yellow-700">
+              <p className="text-xs text-yellow-700">
                 Profit margin is low at <span className="font-medium">{analytics.alerts.profitMargin.toFixed(1)}%</span>
               </p>
             )}
             {analytics.alerts.profitMargin < 0 && (
-              <p className="text-sm text-red-700">
+              <p className="text-xs text-red-700">
                 <span className="font-medium">Loss detected:</span> Expenses exceed revenue
               </p>
             )}
@@ -214,20 +210,20 @@ const BusinessAnalytics: React.FC = () => {
       )}
 
       {/* Quick Insights */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <h3 className="text-lg font-medium text-gray-900 mb-4">Quick Insights</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="p-4 bg-blue-50 rounded-lg">
-            <h4 className="font-medium text-blue-900 mb-2">Best Performing Period</h4>
-            <p className="text-sm text-blue-700">
+      <div className="bg-white rounded-lg border border-gray-200 p-1 sm:p-3 md:p-6">
+        <h3 className="text-xs sm:text-lg font-medium text-gray-900 mb-1 sm:mb-4">Quick Insights</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-1 sm:gap-4">
+          <div className="p-1 sm:p-4 bg-blue-50 rounded-lg">
+            <h4 className="font-medium text-blue-900 mb-1 sm:mb-2 text-xs sm:text-base">Best Performing Period</h4>
+            <p className="text-xs text-blue-700">
               {analytics.metrics[0].changeType === 'increase' 
                 ? 'Revenue is trending upward this month' 
                 : 'Consider promotional strategies to boost sales'}
             </p>
           </div>
-          <div className="p-4 bg-green-50 rounded-lg">
-            <h4 className="font-medium text-green-900 mb-2">Inventory Status</h4>
-            <p className="text-sm text-green-700">
+          <div className="p-1 sm:p-4 bg-green-50 rounded-lg">
+            <h4 className="font-medium text-green-900 mb-1 sm:mb-2 text-xs sm:text-base">Inventory Status</h4>
+            <p className="text-xs text-green-700">
               {analytics.alerts.lowStock === 0 
                 ? 'Inventory levels are healthy' 
                 : `${analytics.alerts.lowStock} products need restocking`}
