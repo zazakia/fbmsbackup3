@@ -3,7 +3,11 @@ import { supabaseAnon } from './supabase';
 export interface AdminSetupResult {
   success: boolean;
   message: string;
-  user?: any;
+  user?: {
+    id: string;
+    email?: string;
+    [key: string]: unknown;
+  };
 }
 
 export async function setupAdminAccount(): Promise<AdminSetupResult> {

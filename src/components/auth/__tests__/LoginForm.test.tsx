@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import LoginForm from '../LoginForm';
-import { useAuthStore } from '../../../store/authStore';
+import { useSupabaseAuthStore } from '../../../store/supabaseAuthStore';
 
 // Mock the auth store
-vi.mock('../../../store/authStore', () => ({
-  useAuthStore: vi.fn()
+vi.mock('../../../store/supabaseAuthStore', () => ({
+  useSupabaseAuthStore: vi.fn()
 }));
 
 const mockAuthStore = {
@@ -20,7 +20,7 @@ describe('LoginForm', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    (useAuthStore as any).mockReturnValue(mockAuthStore);
+    (useSupabaseAuthStore as any).mockReturnValue(mockAuthStore);
   });
 
   it('renders login form correctly', () => {
@@ -55,12 +55,21 @@ describe('LoginForm', () => {
   });
 
   it('validates email format', async () => {
+    // Make sure loading is false for this test
+    const testStore = { ...mockAuthStore, isLoading: false };
+    (useSupabaseAuthStore as any).mockReturnValue(testStore);
+    
     render(<LoginForm onSwitchToRegister={mockOnSwitchToRegister} />);
     
     const emailInput = screen.getByLabelText('Email Address');
-    fireEvent.change(emailInput, { target: { value: 'invalid-email' } });
+    const passwordInput = screen.getByLabelText('Password');
     
-    const submitButton = screen.getByRole('button', { name: 'Sign In' });
+    // Set invalid email but valid password to isolate email validation
+    fireEvent.change(emailInput, { target: { value: 'invalid-email' } });
+    fireEvent.change(passwordInput, { target: { value: 'validpassword' } });
+    
+    // Find the submit button more reliably
+    const submitButton = screen.getByText('Sign In');
     fireEvent.click(submitButton);
     
     await waitFor(() => {
@@ -104,7 +113,7 @@ describe('LoginForm', () => {
 
   it('displays error message when login fails', () => {
     const errorStore = { ...mockAuthStore, error: 'Invalid credentials' };
-    (useAuthStore as any).mockReturnValue(errorStore);
+    (useSupabaseAuthStore as any).mockReturnValue(errorStore);
     
     render(<LoginForm onSwitchToRegister={mockOnSwitchToRegister} />);
     
@@ -113,7 +122,7 @@ describe('LoginForm', () => {
 
   it('shows loading state during login', () => {
     const loadingStore = { ...mockAuthStore, isLoading: true };
-    (useAuthStore as any).mockReturnValue(loadingStore);
+    (useSupabaseAuthStore as any).mockReturnValue(loadingStore);
     
     render(<LoginForm onSwitchToRegister={mockOnSwitchToRegister} />);
     
@@ -131,14 +140,14 @@ describe('LoginForm', () => {
   });
 
   it('clears errors when user starts typing', async () => {
-    const errorStore = { ...mockAuthStore, error: 'Some error' };
-    (useAuthStore as any).mockReturnValue(errorStore);
+    const errorStore = { ...mockAuthStore, error: 'Some error', clearError: vi.fn() };
+    (useSupabaseAuthStore as any).mockReturnValue(errorStore);
     
     render(<LoginForm onSwitchToRegister={mockOnSwitchToRegister} />);
     
     const emailInput = screen.getByLabelText('Email Address');
     fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
     
-    expect(mockAuthStore.clearError).toHaveBeenCalled();
+    expect(errorStore.clearError).toHaveBeenCalled();
   });
 });

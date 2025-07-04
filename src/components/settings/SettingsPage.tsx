@@ -6,6 +6,10 @@ import { useToastStore } from '../../store/toastStore';
 import { useSupabaseAuthStore } from '../../store/supabaseAuthStore';
 import { hasPermission } from '../../utils/permissions';
 import UserManagement from './UserManagement';
+import UserPreferences from './UserPreferences';
+import NotificationSettings from './NotificationSettings';
+import SecuritySettings from './SecuritySettings';
+import SystemSettings from './SystemSettings';
 
 interface SettingsSection {
   id: string;
@@ -15,7 +19,7 @@ interface SettingsSection {
 }
 
 const SettingsPage: React.FC = () => {
-  const [activeSection, setActiveSection] = useState('notifications');
+  const [activeSection, setActiveSection] = useState('profile');
   const { settings, updateSettings, isEnabled, toggleNotifications } = useNotificationStore();
   const { updateThresholds, getStatus } = useInventoryMonitor();
   const { addToast } = useToastStore();
@@ -38,10 +42,22 @@ const SettingsPage: React.FC = () => {
 
   const allSections: SettingsSection[] = [
     {
+      id: 'profile',
+      title: 'User Preferences',
+      icon: <User className="h-5 w-5" />,
+      description: 'Personal settings and preferences'
+    },
+    {
       id: 'notifications',
       title: 'Notifications',
       icon: <Bell className="h-5 w-5" />,
       description: 'Configure alerts and notification preferences'
+    },
+    {
+      id: 'security',
+      title: 'Security & Privacy',
+      icon: <Shield className="h-5 w-5" />,
+      description: user && hasPermission(user.role, 'users', 'view') ? 'User management and permissions' : 'Security settings and privacy controls'
     },
     {
       id: 'reports',
@@ -57,21 +73,9 @@ const SettingsPage: React.FC = () => {
     },
     {
       id: 'database',
-      title: 'Database Settings',
+      title: 'System Settings',
       icon: <Database className="h-5 w-5" />,
-      description: 'Manage data synchronization and backup settings'
-    },
-    {
-      id: 'security',
-      title: 'Security & Privacy',
-      icon: <Shield className="h-5 w-5" />,
-      description: 'Configure security settings and user permissions'
-    },
-    {
-      id: 'profile',
-      title: 'User Profile',
-      icon: <User className="h-5 w-5" />,
-      description: 'Update personal information and preferences'
+      description: 'Manage system configuration and integrations'
     }
   ];
 
@@ -239,31 +243,27 @@ const SettingsPage: React.FC = () => {
   const renderContent = () => {
     switch (activeSection) {
       case 'notifications':
-        return renderNotificationSettings();
+        return <NotificationSettings />;
       case 'reports':
         return renderReportSettings();
       case 'inventory':
         return renderInventorySettings();
       case 'database':
-        return (
+        return user && hasPermission(user.role, 'settings', 'edit') && user.role === 'admin' ? (
+          <SystemSettings />
+        ) : (
           <div className="text-center py-8">
             <Database className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">Database Settings</h3>
-            <p className="text-gray-600">Database configuration options coming soon...</p>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">Access Restricted</h3>
+            <p className="text-gray-600">System settings are only available to administrators.</p>
           </div>
         );
       case 'security':
-        return <UserManagement />;
+        return user && hasPermission(user.role, 'users', 'view') ? <UserManagement /> : <SecuritySettings />;
       case 'profile':
-        return (
-          <div className="text-center py-8">
-            <User className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">User Profile</h3>
-            <p className="text-gray-600">Profile management options coming soon...</p>
-          </div>
-        );
+        return <UserPreferences />;
       default:
-        return renderNotificationSettings();
+        return <NotificationSettings />;
     }
   };
 
@@ -304,20 +304,7 @@ const SettingsPage: React.FC = () => {
 
         {/* Main Content */}
         <div className="lg:col-span-3">
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            {renderContent()}
-            
-            {/* Save Button */}
-            <div className="mt-8 pt-6 border-t border-gray-200">
-              <button
-                onClick={handleSaveSettings}
-                className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                <Save className="h-4 w-4 mr-2" />
-                Save Settings
-              </button>
-            </div>
-          </div>
+          {renderContent()}
         </div>
       </div>
     </div>

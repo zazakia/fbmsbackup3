@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { X, BarChart3 } from 'lucide-react';
 
 interface MenuItem {
@@ -15,7 +15,7 @@ interface SidebarProps {
   onClose: () => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ 
+const Sidebar: React.FC<SidebarProps> = memo(({ 
   isOpen, 
   menuItems, 
   activeModule, 
@@ -116,6 +116,8 @@ const Sidebar: React.FC<SidebarProps> = ({
       </div>
     </>
   );
-};
+});
+
+Sidebar.displayName = 'Sidebar';
 
 export default Sidebar;

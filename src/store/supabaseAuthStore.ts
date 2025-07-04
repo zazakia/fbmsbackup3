@@ -8,7 +8,9 @@ interface SupabaseAuthStore extends AuthState {
   register: (data: RegisterData) => Promise<void>;
   logout: () => Promise<void>;
   checkAuth: () => Promise<void>;
+  refreshUser: () => Promise<void>;
   clearError: () => void;
+  clearPasswordResetState: () => void;
   hasLoggedOut: boolean;
   // Enhanced auth methods
   forgotPassword: (email: string) => Promise<void>;
@@ -44,6 +46,12 @@ export const useSupabaseAuthStore = create<SupabaseAuthStore>()(
           });
 
           if (error) {
+            // Check if this is a "user not found" error
+            if (error.message.includes('Invalid login credentials') || 
+                error.message.includes('Email not confirmed') ||
+                error.message.includes('User not found')) {
+              throw new Error('UNREGISTERED_USER');
+            }
             throw new Error(error.message);
           }
 
@@ -68,8 +76,33 @@ export const useSupabaseAuthStore = create<SupabaseAuthStore>()(
                 createdAt: new Date(userProfile.created_at),
               };
             } else {
-              // Create basic user from auth data
-              console.warn('User profile not found in database, creating basic user object');
+              // Create basic user from auth data and insert into database
+              console.warn('User profile not found in database, creating user profile...');
+              
+              const newUserData = {
+                id: data.user.id,
+                email: data.user.email || '',
+                first_name: data.user.user_metadata?.first_name || '',
+                last_name: data.user.user_metadata?.last_name || '',
+                role: 'cashier', // Default to lowest privilege role
+                is_active: true,
+              };
+
+              // Try to create the user profile in the database
+              try {
+                const { error: insertError } = await supabase
+                  .from('users')
+                  .insert(newUserData);
+
+                if (insertError) {
+                  console.warn('Failed to create user profile in database:', insertError.message);
+                } else {
+                  console.log('✅ User profile created successfully in database');
+                }
+              } catch (insertError) {
+                console.warn('Error creating user profile:', insertError);
+              }
+
               user = {
                 id: data.user.id,
                 email: data.user.email || '',
@@ -90,9 +123,13 @@ export const useSupabaseAuthStore = create<SupabaseAuthStore>()(
             });
           }
         } catch (error) {
+          const errorMessage = error instanceof Error && error.message === 'UNREGISTERED_USER' 
+            ? 'Email not registered. Please sign up first.' 
+            : error instanceof Error ? error.message : 'Login failed';
+          
           set({
             isLoading: false,
-            error: error instanceof Error ? error.message : 'Login failed'
+            error: errorMessage
           });
           throw error;
         }
@@ -224,12 +261,30 @@ export const useSupabaseAuthStore = create<SupabaseAuthStore>()(
           }
 
           if (session?.user) {
-            // Get user profile
-            const { data: userProfile, error: profileError } = await supabase
+            // Get user profile - try by ID first, then by email
+            let userProfile, profileError;
+            
+            // First try by ID
+            const idResult = await supabase
               .from('users')
               .select('*')
-              .eq('email', session.user.email)
+              .eq('id', session.user.id)
               .single();
+            
+            if (idResult.data) {
+              userProfile = idResult.data;
+              profileError = idResult.error;
+            } else {
+              // Fallback: try by email
+              const emailResult = await supabase
+                .from('users')
+                .select('*')
+                .eq('email', session.user.email)
+                .single();
+              
+              userProfile = emailResult.data;
+              profileError = emailResult.error;
+            }
 
             let user: User;
             if (userProfile && !profileError) {
@@ -244,7 +299,32 @@ export const useSupabaseAuthStore = create<SupabaseAuthStore>()(
                 createdAt: new Date(userProfile.created_at),
               };
             } else {
-              console.warn('User profile not found in database during auth check');
+              console.warn('User profile not found in database during auth check, creating user profile...');
+              
+              const newUserData = {
+                id: session.user.id,
+                email: session.user.email || '',
+                first_name: session.user.user_metadata?.first_name || '',
+                last_name: session.user.user_metadata?.last_name || '',
+                role: 'cashier', // Default to lowest privilege role
+                is_active: true,
+              };
+
+              // Try to create the user profile in the database
+              try {
+                const { error: insertError } = await supabase
+                  .from('users')
+                  .insert(newUserData);
+
+                if (insertError) {
+                  console.warn('Failed to create user profile in database during auth check:', insertError.message);
+                } else {
+                  console.log('✅ User profile created successfully in database during auth check');
+                }
+              } catch (insertError) {
+                console.warn('Error creating user profile during auth check:', insertError);
+              }
+
               user = {
                 id: session.user.id,
                 email: session.user.email || '',
@@ -282,6 +362,20 @@ export const useSupabaseAuthStore = create<SupabaseAuthStore>()(
 
       clearError: () => {
         set({ error: null });
+      },
+
+      clearPasswordResetState: () => {
+        set({ 
+          passwordResetSent: false,
+          error: null 
+        });
+      },
+
+      refreshUser: async () => {
+        const currentState = get();
+        if (currentState.isAuthenticated) {
+          await currentState.checkAuth();
+        }
       },
 
       // Enhanced authentication methods

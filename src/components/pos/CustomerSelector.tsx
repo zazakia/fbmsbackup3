@@ -8,6 +8,7 @@ interface CustomerSelectorProps {
   onCustomerSelect: (customer: Customer | null) => void;
   showModal?: boolean;
   onClose?: () => void;
+  onSelect?: (customerId: string) => void; // Legacy support
 }
 
 const CustomerSelector: React.FC<CustomerSelectorProps> = ({ 
@@ -15,7 +16,8 @@ const CustomerSelector: React.FC<CustomerSelectorProps> = ({
   selectedCustomer,
   onCustomerSelect,
   showModal = false,
-  onClose 
+  onClose,
+  onSelect // Legacy support
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -30,6 +32,10 @@ const CustomerSelector: React.FC<CustomerSelectorProps> = ({
 
   const handleCustomerSelect = (customer: Customer | null) => {
     onCustomerSelect(customer);
+    // Legacy support for onSelect prop
+    if (onSelect && customer) {
+      onSelect(customer.id);
+    }
     if (onClose) onClose();
   };
 
@@ -160,7 +166,8 @@ const CustomerSelector: React.FC<CustomerSelectorProps> = ({
         <div className="p-4 border-t border-gray-200">
           <button 
             onClick={() => {
-              // For now, just close the modal - you can add customer creation logic later
+              // TODO: Implement customer creation functionality
+              console.log('Add new customer functionality to be implemented');
               if (onClose) onClose();
             }}
             className="w-full flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"

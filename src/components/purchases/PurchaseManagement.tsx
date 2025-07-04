@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus, Search, Filter, Package, Truck, FileText, AlertTriangle } from 'lucide-react';
 import { useBusinessStore } from '../../store/businessStore';
 import SupplierList from './SupplierList';
 import PurchaseOrderList from './PurchaseOrderList';
 import SupplierForm from './SupplierForm';
 import PurchaseOrderForm from './PurchaseOrderForm';
+import { getSuppliers, getPurchaseOrders } from '../../api/purchases';
+import { Supplier, PurchaseOrder } from '../../types/business';
 
 const PurchaseManagement: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'suppliers' | 'purchase-orders'>('suppliers');
@@ -15,25 +17,66 @@ const PurchaseManagement: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
-  const { suppliers, purchaseOrders } = useBusinessStore();
+  const { purchaseOrders } = useBusinessStore();
+  const [realSuppliers, setRealSuppliers] = useState<Supplier[]>([]);
+  const [realPurchaseOrders, setRealPurchaseOrders] = useState<PurchaseOrder[]>([]);
+  const [loadingSuppliers, setLoadingSuppliers] = useState(false);
+  const [loadingPOs, setLoadingPOs] = useState(false);
 
-  const filteredSuppliers = suppliers.filter(supplier => {
+  // Load real data from API
+  useEffect(() => {
+    const loadData = async () => {
+      // Load suppliers
+      setLoadingSuppliers(true);
+      try {
+        const { data: suppliersData, error: suppliersError } = await getSuppliers();
+        if (suppliersData && !suppliersError) {
+          setRealSuppliers(suppliersData);
+        } else {
+          console.warn('Failed to load suppliers:', suppliersError);
+        }
+      } catch (error) {
+        console.error('Error loading suppliers:', error);
+      } finally {
+        setLoadingSuppliers(false);
+      }
+
+      // Load purchase orders
+      setLoadingPOs(true);
+      try {
+        const { data: posData, error: posError } = await getPurchaseOrders();
+        if (posData && !posError) {
+          setRealPurchaseOrders(posData);
+        } else {
+          console.warn('Failed to load purchase orders:', posError);
+        }
+      } catch (error) {
+        console.error('Error loading purchase orders:', error);
+      } finally {
+        setLoadingPOs(false);
+      }
+    };
+
+    loadData();
+  }, []);
+
+  const filteredSuppliers = realSuppliers.filter(supplier => {
     const matchesSearch = supplier.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          supplier.contactPerson?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          supplier.email?.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesSearch && supplier.isActive;
   });
 
-  const filteredPOs = purchaseOrders.filter(po => {
+  const filteredPOs = realPurchaseOrders.filter(po => {
     const matchesSearch = po.poNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          po.supplierName.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || po.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
-  const pendingPOs = purchaseOrders.filter(po => po.status === 'sent').length;
-  const totalPOValue = purchaseOrders.reduce((sum, po) => sum + po.total, 0);
-  const activeSuppliers = suppliers.filter(s => s.isActive).length;
+  const pendingPOs = realPurchaseOrders.filter(po => po.status === 'sent').length;
+  const totalPOValue = realPurchaseOrders.reduce((sum, po) => sum + po.total, 0);
+  const activeSuppliers = realSuppliers.filter(s => s.isActive).length;
 
   const handleEditSupplier = (supplierId: string) => {
     setEditingSupplier(supplierId);
@@ -117,7 +160,7 @@ const PurchaseManagement: React.FC = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">This Month</p>
-              <p className="text-2xl font-bold text-purple-600">{purchaseOrders.filter(po => {
+              <p className="text-2xl font-bold text-purple-600">{realPurchaseOrders.filter(po => {
                 const thisMonth = new Date().getMonth();
                 const poMonth = new Date(po.createdAt).getMonth();
                 return thisMonth === poMonth;
@@ -176,6 +219,7 @@ const PurchaseManagement: React.FC = () => {
               <SupplierList 
                 suppliers={filteredSuppliers} 
                 onEdit={handleEditSupplier}
+                loading={loadingSuppliers}
               />
             </div>
           )}
@@ -212,6 +256,7 @@ const PurchaseManagement: React.FC = () => {
               <PurchaseOrderList 
                 purchaseOrders={filteredPOs} 
                 onEdit={handleEditPO}
+                loading={loadingPOs}
               />
             </div>
           )}

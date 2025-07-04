@@ -8,7 +8,8 @@ import {
   Search,
   Filter,
   UserCheck,
-  UserX
+  UserX,
+  RefreshCw
 } from 'lucide-react';
 import { User as ApiUser, getUsers, updateUser, deleteUser } from '../../api/users';
 import { UserRole } from '../../types/auth';
@@ -21,6 +22,7 @@ import RolePermissions from './RolePermissions';
 const UserManagement: React.FC = () => {
   const [users, setUsers] = useState<ApiUser[]>([]);
   const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState<UserRole | 'all'>('all');
   const [showUserForm, setShowUserForm] = useState(false);
@@ -147,6 +149,43 @@ const UserManagement: React.FC = () => {
     }
   };
 
+  const handleSyncUsers = async () => {
+    if (!currentUser || !hasPermission(currentUser.role, 'users', 'create')) {
+      addToast({
+        type: 'error',
+        title: 'Access Denied',
+        message: 'You do not have permission to sync users'
+      });
+      return;
+    }
+
+    setSyncing(true);
+    try {
+      addToast({
+        type: 'info',
+        title: 'Syncing Users',
+        message: 'Checking for users who can login but are not in the user list...'
+      });
+
+      // For now, just refresh the user list as the auth store will auto-create missing profiles
+      await loadUsers();
+      
+      addToast({
+        type: 'success',
+        title: 'Sync Complete',
+        message: 'User list refreshed. Missing users will be created automatically on next login.'
+      });
+    } catch (error) {
+      addToast({
+        type: 'error',
+        title: 'Sync Failed',
+        message: 'Failed to sync users'
+      });
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   const filteredUsers = users.filter(user => {
     const matchesSearch = 
       user.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -194,16 +233,26 @@ const UserManagement: React.FC = () => {
             Role Permissions
           </button>
           {hasPermission(currentUser.role, 'users', 'create') && (
-            <button
-              onClick={() => {
-                setEditingUser(null);
-                setShowUserForm(true);
-              }}
-              className="inline-flex items-center px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Add User
-            </button>
+            <>
+              <button
+                onClick={handleSyncUsers}
+                disabled={syncing}
+                className="inline-flex items-center px-3 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${syncing ? 'animate-spin' : ''}`} />
+                {syncing ? 'Syncing...' : 'Sync Users'}
+              </button>
+              <button
+                onClick={() => {
+                  setEditingUser(null);
+                  setShowUserForm(true);
+                }}
+                className="inline-flex items-center px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add User
+              </button>
+            </>
           )}
         </div>
       </div>

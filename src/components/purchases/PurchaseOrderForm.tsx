@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { X, Save, FileText, Plus, Trash2, Package } from 'lucide-react';
 import { useBusinessStore } from '../../store/businessStore';
-import { PurchaseOrderItem } from '../../types/business';
+import { PurchaseOrderItem, Supplier } from '../../types/business';
+import { getActiveSuppliers, createPurchaseOrder, updatePurchaseOrder as updatePO, getNextPONumber } from '../../api/purchases';
 
 interface PurchaseOrderFormProps {
   poId?: string | null;
@@ -10,13 +11,11 @@ interface PurchaseOrderFormProps {
 
 const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ poId, onClose }) => {
   const { 
-    suppliers, 
     products, 
     purchaseOrders, 
     addPurchaseOrder, 
     updatePurchaseOrder, 
-    getPurchaseOrder,
-    getSupplier 
+    getPurchaseOrder
   } = useBusinessStore();
   
   const [formData, setFormData] = useState({
@@ -27,6 +26,30 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ poId, onClose }) 
 
   const [items, setItems] = useState<PurchaseOrderItem[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [realSuppliers, setRealSuppliers] = useState<Supplier[]>([]);
+  const [loadingSuppliers, setLoadingSuppliers] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  // Load suppliers from API
+  useEffect(() => {
+    const loadSuppliers = async () => {
+      setLoadingSuppliers(true);
+      try {
+        const { data, error } = await getActiveSuppliers();
+        if (data && !error) {
+          setRealSuppliers(data);
+        } else {
+          console.warn('Failed to load suppliers:', error);
+        }
+      } catch (error) {
+        console.error('Error loading suppliers:', error);
+      } finally {
+        setLoadingSuppliers(false);
+      }
+    };
+
+    loadSuppliers();
+  }, []);
 
   useEffect(() => {
     if (poId) {
@@ -57,39 +80,83 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ poId, onClose }) 
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!validateForm()) {
       return;
     }
 
-    const supplier = getSupplier(formData.supplierId);
-    if (!supplier) return;
+    setSaving(true);
+    
+    try {
+      const supplier = realSuppliers.find(s => s.id === formData.supplierId);
+      if (!supplier) {
+        setErrors({ supplierId: 'Supplier not found' });
+        return;
+      }
 
-    const subtotal = items.reduce((sum, item) => sum + item.total, 0);
-    const tax = subtotal * 0.12; // 12% VAT
-    const total = subtotal + tax;
+      const subtotal = items.reduce((sum, item) => sum + item.total, 0);
+      const tax = subtotal * 0.12; // 12% VAT
+      const total = subtotal + tax;
 
-    const poData = {
-      supplierId: formData.supplierId,
-      supplierName: supplier.name,
-      items,
-      subtotal,
-      tax,
-      total,
-      status: formData.status,
-      expectedDate: formData.expectedDate ? new Date(formData.expectedDate) : undefined,
-      createdBy: '1' // TODO: Get from auth store
-    };
+      if (poId) {
+        // Update existing PO
+        const updateData = {
+          supplierId: formData.supplierId,
+          supplierName: supplier.name,
+          items,
+          subtotal,
+          tax,
+          total,
+          status: formData.status,
+          expectedDate: formData.expectedDate ? new Date(formData.expectedDate) : undefined
+        };
+        
+        const { error } = await updatePO(poId, updateData);
+        if (error) {
+          console.error('Failed to update purchase order:', error);
+          setErrors({ submit: 'Failed to update purchase order' });
+          return;
+        }
+        
+        // Also update local store
+        updatePurchaseOrder(poId, updateData);
+      } else {
+        // Create new PO
+        const { data: poNumber } = await getNextPONumber();
+        
+        const poData = {
+          poNumber: poNumber || `PO-${Date.now()}`,
+          supplierId: formData.supplierId,
+          supplierName: supplier.name,
+          items,
+          subtotal,
+          tax,
+          total,
+          status: formData.status,
+          expectedDate: formData.expectedDate ? new Date(formData.expectedDate) : undefined,
+          createdBy: '1' // TODO: Get from auth store
+        };
+        
+        const { error } = await createPurchaseOrder(poData);
+        if (error) {
+          console.error('Failed to create purchase order:', error);
+          setErrors({ submit: 'Failed to create purchase order' });
+          return;
+        }
+        
+        // Also add to local store
+        addPurchaseOrder(poData);
+      }
 
-    if (poId) {
-      updatePurchaseOrder(poId, poData);
-    } else {
-      addPurchaseOrder(poData);
+      onClose();
+    } catch (error) {
+      console.error('Error saving purchase order:', error);
+      setErrors({ submit: 'An error occurred while saving' });
+    } finally {
+      setSaving(false);
     }
-
-    onClose();
   };
 
   const addItem = () => {
@@ -175,8 +242,10 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ poId, onClose }) 
                   errors.supplierId ? 'border-red-300' : 'border-gray-300'
                 }`}
               >
-                <option value="">Select Supplier</option>
-                {suppliers.filter(s => s.isActive).map(supplier => (
+                <option value="">
+                  {loadingSuppliers ? 'Loading suppliers...' : 'Select Supplier'}
+                </option>
+                {realSuppliers.map(supplier => (
                   <option key={supplier.id} value={supplier.id}>
                     {supplier.name}
                   </option>
@@ -184,6 +253,9 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ poId, onClose }) 
               </select>
               {errors.supplierId && (
                 <p className="mt-1 text-sm text-red-600">{errors.supplierId}</p>
+              )}
+              {errors.submit && (
+                <p className="mt-1 text-sm text-red-600">{errors.submit}</p>
               )}
             </div>
 
@@ -355,10 +427,11 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ poId, onClose }) 
             </button>
             <button
               type="submit"
-              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center"
+              disabled={saving || loadingSuppliers}
+              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Save className="h-4 w-4 mr-2" />
-              {poId ? 'Update' : 'Create'} Purchase Order
+              {saving ? 'Saving...' : poId ? 'Update' : 'Create'} Purchase Order
             </button>
           </div>
         </form>

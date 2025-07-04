@@ -173,7 +173,21 @@ export async function getSale(id: string) {
 
 // UPDATE sale
 export async function updateSale(id: string, updates: Partial<Omit<Sale, 'id' | 'createdAt'>>) {
-  const updateData: Partial<{ invoice_number: string; customer_id: string; customer_name: string; items: any[]; subtotal: number; tax: number; total: number; discount: number; payment_method: string; payment_status: string; sale_status: string; notes: string; date: string }> = {};
+  const updateData: Partial<{ 
+    invoice_number: string; 
+    customer_id: string; 
+    customer_name: string; 
+    items: SaleItem[]; 
+    subtotal: number; 
+    tax: number; 
+    total: number; 
+    discount: number; 
+    payment_method: string; 
+    payment_status: string; 
+    sale_status: string; 
+    notes: string; 
+    date: string;
+  }> = {};
   
   if (updates.invoiceNumber) updateData.invoice_number = updates.invoiceNumber;
   if (updates.customerId !== undefined) updateData.customer_id = updates.customerId;

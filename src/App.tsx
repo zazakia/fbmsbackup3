@@ -1,4 +1,4 @@
-import React, { useState, Suspense, useEffect } from 'react';
+import React, { useState, Suspense, useEffect, useCallback, useMemo } from 'react';
 import { 
   ShoppingCart, 
   Package, 
@@ -17,7 +17,8 @@ import {
   Cloud,
   Activity,
   CreditCard,
-  TestTube
+  TestTube,
+  Shield
 } from 'lucide-react';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
@@ -34,8 +35,11 @@ import { useSupabaseAuthStore } from './store/supabaseAuthStore';
 import { canAccessModule } from './utils/permissions';
 import { setupDevAuth } from './utils/supabase';
 import { NavigationProvider } from './contexts/NavigationContext';
+import './utils/devCommands'; // Initialize dev commands
 import TestDashboard from './components/test/TestDashboard';
+import AdminDashboard from './components/admin/AdminDashboard';
 import AuthCallback from './components/auth/AuthCallback';
+import PerformanceMonitor from './components/PerformanceMonitor';
 import {
   LazyDashboard,
   LazyPOSSystem,
@@ -106,24 +110,38 @@ const App: React.FC = () => {
     { id: 'loyalty', label: 'Loyalty Programs', icon: Gift, module: 'customers' }, // Map to customers permissions
     { id: 'backup', label: 'Cloud Backup', icon: Cloud, module: 'settings' }, // Map to settings permissions
     { id: 'testing', label: 'Testing Suite', icon: TestTube, module: 'settings' }, // Map to settings permissions
+    { id: 'admin-dashboard', label: 'Admin Dashboard', icon: Shield, module: 'admin-dashboard' }, // Admin only
     { id: 'settings', label: 'Settings', icon: Settings, module: 'settings' }
   ];
 
   // Filter menu items based on user role permissions
-  const menuItems = allMenuItems.filter(item => {
-    if (!user || !user.role) {
-      // Show basic items for unauthenticated users
-      return ['dashboard', 'settings'].includes(item.id);
-    }
-    return canAccessModule(user.role, item.module);
-  });
+  const menuItems = useMemo(() => 
+    allMenuItems.filter(item => {
+      if (!user || !user.role) {
+        // Show basic items for unauthenticated users
+        return ['dashboard', 'settings'].includes(item.id);
+      }
+      return canAccessModule(user.role, item.module);
+    }), [user?.role]);
 
-  const handleVersionChange = (module: string, isEnhanced: boolean) => {
+  const handleVersionChange = useCallback((module: string, isEnhanced: boolean) => {
     setEnhancedVersions(prev => ({
       ...prev,
       [module]: isEnhanced
     }));
-  };
+  }, []);
+
+  const handleModuleChange = useCallback((moduleId: string) => {
+    setActiveModule(moduleId);
+  }, []);
+
+  const handleSidebarToggle = useCallback(() => {
+    setSidebarOpen(!sidebarOpen);
+  }, [sidebarOpen]);
+
+  const closeSidebar = useCallback(() => {
+    setSidebarOpen(false);
+  }, []);
 
   const renderContent = () => {
     switch (activeModule) {
@@ -229,6 +247,12 @@ const App: React.FC = () => {
             <TestDashboard />
           </PermissionGuard>
         );
+      case 'admin-dashboard':
+        return (
+          <PermissionGuard module="admin-dashboard" requiredRole="admin">
+            <AdminDashboard />
+          </PermissionGuard>
+        );
       case 'settings':
         return (
           <PermissionGuard module="settings">
@@ -256,22 +280,22 @@ const App: React.FC = () => {
   return (
     <ErrorBoundary>
       <ProtectedRoute>
-        <NavigationProvider activeModule={activeModule} onModuleChange={setActiveModule}>
+        <NavigationProvider activeModule={activeModule} onModuleChange={handleModuleChange}>
           <div className="min-h-screen bg-gray-50 dark:bg-dark-950 flex transition-colors duration-300">
           {/* Sidebar */}
           <Sidebar 
             isOpen={sidebarOpen}
             menuItems={menuItems}
             activeModule={activeModule}
-            onModuleChange={setActiveModule}
-            onClose={() => setSidebarOpen(false)}
+            onModuleChange={handleModuleChange}
+            onClose={closeSidebar}
           />
 
           {/* Main Content */}
           <div className="flex-1 flex flex-col lg:ml-64">
             {/* Header */}
             <Header 
-              onMenuToggle={() => setSidebarOpen(!sidebarOpen)}
+              onMenuToggle={handleSidebarToggle}
               activeModule={menuItems.find(item => item.id === activeModule)?.label || 'Dashboard'}
             />
 
@@ -295,7 +319,7 @@ const App: React.FC = () => {
           {sidebarOpen && (
             <div 
               className="fixed inset-0 bg-black bg-opacity-50 z-20 lg:hidden"
-              onClick={() => setSidebarOpen(false)}
+              onClick={closeSidebar}
             />
           )}
           </div>
@@ -310,6 +334,9 @@ const App: React.FC = () => {
         
         {/* Toast Notifications */}
         <ToastContainer toasts={toasts} onClose={removeToast} />
+        
+        {/* Performance Monitor (Development Only) */}
+        <PerformanceMonitor />
       </ProtectedRoute>
     </ErrorBoundary>
   );
