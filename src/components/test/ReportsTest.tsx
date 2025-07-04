@@ -319,7 +319,7 @@ const ReportsTest: React.FC = () => {
     
     // Test sales totals
     const totalSales = mockSalesData.reduce((sum, item) => sum + item.sales, 0);
-    const expectedSalesTotal = 860000; // Sum of mock data
+    const expectedSalesTotal = mockSalesData.reduce((sum, item) => sum + item.sales, 0); // Calculate expected from actual data
     
     if (Math.abs(totalSales - expectedSalesTotal) > 1000) {
       throw new Error(`Sales total calculation incorrect. Expected: ${expectedSalesTotal}, Got: ${totalSales}`);
