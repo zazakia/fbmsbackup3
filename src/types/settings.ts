@@ -76,6 +76,17 @@ export interface DisplaySettings {
     showRowNumbers: boolean;
     stickyHeaders: boolean;
   };
+  topBar: {
+    showDatabaseStatus: boolean;
+    showSupabaseStatus: boolean;
+    showThemeToggle: boolean;
+    showNotifications: boolean;
+    showSearch: boolean;
+    showUserProfile: boolean;
+    showMobileSearch: boolean;
+  };
+  showDatabaseStatus?: boolean; // Deprecated - kept for backward compatibility
+  showThemeToggle?: boolean; // Deprecated - kept for backward compatibility
 }
 
 export interface ReportSettings {
@@ -260,15 +271,26 @@ export const defaultUserSettings: Omit<UserSettings, 'id' | 'userId' | 'createdA
     highContrast: false,
     fontSize: 'medium',
     dashboardLayout: {
-      widgets: ['sales', 'inventory', 'customers', 'reports'],
+      widgets: [],
       layout: 'grid',
-      columns: 3,
+      columns: 2,
     },
     tableSettings: {
       rowsPerPage: 25,
-      showRowNumbers: false,
+      showRowNumbers: true,
       stickyHeaders: true,
     },
+    topBar: {
+      showDatabaseStatus: true,
+      showSupabaseStatus: true,
+      showThemeToggle: true,
+      showNotifications: true,
+      showSearch: true,
+      showUserProfile: true,
+      showMobileSearch: true,
+    },
+    showDatabaseStatus: true, // Deprecated - kept for backward compatibility
+    showThemeToggle: true, // Deprecated - kept for backward compatibility
   },
   reports: {
     autoGenerate: {

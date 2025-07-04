@@ -39,7 +39,39 @@ const UserPreferences: React.FC = () => {
     try {
       const result = await settingsAPI.getUserSettings(user.id);
       if (result.success && result.data) {
-        setSettings(result.data);
+        // Ensure the settings have all required nested properties
+        const safeSettings = {
+          ...result.data,
+          display: {
+            sidebarCollapsed: false,
+            density: 'comfortable' as const,
+            animations: true,
+            sounds: false,
+            highContrast: false,
+            fontSize: 'medium' as const,
+            dashboardLayout: {
+              widgets: [],
+              layout: 'grid' as const,
+              columns: 2 as const,
+            },
+            tableSettings: {
+              rowsPerPage: 25 as const,
+              showRowNumbers: true,
+              stickyHeaders: true,
+            },
+            topBar: {
+              showDatabaseStatus: true,
+              showSupabaseStatus: true,
+              showThemeToggle: true,
+              showNotifications: true,
+              showSearch: true,
+              showUserProfile: true,
+              showMobileSearch: true,
+            },
+            ...result.data.display,
+          }
+        };
+        setSettings(safeSettings);
       }
     } catch (error) {
       console.error('Error loading settings:', error);
@@ -58,7 +90,10 @@ const UserPreferences: React.FC = () => {
 
     setSaving(true);
     try {
-      const result = await settingsAPI.updateUserSettings(user.id, settings);
+      // Remove fields that shouldn't be sent to the update API
+      const { id, userId, createdAt, updatedAt, ...settingsToUpdate } = settings;
+      
+      const result = await settingsAPI.updateUserSettings(user.id, settingsToUpdate);
       if (result.success) {
         addToast({
           type: 'success',
@@ -66,14 +101,19 @@ const UserPreferences: React.FC = () => {
           message: 'Preferences updated successfully'
         });
       } else {
-        throw new Error(result.error);
+        console.error('Settings API error:', result.error);
+        addToast({
+          type: 'error',
+          title: 'Error',
+          message: result.error || 'Failed to save preferences'
+        });
       }
     } catch (error) {
       console.error('Error saving settings:', error);
       addToast({
         type: 'error',
         title: 'Error',
-        message: 'Failed to save preferences'
+        message: error instanceof Error ? error.message : 'Failed to save preferences'
       });
     } finally {
       setSaving(false);
@@ -503,9 +543,9 @@ const UserPreferences: React.FC = () => {
                 Table Rows Per Page
               </label>
               <select
-                value={settings.display.tableSettings.rowsPerPage}
+                value={settings.display?.tableSettings?.rowsPerPage || 25}
                 onChange={(e) => updateDisplaySetting('tableSettings', {
-                  ...settings.display.tableSettings,
+                  ...(settings.display?.tableSettings || {}),
                   rowsPerPage: parseInt(e.target.value) as 10 | 25 | 50 | 100
                 })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:border-gray-600 dark:text-white"
@@ -535,6 +575,7 @@ const UserPreferences: React.FC = () => {
           {saving ? 'Saving...' : 'Save Preferences'}
         </button>
       </div>
+
     </div>
   );
 };

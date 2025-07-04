@@ -76,7 +76,7 @@ const BottomNavigation: React.FC<BottomNavigationProps> = ({
       {isMenuOpen && (
         <div className="fixed bottom-20 right-4 z-50 lg:hidden">
           <div className="floating-menu bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 p-4 max-h-96 overflow-y-auto">
-            <div className="grid grid-cols-3 gap-3 min-w-[280px]">
+            <div className="grid grid-cols-3 gap-2 w-full">
               {secondaryItems.map((item) => {
                 const Icon = item.icon;
                 return (

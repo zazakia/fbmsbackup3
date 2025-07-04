@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Save, Bell, Calendar, Database, Shield, User, Monitor, Download, Sparkles } from 'lucide-react';
+import { Save, Bell, Calendar, Database, Shield, User, Monitor, Download, Sparkles, Settings } from 'lucide-react';
 import { useNotificationStore } from '../../store/notificationStore';
 import { useInventoryMonitor } from '../../services/inventoryMonitor';
 import { useToastStore } from '../../store/toastStore';
@@ -11,6 +11,7 @@ import NotificationSettings from './NotificationSettings';
 import SecuritySettings from './SecuritySettings';
 import SystemSettings from './SystemSettings';
 import EnhancedVersionSettings from './EnhancedVersionSettings';
+import TopBarSettingsSection from './TopBarSettingsSection';
 
 interface SettingsSection {
   id: string;
@@ -47,6 +48,12 @@ const SettingsPage: React.FC = () => {
       title: 'User Preferences',
       icon: <User className="h-5 w-5" />,
       description: 'Personal settings and preferences'
+    },
+    {
+      id: 'topbar',
+      title: 'Top Bar Settings',
+      icon: <Settings className="h-5 w-5" />,
+      description: 'Customize which items appear in the top navigation bar'
     },
     {
       id: 'notifications',
@@ -249,6 +256,8 @@ const SettingsPage: React.FC = () => {
 
   const renderContent = () => {
     switch (activeSection) {
+      case 'topbar':
+        return <TopBarSettingsSection />;
       case 'notifications':
         return <NotificationSettings />;
       case 'reports':

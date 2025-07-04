@@ -18,7 +18,10 @@ import {
   Activity,
   CreditCard,
   TestTube,
-  Shield
+  Shield,
+  History,
+  Truck,
+  UserCog
 } from 'lucide-react';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
@@ -43,6 +46,12 @@ import TestDashboard from './components/test/TestDashboard';
 import AdminDashboard from './components/admin/AdminDashboard';
 import AuthCallback from './components/auth/AuthCallback';
 import PerformanceMonitor from './components/PerformanceMonitor';
+import { 
+  LazyUserRoleManagement, 
+  LazySupplierManagement, 
+  LazyDataHistoryTracking, 
+  LazyCustomerTransactionInterface 
+} from './components/admin/LazyAdminComponents';
 import {
   LazyDashboard,
   LazyPOSSystem,
@@ -95,6 +104,8 @@ const App: React.FC = () => {
     { id: 'inventory', label: 'Inventory', icon: Package, module: 'inventory' },
     { id: 'purchases', label: 'Purchases', icon: Receipt, module: 'purchases' },
     { id: 'customers', label: 'Customers', icon: Users, module: 'customers' },
+    { id: 'customer-transactions', label: 'Customer Transactions', icon: Users, module: 'customers' },
+    { id: 'suppliers', label: 'Suppliers', icon: Truck, module: 'suppliers' },
     { id: 'expenses', label: 'Expenses', icon: DollarSign, module: 'expenses' },
     { id: 'payroll', label: 'Payroll', icon: UserCheck, module: 'payroll' },
     { id: 'accounting', label: 'Accounting', icon: Calculator, module: 'accounting' },
@@ -108,6 +119,8 @@ const App: React.FC = () => {
     { id: 'backup', label: 'Cloud Backup', icon: Cloud, module: 'settings' }, // Map to settings permissions
     { id: 'testing', label: 'Testing Suite', icon: TestTube, module: 'settings' }, // Map to settings permissions
     { id: 'admin-dashboard', label: 'Admin Dashboard', icon: Shield, module: 'admin-dashboard' }, // Admin only
+    { id: 'user-roles', label: 'User Role Management', icon: UserCog, module: 'admin-dashboard' }, // Admin only
+    { id: 'data-history', label: 'Data History', icon: History, module: 'admin-dashboard' }, // Admin only
     { id: 'settings', label: 'Settings', icon: Settings, module: 'settings' }
   ];
 
@@ -165,6 +178,18 @@ const App: React.FC = () => {
         return (
           <PermissionGuard module="customers">
             <LazyCustomerManagement />
+          </PermissionGuard>
+        );
+      case 'customer-transactions':
+        return (
+          <PermissionGuard module="customers">
+            <LazyCustomerTransactionInterface />
+          </PermissionGuard>
+        );
+      case 'suppliers':
+        return (
+          <PermissionGuard module="suppliers">
+            <LazySupplierManagement />
           </PermissionGuard>
         );
       case 'expenses':
@@ -243,6 +268,18 @@ const App: React.FC = () => {
         return (
           <PermissionGuard module="admin-dashboard" requiredRole="admin">
             <AdminDashboard />
+          </PermissionGuard>
+        );
+      case 'user-roles':
+        return (
+          <PermissionGuard module="admin-dashboard" requiredRole="admin">
+            <LazyUserRoleManagement />
+          </PermissionGuard>
+        );
+      case 'data-history':
+        return (
+          <PermissionGuard module="admin-dashboard" requiredRole="admin">
+            <LazyDataHistoryTracking />
           </PermissionGuard>
         );
       case 'settings':

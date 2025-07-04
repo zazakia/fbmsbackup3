@@ -27,11 +27,24 @@ export class SettingsAPI {
       const { data, error } = await supabase
         .from('user_settings')
         .select('*')
-        .eq('userId', userId)
+        .eq('user_id', userId)
         .single();
 
       if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
         console.error('Error fetching user settings:', error);
+        // If table doesn't exist, return default settings without saving
+        if (error.code === '42P01') { // Table doesn't exist
+          return { 
+            success: true, 
+            data: {
+              id: crypto.randomUUID(),
+              userId,
+              ...defaultUserSettings,
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+            }
+          };
+        }
         return { success: false, error: error.message };
       }
 
@@ -40,7 +53,59 @@ export class SettingsAPI {
         return this.createDefaultUserSettings(userId);
       }
 
-      return { success: true, data };
+      // Transform snake_case to camelCase and ensure complete structure
+      const transformedData = {
+        ...data,
+        userId: data.user_id,
+        createdAt: data.created_at,
+        updatedAt: data.updated_at,
+        dateFormat: data.date_format,
+        timeFormat: data.time_format,
+      };
+
+      // Ensure data has the complete structure with safe defaults
+      const safeData = {
+        ...defaultUserSettings,
+        ...transformedData,
+        display: {
+          ...defaultUserSettings.display,
+          ...transformedData.display,
+          topBar: {
+            ...defaultUserSettings.display.topBar,
+            ...transformedData.display?.topBar
+          },
+          tableSettings: {
+            ...defaultUserSettings.display.tableSettings,
+            ...transformedData.display?.tableSettings
+          },
+          dashboardLayout: {
+            ...defaultUserSettings.display.dashboardLayout,
+            ...transformedData.display?.dashboardLayout
+          }
+        },
+        notifications: {
+          ...defaultUserSettings.notifications,
+          ...transformedData.notifications
+        },
+        privacy: {
+          ...defaultUserSettings.privacy,
+          ...transformedData.privacy
+        },
+        security: {
+          ...defaultUserSettings.security,
+          ...transformedData.security
+        },
+        reports: {
+          ...defaultUserSettings.reports,
+          ...transformedData.reports
+        },
+        inventory: {
+          ...defaultUserSettings.inventory,
+          ...transformedData.inventory
+        }
+      };
+
+      return { success: true, data: safeData };
     } catch (error) {
       console.error('Error in getUserSettings:', error);
       return { 
@@ -55,12 +120,15 @@ export class SettingsAPI {
    */
   async createDefaultUserSettings(userId: string): Promise<SettingsResponse> {
     try {
-      const newSettings: UserSettings = {
+      const { dateFormat, timeFormat, ...otherDefaults } = defaultUserSettings;
+      const newSettings = {
         id: crypto.randomUUID(),
-        userId,
-        ...defaultUserSettings,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+        user_id: userId,
+        ...otherDefaults,
+        date_format: dateFormat,
+        time_format: timeFormat,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
       };
 
       const { data, error } = await supabase
@@ -71,10 +139,33 @@ export class SettingsAPI {
 
       if (error) {
         console.error('Error creating default settings:', error);
+        // If table doesn't exist, just return the default settings
+        if (error.code === '42P01') {
+          return { 
+            success: true, 
+            data: {
+              id: newSettings.id,
+              userId,
+              ...defaultUserSettings,
+              createdAt: newSettings.created_at,
+              updatedAt: newSettings.updated_at,
+            }
+          };
+        }
         return { success: false, error: error.message };
       }
 
-      return { success: true, data };
+      // Transform snake_case back to camelCase for response
+      const transformedData = {
+        ...data,
+        userId: data.user_id,
+        createdAt: data.created_at,
+        updatedAt: data.updated_at,
+        dateFormat: data.date_format,
+        timeFormat: data.time_format,
+      };
+
+      return { success: true, data: transformedData };
     } catch (error) {
       console.error('Error in createDefaultUserSettings:', error);
       return { 
@@ -92,24 +183,53 @@ export class SettingsAPI {
     updates: Partial<UserSettings>
   ): Promise<SettingsResponse> {
     try {
+      // Transform camelCase to snake_case for database
+      const { id: _id, userId: _userId, createdAt: _createdAt, updatedAt: _updatedAt, ...rawUpdates } = updates;
+      
+      // Transform field names from camelCase to snake_case
+      const dbUpdates: any = {};
+      Object.entries(rawUpdates).forEach(([key, value]) => {
+        if (key === 'dateFormat') {
+          dbUpdates.date_format = value;
+        } else if (key === 'timeFormat') {
+          dbUpdates.time_format = value;
+        } else {
+          dbUpdates[key] = value;
+        }
+      });
+      
       const { data, error } = await supabase
         .from('user_settings')
         .update({
-          ...updates,
-          updatedAt: new Date().toISOString(),
+          ...dbUpdates,
+          updated_at: new Date().toISOString(),
         })
-        .eq('userId', userId)
+        .eq('user_id', userId)
         .select()
         .single();
 
       if (error) {
         console.error('Error updating user settings:', error);
+        // If table doesn't exist or no rows found, try to create
+        if (error.code === '42P01' || error.code === 'PGRST116') {
+          return this.createDefaultUserSettings(userId);
+        }
         return { success: false, error: error.message };
       }
 
+      // Transform snake_case back to camelCase for response
+      const transformedData = {
+        ...data,
+        userId: data.user_id,
+        createdAt: data.created_at,
+        updatedAt: data.updated_at,
+        dateFormat: data.date_format,
+        timeFormat: data.time_format,
+      };
+
       return { 
         success: true, 
-        data, 
+        data: transformedData, 
         message: 'Settings updated successfully' 
       };
     } catch (error) {
