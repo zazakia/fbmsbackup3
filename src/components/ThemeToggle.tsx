@@ -3,7 +3,7 @@ import { Sun, Moon, Monitor } from 'lucide-react';
 import { useThemeStore, Theme } from '../store/themeStore';
 
 const ThemeToggle: React.FC = () => {
-  const { theme, setTheme, isDark } = useThemeStore();
+  const { theme, setTheme } = useThemeStore();
 
   const themes: { value: Theme; label: string; icon: React.ReactNode }[] = [
     {
