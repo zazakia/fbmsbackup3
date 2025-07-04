@@ -18,6 +18,8 @@
     "git:deploy": "./scripts/git-workflow.sh --deploy",
     "deploy": "npm run build && netlify deploy --prod --dir=dist",
     "deploy:build": "npm run build",
+    "deploy:all": "./scripts/deploy.sh",
+    "deploy:quick": "./scripts/deploy.sh",
     "deploy:netlify": "netlify deploy --prod --dir=dist"
   },
   "dependencies": {
