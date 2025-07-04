@@ -71,10 +71,11 @@ const Sidebar: React.FC<SidebarProps> = memo(({
       </div>
 
       {/* Mobile Sidebar */}
-      <div className={`lg:hidden fixed inset-y-0 left-0 z-30 w-64 bg-white dark:bg-dark-800 transform transition-transform duration-300 ease-in-out ${
+      <div className={`lg:hidden fixed inset-y-0 left-0 z-30 w-64 bg-white dark:bg-dark-800 transform transition-transform duration-300 ease-in-out flex flex-col ${
         isOpen ? 'translate-x-0' : '-translate-x-full'
       }`}>
-        <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200 dark:border-dark-700">
+        {/* Fixed Header */}
+        <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200 dark:border-dark-700 flex-shrink-0">
           <div className="flex items-center space-x-2">
             <div className="h-8 w-8 bg-gradient-to-r from-primary-500 to-primary-600 rounded-lg flex items-center justify-center">
               <BarChart3 className="h-5 w-5 text-white" />
@@ -89,7 +90,8 @@ const Sidebar: React.FC<SidebarProps> = memo(({
           </button>
         </div>
         
-        <nav className="flex-1 px-4 py-6 space-y-2">
+        {/* Scrollable Navigation */}
+        <nav className="mobile-sidebar-nav flex-1 overflow-y-auto px-4 py-6 space-y-2">
           {menuItems.map((item) => {
             const Icon = item.icon;
             return (
@@ -105,14 +107,25 @@ const Sidebar: React.FC<SidebarProps> = memo(({
                     : 'text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-dark-700 hover:text-gray-900 dark:hover:text-gray-100'
                 }`}
               >
-                <Icon className={`h-5 w-5 ${
+                <Icon className={`h-5 w-5 flex-shrink-0 ${
                   activeModule === item.id ? 'text-primary-700 dark:text-primary-300' : 'text-gray-400 dark:text-gray-500'
                 }`} />
-                <span className="font-medium">{item.label}</span>
+                <span className="font-medium truncate">{item.label}</span>
               </button>
             );
           })}
         </nav>
+
+        {/* Fixed Footer */}
+        <div className="p-4 border-t border-gray-200 dark:border-dark-700 flex-shrink-0">
+          <div className="bg-gradient-to-r from-primary-500 to-primary-600 rounded-lg p-4 text-white">
+            <h3 className="font-semibold text-sm">Need Help?</h3>
+            <p className="text-xs mt-1 text-primary-100">Contact our support team</p>
+            <button className="mt-2 text-xs bg-white bg-opacity-20 px-3 py-1 rounded hover:bg-opacity-30 transition-all duration-200">
+              Get Support
+            </button>
+          </div>
+        </div>
       </div>
     </>
   );

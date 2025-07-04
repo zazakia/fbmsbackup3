@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Save, Bell, Calendar, Database, Shield, User, Monitor, Download } from 'lucide-react';
+import { Save, Bell, Calendar, Database, Shield, User, Monitor, Download, Sparkles } from 'lucide-react';
 import { useNotificationStore } from '../../store/notificationStore';
 import { useInventoryMonitor } from '../../services/inventoryMonitor';
 import { useToastStore } from '../../store/toastStore';
@@ -10,6 +10,7 @@ import UserPreferences from './UserPreferences';
 import NotificationSettings from './NotificationSettings';
 import SecuritySettings from './SecuritySettings';
 import SystemSettings from './SystemSettings';
+import EnhancedVersionSettings from './EnhancedVersionSettings';
 
 interface SettingsSection {
   id: string;
@@ -70,6 +71,12 @@ const SettingsPage: React.FC = () => {
       title: 'Inventory Monitoring',
       icon: <Monitor className="h-5 w-5" />,
       description: 'Configure stock level alerts and thresholds'
+    },
+    {
+      id: 'enhanced-versions',
+      title: 'Enhanced Versions',
+      icon: <Sparkles className="h-5 w-5" />,
+      description: 'Toggle between standard and enhanced module versions'
     },
     {
       id: 'database',
@@ -248,6 +255,8 @@ const SettingsPage: React.FC = () => {
         return renderReportSettings();
       case 'inventory':
         return renderInventorySettings();
+      case 'enhanced-versions':
+        return <EnhancedVersionSettings />;
       case 'database':
         return user && hasPermission(user.role, 'settings', 'edit') && user.role === 'admin' ? (
           <SystemSettings />
