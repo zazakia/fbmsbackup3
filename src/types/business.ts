@@ -490,3 +490,16 @@ export interface StockTransfer {
   notes?: string;
   createdAt: Date;
 }
+
+// For Supabase stock_movements table (inventory ledger)
+export interface StockMovementLedger {
+  id: string;
+  product_id: string;
+  change: number;
+  type: string;
+  reference_id?: string;
+  user_id?: string;
+  reason?: string;
+  resulting_stock: number;
+  created_at: Date;
+}

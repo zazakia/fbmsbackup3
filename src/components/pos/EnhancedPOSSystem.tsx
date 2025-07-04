@@ -790,8 +790,7 @@ const EnhancedPOSSystem: React.FC = () => {
       {showCustomerSelector && (
         <CustomerSelector
           customers={customers}
-          onSelect={(customerId) => {
-            const customer = customerId ? customers.find(c => c.id === customerId) : null;
+          onCustomerSelect={(customer) => {
             setSelectedCustomer(customer || null);
             setShowCustomerSelector(false);
           }}
