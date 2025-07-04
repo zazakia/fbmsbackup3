@@ -94,12 +94,18 @@ const EnhancedPOSSystem: React.FC = () => {
     getCartTotal,
     createSale,
     updateStock,
-    getCustomer
+    getCustomer,
+    fetchCustomers
   } = useBusinessStore();
   
   const { user } = useAuthStore();
   const { addToast } = useToastStore();
   const { addNotification } = useNotificationStore();
+
+  // Load customers from Supabase on component mount
+  useEffect(() => {
+    fetchCustomers();
+  }, [fetchCustomers]);
 
   // Initialize quick products (top-selling items)
   useEffect(() => {

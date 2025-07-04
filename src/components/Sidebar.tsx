@@ -26,7 +26,8 @@ const Sidebar: React.FC<SidebarProps> = memo(({
     <>
       {/* Desktop Sidebar */}
       <div className="hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:inset-y-0 lg:border-r lg:border-gray-200 dark:border-dark-700 lg:bg-white dark:lg:bg-dark-800 lg:pt-0 transition-colors duration-300">
-        <div className="flex items-center h-16 px-6 border-b border-gray-200 dark:border-dark-700">
+        {/* Fixed Header */}
+        <div className="flex items-center h-16 px-6 border-b border-gray-200 dark:border-dark-700 flex-shrink-0">
           <div className="flex items-center space-x-2">
             <div className="h-8 w-8 bg-gradient-to-r from-primary-500 to-primary-600 rounded-lg flex items-center justify-center">
               <BarChart3 className="h-5 w-5 text-white" />
@@ -37,7 +38,9 @@ const Sidebar: React.FC<SidebarProps> = memo(({
             </div>
           </div>
         </div>
-        <nav className="flex-1 px-4 py-6 space-y-2">
+        
+        {/* Scrollable Navigation */}
+        <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto min-h-0 scrollbar-thin scrollbar-track-gray-100 scrollbar-thumb-gray-300 dark:scrollbar-track-dark-700 dark:scrollbar-thumb-dark-500">
           {menuItems.map((item) => {
             const Icon = item.icon;
             return (
@@ -50,7 +53,7 @@ const Sidebar: React.FC<SidebarProps> = memo(({
                     : 'text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-dark-700 hover:text-gray-900 dark:hover:text-gray-100'
                 }`}
               >
-                <Icon className={`h-5 w-5 ${
+                <Icon className={`h-5 w-5 flex-shrink-0 ${
                   activeModule === item.id ? 'text-primary-700 dark:text-primary-300' : 'text-gray-400 dark:text-gray-500'
                 }`} />
                 <span className="font-medium">{item.label}</span>
@@ -59,7 +62,8 @@ const Sidebar: React.FC<SidebarProps> = memo(({
           })}
         </nav>
         
-        <div className="p-4 border-t border-gray-200 dark:border-dark-700">
+        {/* Fixed Footer */}
+        <div className="p-4 border-t border-gray-200 dark:border-dark-700 flex-shrink-0">
           <div className="bg-gradient-to-r from-primary-500 to-primary-600 rounded-lg p-4 text-white">
             <h3 className="font-semibold text-sm">Need Help?</h3>
             <p className="text-xs mt-1 text-primary-100">Contact our support team</p>
