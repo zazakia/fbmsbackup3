@@ -3,6 +3,7 @@ import { X, User, Mail, Shield, Building } from 'lucide-react';
 import { User as ApiUser, createUser, updateUser } from '../../api/users';
 import { UserRole } from '../../types/auth';
 import { useToastStore } from '../../store/toastStore';
+import { useSupabaseAuthStore } from '../../store/supabaseAuthStore';
 import { supabaseAnon } from '../../utils/supabase';
 
 interface UserFormProps {
@@ -26,6 +27,7 @@ const UserForm: React.FC<UserFormProps> = ({ user, onClose, onSave }) => {
   const [errors, setErrors] = useState<Record<string, string>>({});
   
   const { addToast } = useToastStore();
+  const { refreshUser } = useSupabaseAuthStore();
   const isEditing = !!user;
 
   useEffect(() => {
@@ -104,10 +106,15 @@ const UserForm: React.FC<UserFormProps> = ({ user, onClose, onSave }) => {
           isActive: formData.isActive
         };
 
-        const { error } = await updateUser(user!.id, updateData);
+        const { data: updatedUser, error } = await updateUser(user!.id, updateData);
         if (error) {
           throw new Error(error.message);
         }
+
+        // Refresh current user data if we're updating the current user
+        await refreshUser();
+        
+        console.log('User updated successfully:', updatedUser);
 
         // Update password if provided
         if (formData.password) {

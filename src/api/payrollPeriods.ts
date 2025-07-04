@@ -94,7 +94,7 @@ export async function getPayrollPeriod(id: string) {
 
 // UPDATE payroll period
 export async function updatePayrollPeriod(id: string, updates: Partial<Omit<PayrollPeriod, 'id' | 'createdAt'>>) {
-  const updateData: any = {};
+  const updateData: Record<string, unknown> = {};
   
   if (updates.month !== undefined) updateData.month = updates.month;
   if (updates.year !== undefined) updateData.year = updates.year;

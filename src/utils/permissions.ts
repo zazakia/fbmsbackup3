@@ -19,7 +19,10 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     { module: 'branches', actions: ['view', 'create', 'edit', 'delete'] },
     { module: 'users', actions: ['view', 'create', 'edit', 'delete'] },
     { module: 'settings', actions: ['view', 'edit'] },
-    { module: 'bir', actions: ['view', 'create', 'edit'] }
+    { module: 'bir', actions: ['view', 'create', 'edit'] },
+    { module: 'admin-dashboard', actions: ['view', 'monitor', 'manage'] },
+    { module: 'system-monitoring', actions: ['view', 'configure'] },
+    { module: 'security', actions: ['view', 'manage'] }
   ],
   manager: [
     { module: 'dashboard', actions: ['view'] },

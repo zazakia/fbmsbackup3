@@ -401,7 +401,18 @@ export async function getPurchaseOrder(id: string) {
 
 // UPDATE purchase order
 export async function updatePurchaseOrder(id: string, updates: Partial<Omit<PurchaseOrder, 'id' | 'createdAt'>>) {
-  const updateData: Partial<{ po_number: string; supplier_id: string; expected_date: string; status: string; notes: string; items: any[]; total_amount: number }> = {};
+  const updateData: Partial<{ 
+    po_number: string; 
+    supplier_id: string; 
+    supplier_name: string;
+    expected_date: string; 
+    status: string; 
+    notes: string; 
+    items: PurchaseOrderItem[]; 
+    total_amount: number;
+    subtotal: number;
+    tax: number;
+  }> = {};
   
   if (updates.poNumber) updateData.po_number = updates.poNumber;
   if (updates.supplierId) updateData.supplier_id = updates.supplierId;
@@ -589,7 +600,7 @@ export async function getNextPONumber() {
 
 // Mark purchase order as received
 export async function receivePurchaseOrder(id: string, receivedItems?: PurchaseOrderItem[]) {
-  const updateData: { status: string; received_date: string; items?: any[] } = {
+  const updateData: { status: string; received_date: string; items?: PurchaseOrderItem[] } = {
     status: 'received',
     received_date: new Date().toISOString()
   };

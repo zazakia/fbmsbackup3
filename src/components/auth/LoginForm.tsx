@@ -45,7 +45,15 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister }) => {
     try {
       await login(formData);
     } catch (error) {
-      // Error is handled by the store
+      // Check if this is an unregistered user error
+      if (error instanceof Error && error.message === 'UNREGISTERED_USER') {
+        // Show a helpful message and redirect to sign up
+        if (confirm('This email is not registered. Would you like to create a new account?')) {
+          onSwitchToRegister();
+        }
+        return;
+      }
+      // Other errors are handled by the store
     }
   };
 
@@ -53,16 +61,24 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister }) => {
     clearError();
     setFormData({
       email: 'admin@fbms.com',
-      password: 'admin123'
+      password: 'Qweasd145698@'
     });
     
     try {
       await login({
         email: 'admin@fbms.com',
-        password: 'admin123'
+        password: 'Qweasd145698@'
       });
     } catch (error) {
-      // Error is handled by the store
+      // Check if this is an unregistered user error
+      if (error instanceof Error && error.message === 'UNREGISTERED_USER') {
+        // Show a helpful message and redirect to sign up
+        if (confirm('This email is not registered. Would you like to create a new account?')) {
+          onSwitchToRegister();
+        }
+        return;
+      }
+      // Other errors are handled by the store
     }
   };
 
@@ -92,9 +108,35 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister }) => {
         </div>
 
         {error && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center">
-            <AlertCircle className="h-5 w-5 text-red-500 mr-3" />
-            <span className="text-red-700 text-sm">{error}</span>
+          <div className={`mb-6 p-4 border rounded-lg flex items-center ${
+            error.includes('not registered') 
+              ? 'bg-blue-50 border-blue-200' 
+              : 'bg-red-50 border-red-200'
+          }`}>
+            <AlertCircle className={`h-5 w-5 mr-3 ${
+              error.includes('not registered') 
+                ? 'text-blue-500' 
+                : 'text-red-500'
+            }`} />
+            <div className="flex-1">
+              <span className={`text-sm ${
+                error.includes('not registered') 
+                  ? 'text-blue-700' 
+                  : 'text-red-700'
+              }`}>
+                {error}
+              </span>
+              {error.includes('not registered') && (
+                <div className="mt-2">
+                  <button
+                    onClick={onSwitchToRegister}
+                    className="text-blue-600 hover:text-blue-700 font-medium text-sm underline"
+                  >
+                    Create your account here →
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
@@ -221,7 +263,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister }) => {
           <div className="text-center">
             <p className="text-sm text-gray-500 mb-2">Demo Credentials:</p>
             <p className="text-xs text-gray-400">
-              Email: admin@fbms.com | Password: admin123
+              Email: admin@fbms.com | Password: Qweasd145698@
             </p>
           </div>
         </div>

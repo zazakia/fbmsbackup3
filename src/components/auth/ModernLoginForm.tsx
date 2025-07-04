@@ -51,6 +51,21 @@ const ModernLoginForm: React.FC<ModernLoginFormProps> = ({ onSwitchToRegister, o
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Login failed';
       
+      // Check if this is an unregistered user error
+      if (errorMessage === 'UNREGISTERED_USER') {
+        // Show helpful message and redirect to sign up
+        if (confirm('This email is not registered. Would you like to create a new account?')) {
+          onSwitchToRegister();
+        } else {
+          addToast({
+            type: 'info',
+            title: 'Registration Required',
+            message: 'This email is not registered. Please sign up first or use a different email.'
+          });
+        }
+        return;
+      }
+      
       // Check for specific error types and provide helpful suggestions
       if (errorMessage.includes('Invalid login credentials')) {
         addToast({
@@ -63,6 +78,12 @@ const ModernLoginForm: React.FC<ModernLoginFormProps> = ({ onSwitchToRegister, o
           type: 'error',
           title: 'Email Not Verified',
           message: 'Please check your email and verify your account before logging in.'
+        });
+      } else if (errorMessage.includes('not registered')) {
+        addToast({
+          type: 'info',
+          title: 'Registration Required',
+          message: 'This email is not registered. Please sign up first.'
         });
       } else {
         addToast({
@@ -105,8 +126,8 @@ const ModernLoginForm: React.FC<ModernLoginFormProps> = ({ onSwitchToRegister, o
 
   // Quick demo login
   const handleDemoLogin = async () => {
-    setEmail('demo@fbms.com');
-    setPassword('Demo123!');
+    setEmail('admin@fbms.com');
+    setPassword('Qweasd145698@');
     
     setTimeout(() => {
       const form = document.getElementById('login-form') as HTMLFormElement;
