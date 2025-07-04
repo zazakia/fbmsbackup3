@@ -28,3 +28,44 @@ dist-ssr
 
 # Local Netlify folder
 .netlify
+
+# Backup files
+*.backup
+*.bak
+*~
+
+# Sensitive files
+*.key
+*.pem
+*.p12
+*.pfx
+secrets.json
+.env.local
+.env.production
+
+# Temporary files
+*.tmp
+*.temp
+.cache
+
+# OS generated files
+Thumbs.db
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+
+# IDE files
+*.swp
+*.swo
+*~
+.project
+.metadata
+.classpath
+.settings/
+
+# Protection: Never commit these files
+!CHAT_SESSION.md
+# The ! means force include - we want to keep our chat session
