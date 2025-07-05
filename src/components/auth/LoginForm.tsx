@@ -1,7 +1,12 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff, Mail, Lock, AlertCircle, Zap } from 'lucide-react';
-import { useAuthStore } from '../../store/authStore';
-import { validateEmail } from '../../utils/auth';
+import { useSupabaseAuthStore } from '../../store/supabaseAuthStore'; // UPDATED
+
+// Inlined validateEmail as src/utils/auth.ts is being deleted
+const validateEmail = (email: string): boolean => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+};
 
 interface LoginFormProps {
   onSwitchToRegister: () => void;
@@ -15,7 +20,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
 
-  const { login, isLoading, error, clearError } = useAuthStore();
+  const { login, isLoading, error, clearError } = useSupabaseAuthStore(); // UPDATED
 
   const validateForm = (): boolean => {
     const errors: Record<string, string> = {};
