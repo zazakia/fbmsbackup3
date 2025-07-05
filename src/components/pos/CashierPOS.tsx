@@ -14,7 +14,7 @@ import {
   Package
 } from 'lucide-react';
 import { useBusinessStore } from '../../store/businessStore';
-import { useAuthStore } from '../../store/authStore';
+import { useSupabaseAuthStore } from '../../store/supabaseAuthStore'; // UPDATED
 import { useToastStore } from '../../store/toastStore';
 import { Product, Customer, PaymentMethod, CartItem } from '../../types/business';
 import { formatCurrency } from '../../utils/formatters';
@@ -35,7 +35,7 @@ interface CashierTransaction {
 }
 
 const CashierPOS: React.FC = () => {
-  const { user } = useAuthStore();
+  const { user } = useSupabaseAuthStore(); // UPDATED
   const { products, customers, addSale } = useBusinessStore();
   const { addToast } = useToastStore();
   const [cart, setCart] = useState<CartItem[]>([]);
