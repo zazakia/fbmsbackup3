@@ -59,6 +59,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
 };
 
 export function hasPermission(userRole: UserRole, module: string, action: string): boolean {
+  if (userRole === 'admin') return true; // Always allow admin
   const rolePermissions = ROLE_PERMISSIONS[userRole];
   if (!rolePermissions) {
     console.warn(`No permissions found for role: ${userRole}`);
@@ -69,6 +70,7 @@ export function hasPermission(userRole: UserRole, module: string, action: string
 }
 
 export function canAccessModule(userRole: UserRole, module: string): boolean {
+  if (userRole === 'admin') return true; // Always allow admin
   const rolePermissions = ROLE_PERMISSIONS[userRole];
   if (!rolePermissions) {
     console.warn(`No permissions found for role: ${userRole}`);
