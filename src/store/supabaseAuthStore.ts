@@ -79,12 +79,16 @@ export const useSupabaseAuthStore = create<SupabaseAuthStore>()(
               // Create basic user from auth data and insert into database
               console.warn('User profile not found in database, creating user profile...');
               
+              // Check if this should be an admin user
+              const email = data.user.email || '';
+              const isAdminEmail = email === 'admin@fbms.com' || email.includes('@admin.') || email.includes('admin@');
+              
               const newUserData = {
                 id: data.user.id,
-                email: data.user.email || '',
+                email: email,
                 first_name: data.user.user_metadata?.first_name || '',
                 last_name: data.user.user_metadata?.last_name || '',
-                role: 'cashier', // Default to lowest privilege role
+                role: isAdminEmail ? 'admin' : 'cashier', // Check for admin emails
                 is_active: true,
               };
 
@@ -105,21 +109,25 @@ export const useSupabaseAuthStore = create<SupabaseAuthStore>()(
 
               user = {
                 id: data.user.id,
-                email: data.user.email || '',
+                email: email,
                 firstName: data.user.user_metadata?.first_name || '',
                 lastName: data.user.user_metadata?.last_name || '',
-                role: 'cashier', // Default to lowest privilege role
+                role: isAdminEmail ? 'admin' : 'cashier', // Check for admin emails
                 isActive: true,
                 createdAt: new Date(),
               };
             }
 
+            // Check if email is verified or if user exists in our database (existing users)
+            const isEmailVerified = data.user.email_confirmed_at !== null || userProfile;
+            
             set({
               user,
-              isAuthenticated: true,
+              isAuthenticated: isEmailVerified,
               isLoading: false,
               error: null,
-              hasLoggedOut: false
+              hasLoggedOut: false,
+              pendingEmailVerification: !isEmailVerified
             });
           }
         } catch (error) {
@@ -146,7 +154,8 @@ export const useSupabaseAuthStore = create<SupabaseAuthStore>()(
               data: {
                 first_name: data.firstName,
                 last_name: data.lastName,
-              }
+              },
+              emailRedirectTo: `${window.location.origin}/auth/callback`
             }
           });
 
@@ -155,6 +164,9 @@ export const useSupabaseAuthStore = create<SupabaseAuthStore>()(
           }
 
           if (authData.user) {
+            // Check if email is verified (new users need verification)
+            const isEmailVerified = authData.user.email_confirmed_at !== null;
+            
             // Create user profile in our users table
             const { error: profileError } = await supabase
               .from('users')
@@ -185,10 +197,11 @@ export const useSupabaseAuthStore = create<SupabaseAuthStore>()(
 
             set({
               user,
-              isAuthenticated: true,
+              isAuthenticated: isEmailVerified,
               isLoading: false,
               error: null,
-              hasLoggedOut: false
+              hasLoggedOut: false,
+              pendingEmailVerification: !isEmailVerified
             });
           }
         } catch (error) {
@@ -217,7 +230,8 @@ export const useSupabaseAuthStore = create<SupabaseAuthStore>()(
             isAuthenticated: false,
             isLoading: false,
             error: null,
-            hasLoggedOut: true
+            hasLoggedOut: true,
+            pendingEmailVerification: false
           });
           
           // Clear persisted state
@@ -238,7 +252,8 @@ export const useSupabaseAuthStore = create<SupabaseAuthStore>()(
             isAuthenticated: false,
             isLoading: false,
             error: null,
-            hasLoggedOut: true
+            hasLoggedOut: true,
+            pendingEmailVerification: false
           });
           
           // Clear persisted state
@@ -301,12 +316,16 @@ export const useSupabaseAuthStore = create<SupabaseAuthStore>()(
             } else {
               console.warn('User profile not found in database during auth check, creating user profile...');
               
+              // Check if this should be an admin user
+              const email = session.user.email || '';
+              const isAdminEmail = email === 'admin@fbms.com' || email.includes('@admin.') || email.includes('admin@');
+              
               const newUserData = {
                 id: session.user.id,
-                email: session.user.email || '',
+                email: email,
                 first_name: session.user.user_metadata?.first_name || '',
                 last_name: session.user.user_metadata?.last_name || '',
-                role: 'cashier', // Default to lowest privilege role
+                role: isAdminEmail ? 'admin' : 'cashier', // Check for admin emails
                 is_active: true,
               };
 
@@ -327,20 +346,24 @@ export const useSupabaseAuthStore = create<SupabaseAuthStore>()(
 
               user = {
                 id: session.user.id,
-                email: session.user.email || '',
+                email: email,
                 firstName: session.user.user_metadata?.first_name || '',
                 lastName: session.user.user_metadata?.last_name || '',
-                role: 'cashier', // Default to lowest privilege role
+                role: isAdminEmail ? 'admin' : 'cashier', // Check for admin emails
                 isActive: true,
                 createdAt: new Date(),
               };
             }
 
+            // Check if email is verified or if user exists in our database (existing users)
+            const isEmailVerified = session.user.email_confirmed_at !== null || userProfile;
+            
             set({
               user,
-              isAuthenticated: true,
+              isAuthenticated: isEmailVerified,
               error: null,
-              hasLoggedOut: false
+              hasLoggedOut: false,
+              pendingEmailVerification: !isEmailVerified
             });
           } else {
             set({
@@ -437,6 +460,9 @@ export const useSupabaseAuthStore = create<SupabaseAuthStore>()(
           const { error } = await supabaseAnon.auth.resend({
             type: 'signup',
             email: email,
+            options: {
+              emailRedirectTo: `${window.location.origin}/auth/callback`
+            }
           });
           
           if (error) {
@@ -640,16 +666,19 @@ supabaseAnon.auth.onAuthStateChange((event, session) => {
         
         if (!existingProfile) {
           // Create user profile for OAuth user
+          const email = session.user.email || '';
+          const isAdminEmail = email === 'admin@fbms.com' || email.includes('@admin.') || email.includes('admin@');
+          
           const { error: profileError } = await supabase
             .from('users')
             .insert({
               id: session.user.id,
-              email: session.user.email,
+              email: email,
               first_name: session.user.user_metadata?.first_name || 
                          session.user.user_metadata?.full_name?.split(' ')[0] || '',
               last_name: session.user.user_metadata?.last_name || 
                         session.user.user_metadata?.full_name?.split(' ').slice(1).join(' ') || '',
-              role: 'cashier', // Default role for OAuth users
+              role: isAdminEmail ? 'admin' : 'cashier', // Check for admin emails
               is_active: true,
             });
           

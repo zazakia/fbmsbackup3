@@ -28,6 +28,8 @@ import { useBusinessStore } from '../../store/businessStore';
 import { useToastStore } from '../../store/toastStore';
 import { Product, StockMovement, InventoryBatch } from '../../types/business';
 import { formatCurrency, formatDate } from '../../utils/formatters';
+import { getStockMovements } from '../../api/products';
+import { StockMovementLedger } from '../../types/business';
 
 interface EnhancedInventoryStats {
   totalProducts: number;
@@ -65,6 +67,10 @@ const EnhancedInventoryManagement: React.FC = () => {
   const [stats, setStats] = useState<EnhancedInventoryStats | null>(null);
   const [stockAlerts, setStockAlerts] = useState<StockAlert[]>([]);
   const [inventoryBatches, setInventoryBatches] = useState<InventoryBatch[]>([]);
+  const [ledgerFilters, setLedgerFilters] = useState<{ startDate?: string; endDate?: string; type?: string; userId?: string }>({});
+  const [stockMovements, setStockMovements] = useState<StockMovementLedger[]>([]);
+  const [loadingLedger, setLoadingLedger] = useState(false);
+  const [ledgerError, setLedgerError] = useState<string | null>(null);
 
   const { 
     products, 
@@ -192,6 +198,24 @@ const EnhancedInventoryManagement: React.FC = () => {
 
     generateAlerts();
   }, [products]);
+
+  // Fetch stock movements when selectedProduct or filters change
+  useEffect(() => {
+    if (!selectedProduct || activeTab !== 'movements') return;
+    setLoadingLedger(true);
+    setLedgerError(null);
+    getStockMovements(selectedProduct.id, {
+      startDate: ledgerFilters.startDate ? new Date(ledgerFilters.startDate) : undefined,
+      endDate: ledgerFilters.endDate ? new Date(ledgerFilters.endDate) : undefined,
+      type: ledgerFilters.type,
+      userId: ledgerFilters.userId
+    })
+      .then(({ data, error }) => {
+        if (error) setLedgerError('Failed to load stock movements');
+        setStockMovements(data || []);
+      })
+      .finally(() => setLoadingLedger(false));
+  }, [selectedProduct, ledgerFilters, activeTab]);
 
   const filteredProducts = products.filter(product => {
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -724,6 +748,90 @@ const EnhancedInventoryManagement: React.FC = () => {
                     </div>
                   ))}
                 </div>
+              )}
+            </div>
+          )}
+
+          {/* Stock Movements Tab */}
+          {activeTab === 'movements' && (
+            <div>
+              {selectedProduct ? (
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Stock Movements for {selectedProduct.name}</h3>
+                  {/* Filters */}
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    <input
+                      type="date"
+                      value={ledgerFilters.startDate || ''}
+                      onChange={e => setLedgerFilters(f => ({ ...f, startDate: e.target.value }))}
+                      className="border rounded px-2 py-1 text-sm"
+                      placeholder="Start date"
+                    />
+                    <input
+                      type="date"
+                      value={ledgerFilters.endDate || ''}
+                      onChange={e => setLedgerFilters(f => ({ ...f, endDate: e.target.value }))}
+                      className="border rounded px-2 py-1 text-sm"
+                      placeholder="End date"
+                    />
+                    <select
+                      value={ledgerFilters.type || ''}
+                      onChange={e => setLedgerFilters(f => ({ ...f, type: e.target.value || undefined }))}
+                      className="border rounded px-2 py-1 text-sm"
+                    >
+                      <option value="">All Types</option>
+                      <option value="in">Stock In</option>
+                      <option value="out">Stock Out</option>
+                      <option value="adjustment">Adjustment</option>
+                    </select>
+                    <input
+                      type="text"
+                      value={ledgerFilters.userId || ''}
+                      onChange={e => setLedgerFilters(f => ({ ...f, userId: e.target.value || undefined }))}
+                      className="border rounded px-2 py-1 text-sm"
+                      placeholder="User ID"
+                    />
+                  </div>
+                  {/* Table */}
+                  {loadingLedger ? (
+                    <div className="text-center py-8 text-gray-500">Loading stock movements...</div>
+                  ) : ledgerError ? (
+                    <div className="text-center py-8 text-red-500">{ledgerError}</div>
+                  ) : stockMovements.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500">No stock movements found for this product.</div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full text-sm border">
+                        <thead>
+                          <tr className="bg-gray-50 dark:bg-dark-800">
+                            <th className="px-3 py-2 text-left">Date</th>
+                            <th className="px-3 py-2 text-left">Type</th>
+                            <th className="px-3 py-2 text-right">Change</th>
+                            <th className="px-3 py-2 text-right">Resulting Stock</th>
+                            <th className="px-3 py-2 text-left">User</th>
+                            <th className="px-3 py-2 text-left">Reference</th>
+                            <th className="px-3 py-2 text-left">Reason</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {stockMovements.map(movement => (
+                            <tr key={movement.id} className="border-b">
+                              <td className="px-3 py-2">{movement.created_at.toLocaleString()}</td>
+                              <td className="px-3 py-2 capitalize">{movement.type}</td>
+                              <td className="px-3 py-2 text-right">{movement.change > 0 ? '+' : ''}{movement.change}</td>
+                              <td className="px-3 py-2 text-right">{movement.resulting_stock}</td>
+                              <td className="px-3 py-2">{movement.user_id || '-'}</td>
+                              <td className="px-3 py-2">{movement.reference_id || '-'}</td>
+                              <td className="px-3 py-2">{movement.reason || '-'}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500">Select a product to view its stock movement ledger.</div>
               )}
             </div>
           )}
