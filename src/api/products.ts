@@ -642,6 +642,36 @@ export async function getActiveCategories() {
 }
 
 // Fetch stock movements for a product with optional filters
+// CREATE stock movement
+export async function createStockMovement(movement: {
+  productId: string;
+  type: 'sale' | 'purchase' | 'adjustment' | 'transfer' | 'return';
+  quantity: number;
+  previousStock: number;
+  newStock: number;
+  userId: string;
+  reference?: string;
+  notes?: string;
+}) {
+  const { data, error } = await supabase
+    .from('stock_movements')
+    .insert([{
+      product_id: movement.productId,
+      type: movement.type,
+      quantity: movement.quantity,
+      previous_stock: movement.previousStock,
+      new_stock: movement.newStock,
+      user_id: movement.userId,
+      reference: movement.reference,
+      notes: movement.notes
+    }])
+    .select()
+    .single();
+
+  if (error) return { data: null, error };
+  return { data, error: null };
+}
+
 export async function getStockMovements(productId: string, filters?: { startDate?: Date; endDate?: Date; type?: string; userId?: string; }) {
   let query = supabase
     .from('stock_movements')

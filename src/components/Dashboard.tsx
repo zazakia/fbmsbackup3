@@ -99,7 +99,7 @@ const Dashboard: React.FC = () => {
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-1 sm:gap-2 md:gap-4">
         {statsData.map((stat, index) => (
-          <div className="p-0.5 sm:p-2 md:p-4"><StatsCard {...stat} /></div>
+          <div key={index} className="p-0.5 sm:p-2 md:p-4"><StatsCard {...stat} /></div>
         ))}
       </div>
 

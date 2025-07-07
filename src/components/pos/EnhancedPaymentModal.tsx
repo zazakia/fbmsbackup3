@@ -165,10 +165,21 @@ const EnhancedPaymentModal: React.FC<EnhancedPaymentModalProps> = ({
       const totalSplitAmount = splitPayments.reduce((sum, payment) => sum + payment.amount, 0);
       if (Math.abs(totalSplitAmount - total) < 0.01) {
         onPayment('cash', undefined, splitPayments); // Use 'cash' as primary method for split payments
+      } else {
+        alert('Split payment amounts must equal the total amount');
+        return;
       }
     } else {
-      const cashAmount = selectedMethod === 'cash' ? parseFloat(cashReceived) : undefined;
-      onPayment(selectedMethod, cashAmount);
+      if (selectedMethod === 'cash') {
+        const cashAmount = parseFloat(cashReceived);
+        if (!cashReceived || isNaN(cashAmount) || cashAmount < total) {
+          alert('Cash amount must be at least the total amount');
+          return;
+        }
+        onPayment(selectedMethod, cashAmount);
+      } else {
+        onPayment(selectedMethod, undefined);
+      }
     }
   };
 

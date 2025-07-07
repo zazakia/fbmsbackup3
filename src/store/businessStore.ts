@@ -47,7 +47,7 @@ interface BusinessActions {
   deleteProduct: (id: string) => void;
   getProduct: (id: string) => Product | undefined;
   getProductsByCategoryId: (categoryId: string) => Product[];
-  updateStock: (productId: string, quantity: number) => void;
+  updateStock: (productId: string, quantity: number, type?: string, userId?: string, reference?: string, notes?: string) => void;
   
   // Category actions
   addCategory: (category: Omit<Category, 'id' | 'createdAt'>) => void;
@@ -1054,14 +1054,26 @@ export const useBusinessStore = create<BusinessStore>()(
         return get().products.filter(product => product.category === categoryId && product.isActive);
       },
 
-      updateStock: (productId, quantity) => {
-        set((state) => ({
-          products: state.products.map(product =>
-            product.id === productId
-              ? { ...product, stock: product.stock + quantity, updatedAt: new Date() }
-              : product
-          )
-        }));
+      updateStock: (productId, quantity, type = 'adjustment', userId = 'system', reference?, notes?) => {
+        set((state) => {
+          const updatedProducts = state.products.map(product => {
+            if (product.id === productId) {
+              const previousStock = product.stock;
+              const newStock = product.stock + quantity;
+              
+              // Create stock movement record (in a real app, this would be async)
+              // For now, we'll just update the product stock
+              return { 
+                ...product, 
+                stock: newStock, 
+                updatedAt: new Date() 
+              };
+            }
+            return product;
+          });
+          
+          return { products: updatedProducts };
+        });
       },
 
       // Category actions

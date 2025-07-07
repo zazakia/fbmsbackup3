@@ -334,7 +334,7 @@ const LoyaltyPrograms: React.FC = () => {
 
   const filteredCustomers = customerLoyalty.filter(loyalty => {
     const customer = customers.find(c => c.id === loyalty.customerId);
-    return customer?.name.toLowerCase().includes(searchTerm.toLowerCase());
+    return customer ? `${customer.firstName} ${customer.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) : false;
   });
 
   return (

@@ -83,7 +83,7 @@ const App: React.FC = () => {
   const { toasts, removeToast } = useToastStore();
   const { initializeTheme } = useThemeStore();
   const { user } = useSupabaseAuthStore();
-  const { enhancedVersions } = useSettingsStore();
+  const { enhancedVersions, menuVisibility } = useSettingsStore();
 
   // Check for OAuth callback
   const isOAuthCallback = window.location.hash.includes('access_token') || 
@@ -97,6 +97,33 @@ const App: React.FC = () => {
       setupDevAuth(); // Setup development authentication
     }
   }, [initializeTheme, isOAuthCallback]);
+
+  // Map menu IDs to visibility keys
+  const menuIdToVisibilityKey: Record<string, keyof typeof menuVisibility> = {
+    'dashboard': 'dashboard',
+    'sales': 'sales',
+    'inventory': 'inventory',
+    'purchases': 'purchases',
+    'customers': 'customers',
+    'customer-transactions': 'customerTransactions',
+    'suppliers': 'suppliers',
+    'expenses': 'expenses',
+    'payroll': 'payroll',
+    'accounting': 'accounting',
+    'reports': 'reports',
+    'bir': 'bir',
+    'branches': 'branches',
+    'operations': 'operations',
+    'cashier': 'cashier',
+    'marketing': 'marketing',
+    'loyalty': 'loyalty',
+    'backup': 'backup',
+    'testing': 'testing',
+    'admin-dashboard': 'adminDashboard',
+    'user-roles': 'userRoles',
+    'data-history': 'dataHistory',
+    'settings': 'settings'
+  };
 
   const allMenuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: Home, module: 'dashboard' },
@@ -124,15 +151,30 @@ const App: React.FC = () => {
     { id: 'settings', label: 'Settings', icon: Settings, module: 'settings' }
   ];
 
-  // Filter menu items based on user role permissions
+  // Filter menu items based on user role permissions and visibility settings
   const menuItems = useMemo(() => 
     allMenuItems.filter(item => {
       if (!user || !user.role) {
         // Show basic items for unauthenticated users
         return ['dashboard', 'settings'].includes(item.id);
       }
-      return canAccessModule(user.role, item.module);
-    }), [user?.role]);
+      
+      // Check user permissions
+      const hasPermission = canAccessModule(user.role, item.module);
+      if (!hasPermission) return false;
+      
+      // Check visibility settings
+      const visibilityKey = menuIdToVisibilityKey[item.id];
+      if (visibilityKey && menuVisibility[visibilityKey] !== undefined) {
+        // Force show dashboard and settings (core functionality)
+        if (item.id === 'dashboard' || item.id === 'settings') {
+          return true;
+        }
+        return menuVisibility[visibilityKey];
+      }
+      
+      return true;
+    }), [user?.role, menuVisibility]);
 
   // Version change handling is now in settings store
 
