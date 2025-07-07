@@ -72,23 +72,6 @@ Last Updated: 2025-07-07
 
 ## 🟡 Medium Priority (Feature Enhancement)
 
-### 💳 Payment System Integration
-- [ ] **Real GCash API integration** (replace current mockup)
-  - [ ] API authentication and webhook setup
-  - [ ] Transaction status handling
-  - [ ] Error recovery and retry mechanisms
-  - [ ] Receipt generation integration
-  - **Estimated Time**: 3-4 weeks
-  - **Status**: UI mockup complete, needs real API
-
-- [ ] **PayMaya API integration** (replace current mockup)
-  - [ ] Similar requirements to GCash
-  - **Estimated Time**: 2-3 weeks
-
-- [ ] **Bank transfer integration** for B2B transactions
-  - [ ] InstaPay/PESONet integration
-  - **Estimated Time**: 2-3 weeks
-
 ### 📊 Advanced Reporting & Analytics
 - [ ] **Real-time dashboard metrics** with live data
 - [ ] **Advanced sales analytics** with predictive insights
@@ -114,6 +97,23 @@ Last Updated: 2025-07-07
 ---
 
 ## 🟢 Low Priority (Nice to Have)
+
+### 💳 Payment System Integration
+- [ ] **Real GCash API integration** (replace current mockup)
+  - [ ] API authentication and webhook setup
+  - [ ] Transaction status handling
+  - [ ] Error recovery and retry mechanisms
+  - [ ] Receipt generation integration
+  - **Estimated Time**: 3-4 weeks
+  - **Status**: UI mockup complete, needs real API
+
+- [ ] **PayMaya API integration** (replace current mockup)
+  - [ ] Similar requirements to GCash
+  - **Estimated Time**: 2-3 weeks
+
+- [ ] **Bank transfer integration** for B2B transactions
+  - [ ] InstaPay/PESONet integration
+  - **Estimated Time**: 2-3 weeks
 
 ### 🤖 AI & Automation
 - [ ] **Intelligent inventory reordering** with ML predictions
@@ -219,14 +219,14 @@ Last Updated: 2025-07-07
 3. **Mobile Keyboard Issues** (Bug Fix)
 
 ### Next Sprint (Week 3-4)
-1. **GCash API Integration** (Medium Priority)
-2. **Advanced Reporting** (Medium Priority)
+1. **Advanced Reporting** (Medium Priority)
+2. **Multi-branch Operations** (Medium Priority)
 3. **Test Coverage Increase** (Technical Debt)
 
 ### Future Sprints
 1. **PWA Features** (Low Priority)
-2. **AI & Automation** (Low Priority)
-3. **Multi-branch Operations** (Medium Priority)
+2. **Payment Integration** (Low Priority)
+3. **AI & Automation** (Low Priority)
 
 ---
 
@@ -249,19 +249,19 @@ Last Updated: 2025-07-07
 
 ### Business Impact Priority
 1. **Database Security** - Prevents data breaches (Critical)
-2. **Payment Integration** - Enables real transactions (High Business Value)
+2. **Advanced Reporting** - Enables business insights (High Business Value)
 3. **Mobile Optimization** - Improves user adoption (High User Value)
 4. **Testing Coverage** - Ensures reliability (Quality Assurance)
 
 ### Resource Allocation
-- **Security & Testing**: 40% of remaining effort
-- **Payment Integration**: 30% of remaining effort  
-- **Features & Enhancements**: 20% of remaining effort
+- **Security & Testing**: 50% of remaining effort
+- **Advanced Reporting & Analytics**: 25% of remaining effort  
+- **Multi-branch Operations**: 15% of remaining effort
 - **Documentation**: 10% of remaining effort
 
 ### Risk Assessment
 - **High Risk**: Database security configuration
-- **Medium Risk**: Payment API integration complexity
+- **Medium Risk**: Advanced reporting complexity and data visualization
 - **Low Risk**: UI/UX enhancements and documentation
 
 ---
