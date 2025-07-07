@@ -61,6 +61,7 @@ import {
   RealActivityLog,
   RealUserSession
 } from '../../services/adminMetrics';
+import { ScriptExecutor } from '../../services/scriptExecutor';
 
 // Using interfaces from adminMetrics service
 type SystemMetrics = RealSystemMetrics & {
@@ -244,55 +245,19 @@ const AdminDashboard: React.FC = () => {
       }
     }));
 
-    try {
-      // Log the script execution attempt
-      await logAdminActivity(
-        `Execute Script: ${scriptName}`,
-        'Administration',
-        `Administrator attempting to execute script: ${scriptPath}`,
-        'info'
-      );
+    const scriptExecutor = ScriptExecutor.getInstance();
 
-      // Simulate real-time terminal output
-      const terminalLines = [
-        `$ chmod +x ${scriptPath}`,
-        `$ ./${scriptPath}`,
-        '',
-        '🚀 Starting script execution...',
-        `📁 Working directory: ${scriptPath.replace(/\/[^/]*$/, '')}`,
-        `⏰ Started at: ${startTime.toLocaleTimeString()}`,
-        '',
-        '📦 Checking dependencies...',
-        '✅ Dependencies verified',
-        '',
-        '🔧 Configuring environment...',
-        '✅ Environment configured',
-        '',
-        '🏗️ Building application...',
-        '✅ Build completed successfully',
-        '',
-        '🚀 Deploying changes...',
-        '✅ Deployment successful',
-        '',
-        '🧹 Cleaning up temporary files...',
-        '✅ Cleanup completed',
-        '',
-        `✨ Script ${scriptName} completed successfully!`,
-        `⏱️  Total execution time: ${Math.floor(Math.random() * 30 + 10)}s`,
-        `📊 Exit code: 0`,
-        ''
-      ];
-
-      // Stream output line by line
-      for (let i = 0; i < terminalLines.length; i++) {
-        const line = terminalLines[i];
-        const timestamp = new Date().toLocaleTimeString();
-        
+    await scriptExecutor.executeScript(scriptName, scriptPath, {
+      onStart: () => {
+        // Script started - already handled above
+      },
+      
+      onOutput: (line: string, type: 'stdout' | 'stderr') => {
         setScriptExecutions(prev => ({
           ...prev,
           [scriptName]: {
             ...prev[scriptName],
-            liveOutput: [...(prev[scriptName]?.liveOutput || []), `[${timestamp}] ${line}`]
+            liveOutput: [...(prev[scriptName]?.liveOutput || []), line]
           }
         }));
         
@@ -302,55 +267,53 @@ const AdminDashboard: React.FC = () => {
             terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
           }
         }, 100);
+      },
+      
+      onComplete: async (result) => {
+        const endTime = new Date();
         
-        // Simulate realistic execution timing
-        await new Promise(resolve => setTimeout(resolve, Math.random() * 500 + 200));
+        setScriptExecutions(prev => ({
+          ...prev,
+          [scriptName]: {
+            ...prev[scriptName],
+            status: result.success ? 'success' : 'error',
+            output: result.output.join('\n'),
+            endTime: endTime
+          }
+        }));
+
+        // Log successful execution
+        await logAdminActivity(
+          `Script Executed: ${scriptName}`,
+          'Administration',
+          `Script executed successfully: ${scriptPath} (Exit code: ${result.exitCode || 0})`,
+          result.success ? 'success' : 'error'
+        );
+      },
+      
+      onError: async (error: string) => {
+        const endTime = new Date();
+        
+        setScriptExecutions(prev => ({
+          ...prev,
+          [scriptName]: {
+            ...prev[scriptName],
+            status: 'error',
+            output: error,
+            liveOutput: [...(prev[scriptName]?.liveOutput || []), `[ERROR] ${error}`],
+            endTime: endTime
+          }
+        }));
+
+        // Log error
+        await logAdminActivity(
+          `Script Error: ${scriptName}`,
+          'Administration',
+          `Script execution failed: ${scriptPath} - ${error}`,
+          'error'
+        );
       }
-      
-      const endTime = new Date();
-      const finalOutput = terminalLines.join('\n');
-      
-      setScriptExecutions(prev => ({
-        ...prev,
-        [scriptName]: {
-          ...prev[scriptName],
-          status: 'success',
-          output: finalOutput,
-          endTime: endTime
-        }
-      }));
-
-      // Log successful execution
-      await logAdminActivity(
-        `Script Executed: ${scriptName}`,
-        'Administration',
-        `Script executed successfully: ${scriptPath}`,
-        'success'
-      );
-
-    } catch (error) {
-      const endTime = new Date();
-      const errorOutput = `Error executing script: ${scriptName}\nError: ${error instanceof Error ? error.message : 'Unknown error'}`;
-      
-      setScriptExecutions(prev => ({
-        ...prev,
-        [scriptName]: {
-          ...prev[scriptName],
-          status: 'error',
-          output: errorOutput,
-          liveOutput: [...(prev[scriptName]?.liveOutput || []), `[ERROR] ${errorOutput}`],
-          endTime: endTime
-        }
-      }));
-
-      // Log error
-      await logAdminActivity(
-        `Script Error: ${scriptName}`,
-        'Administration',
-        `Script execution failed: ${scriptPath}`,
-        'error'
-      );
-    }
+    });
   }, []);
 
   const getScriptIcon = useCallback((scriptName: string) => {
@@ -364,6 +327,24 @@ const AdminDashboard: React.FC = () => {
       default: return <Play className="h-4 w-4" />;
     }
   }, [scriptExecutions]);
+
+  const stopScript = useCallback((scriptName: string) => {
+    const scriptExecutor = ScriptExecutor.getInstance();
+    const success = scriptExecutor.stopScript(scriptName);
+    
+    if (success) {
+      setScriptExecutions(prev => ({
+        ...prev,
+        [scriptName]: {
+          ...prev[scriptName],
+          status: 'error',
+          output: 'Script execution stopped by user',
+          liveOutput: [...(prev[scriptName]?.liveOutput || []), '[STOPPED] Script execution stopped by user'],
+          endTime: new Date()
+        }
+      }));
+    }
+  }, []);
 
   const renderOverview = () => (
     <div className="space-y-6">
@@ -949,20 +930,32 @@ const AdminDashboard: React.FC = () => {
                         </span>
                       </div>
                     </div>
-                    <button
-                      onClick={() => executeScript(script.name, script.path)}
-                      disabled={isRunning}
-                      className={`flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                        isRunning
-                          ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                          : script.buttonClass
-                      }`}
-                    >
-                      {getScriptIcon(script.name)}
-                      <span className="ml-2">
-                        {isRunning ? 'Running...' : 'Execute'}
-                      </span>
-                    </button>
+                    <div className="flex items-center space-x-2">
+                      <button
+                        onClick={() => executeScript(script.name, script.path)}
+                        disabled={isRunning}
+                        className={`flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                          isRunning
+                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                            : script.buttonClass
+                        }`}
+                      >
+                        {getScriptIcon(script.name)}
+                        <span className="ml-2">
+                          {isRunning ? 'Running...' : 'Execute'}
+                        </span>
+                      </button>
+                      
+                      {isRunning && (
+                        <button
+                          onClick={() => stopScript(script.name)}
+                          className="flex items-center px-2 py-2 rounded-lg text-sm font-medium bg-red-500 hover:bg-red-600 text-white transition-colors"
+                          title="Stop script execution"
+                        >
+                          <XCircle className="h-4 w-4" />
+                        </button>
+                      )}
+                    </div>
                   </div>
                   
                   <p className={`text-sm ${script.textClass} mb-3`}>
