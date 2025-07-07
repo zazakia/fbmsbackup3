@@ -82,12 +82,27 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
+# Load commit message generator
+source "$(dirname "$0")/utils/commit-message-generator.sh" 2>/dev/null || {
+    warn "Commit message generator not found. Using default message."
+}
+
 # Set default commit message if not provided
 if [ -z "$COMMIT_MSG" ]; then
-    if [ "$PRODUCTION" = true ]; then
-        COMMIT_MSG="Vercel production deployment $(date +'%Y-%m-%d %H:%M')"
+    if command -v generate_smart_commit_message &> /dev/null; then
+        log "Auto-generating commit message..."
+        if [ "$PRODUCTION" = true ]; then
+            COMMIT_MSG=$(generate_smart_commit_message "" "release")
+        else
+            COMMIT_MSG=$(generate_smart_commit_message "" "staging")
+        fi
+        log "Generated message: '$COMMIT_MSG'"
     else
-        COMMIT_MSG="Vercel preview deployment $(date +'%Y-%m-%d %H:%M')"
+        if [ "$PRODUCTION" = true ]; then
+            COMMIT_MSG="Vercel production deployment $(date +'%Y-%m-%d %H:%M')"
+        else
+            COMMIT_MSG="Vercel preview deployment $(date +'%Y-%m-%d %H:%M')"
+        fi
     fi
 fi
 
