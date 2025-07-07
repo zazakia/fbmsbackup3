@@ -12,6 +12,7 @@ const allowedScripts = [
   'scripts/git-workflow.sh',
   'scripts/deploy-production.sh',
   'scripts/deploy-staging.sh',
+  'scripts/deploy-vercel.sh',
   'scripts/deploy.sh',
   'scripts/setup-netlify.sh',
   'scripts/backup-and-protect.sh'
