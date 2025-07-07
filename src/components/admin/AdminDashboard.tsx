@@ -44,11 +44,8 @@ import {
   Play,
   Terminal,
   Loader2,
-  CheckCircle2,
-  XCircle2,
   GitBranch,
-  Rocket,
-  HardDriveIcon
+  Rocket
 } from 'lucide-react';
 import { 
   getRealSystemMetrics, 
@@ -290,8 +287,8 @@ const AdminDashboard: React.FC = () => {
     
     switch (execution.status) {
       case 'running': return <Loader2 className="h-4 w-4 animate-spin" />;
-      case 'success': return <CheckCircle2 className="h-4 w-4 text-green-500" />;
-      case 'error': return <XCircle2 className="h-4 w-4 text-red-500" />;
+      case 'success': return <CheckCircle className="h-4 w-4 text-green-500" />;
+      case 'error': return <XCircle className="h-4 w-4 text-red-500" />;
       default: return <Play className="h-4 w-4" />;
     }
   }, [scriptExecutions]);
@@ -802,7 +799,7 @@ const AdminDashboard: React.FC = () => {
         path: 'scripts/backup-and-protect.sh',
         description: 'Data backup and protection automation',
         category: 'Maintenance',
-        icon: HardDriveIcon,
+        icon: HardDrive,
         color: 'red'
       }
     ];
