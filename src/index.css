@@ -33,6 +33,13 @@
   box-sizing: border-box;
 }
 
+/* Ensure full viewport width usage */
+html, body, #root {
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+
 html {
   scroll-behavior: smooth;
 }
