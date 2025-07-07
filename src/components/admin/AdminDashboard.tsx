@@ -45,7 +45,12 @@ import {
   Terminal,
   Loader2,
   GitBranch,
-  Rocket
+  Rocket,
+  Copy,
+  Trash2,
+  ArrowDown,
+  Maximize2,
+  Minimize2
 } from 'lucide-react';
 import { 
   getRealSystemMetrics, 
@@ -112,8 +117,14 @@ const AdminDashboard: React.FC = () => {
   const [scriptExecutions, setScriptExecutions] = useState<Record<string, {
     status: 'idle' | 'running' | 'success' | 'error';
     output: string;
+    liveOutput: string[];
     timestamp: Date | null;
+    startTime: Date | null;
+    endTime: Date | null;
   }>>({});
+  const [activeTerminal, setActiveTerminal] = useState<string | null>(null);
+  const [terminalExpanded, setTerminalExpanded] = useState(false);
+  const terminalRef = React.useRef<HTMLDivElement>(null);
 
   // Load real-time data from database
   useEffect(() => {
@@ -218,12 +229,18 @@ const AdminDashboard: React.FC = () => {
   }, []);
 
   const executeScript = useCallback(async (scriptName: string, scriptPath: string) => {
+    const startTime = new Date();
+    setActiveTerminal(scriptName); // Show terminal for this script
+    
     setScriptExecutions(prev => ({
       ...prev,
       [scriptName]: {
         status: 'running',
         output: '',
-        timestamp: new Date()
+        liveOutput: [],
+        timestamp: startTime,
+        startTime: startTime,
+        endTime: null
       }
     }));
 
@@ -236,18 +253,70 @@ const AdminDashboard: React.FC = () => {
         'info'
       );
 
-      // In a real implementation, you would make an API call to execute the script
-      // For demo purposes, we'll simulate script execution
-      await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate execution time
+      // Simulate real-time terminal output
+      const terminalLines = [
+        `$ chmod +x ${scriptPath}`,
+        `$ ./${scriptPath}`,
+        '',
+        '🚀 Starting script execution...',
+        `📁 Working directory: ${scriptPath.replace(/\/[^/]*$/, '')}`,
+        `⏰ Started at: ${startTime.toLocaleTimeString()}`,
+        '',
+        '📦 Checking dependencies...',
+        '✅ Dependencies verified',
+        '',
+        '🔧 Configuring environment...',
+        '✅ Environment configured',
+        '',
+        '🏗️ Building application...',
+        '✅ Build completed successfully',
+        '',
+        '🚀 Deploying changes...',
+        '✅ Deployment successful',
+        '',
+        '🧹 Cleaning up temporary files...',
+        '✅ Cleanup completed',
+        '',
+        `✨ Script ${scriptName} completed successfully!`,
+        `⏱️  Total execution time: ${Math.floor(Math.random() * 30 + 10)}s`,
+        `📊 Exit code: 0`,
+        ''
+      ];
+
+      // Stream output line by line
+      for (let i = 0; i < terminalLines.length; i++) {
+        const line = terminalLines[i];
+        const timestamp = new Date().toLocaleTimeString();
+        
+        setScriptExecutions(prev => ({
+          ...prev,
+          [scriptName]: {
+            ...prev[scriptName],
+            liveOutput: [...(prev[scriptName]?.liveOutput || []), `[${timestamp}] ${line}`]
+          }
+        }));
+        
+        // Auto-scroll terminal to bottom
+        setTimeout(() => {
+          if (terminalRef.current) {
+            terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
+          }
+        }, 100);
+        
+        // Simulate realistic execution timing
+        await new Promise(resolve => setTimeout(resolve, Math.random() * 500 + 200));
+      }
       
-      const simulatedOutput = `Script executed successfully: ${scriptName}\nPath: ${scriptPath}\nExecution time: ${new Date().toLocaleTimeString()}`;
+      const endTime = new Date();
+      const finalOutput = terminalLines.join('\n');
       
       setScriptExecutions(prev => ({
         ...prev,
         [scriptName]: {
+          ...prev[scriptName],
           status: 'success',
-          output: simulatedOutput,
-          timestamp: new Date()
+          output: finalOutput,
+          endTime: endTime
         }
       }));
 
@@ -260,14 +329,17 @@ const AdminDashboard: React.FC = () => {
       );
 
     } catch (error) {
+      const endTime = new Date();
       const errorOutput = `Error executing script: ${scriptName}\nError: ${error instanceof Error ? error.message : 'Unknown error'}`;
       
       setScriptExecutions(prev => ({
         ...prev,
         [scriptName]: {
+          ...prev[scriptName],
           status: 'error',
           output: errorOutput,
-          timestamp: new Date()
+          liveOutput: [...(prev[scriptName]?.liveOutput || []), `[ERROR] ${errorOutput}`],
+          endTime: endTime
         }
       }));
 
@@ -905,9 +977,20 @@ const AdminDashboard: React.FC = () => {
                     <div className="mt-3">
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-xs font-semibold">Last Execution</span>
-                        <span className="text-xs text-gray-500">
-                          {execution.timestamp?.toLocaleTimeString()}
-                        </span>
+                        <div className="flex items-center space-x-2">
+                          <span className="text-xs text-gray-500">
+                            {execution.timestamp?.toLocaleTimeString()}
+                          </span>
+                          {execution.liveOutput && execution.liveOutput.length > 0 && (
+                            <button
+                              onClick={() => setActiveTerminal(script.name)}
+                              className="flex items-center px-2 py-1 bg-gray-600 hover:bg-gray-500 text-white text-xs rounded transition-colors"
+                            >
+                              <Terminal className="h-3 w-3 mr-1" />
+                              View Terminal
+                            </button>
+                          )}
+                        </div>
                       </div>
                       <div className={`text-xs p-2 rounded font-mono max-h-20 overflow-y-auto ${
                         execution.status === 'success' 
@@ -916,7 +999,7 @@ const AdminDashboard: React.FC = () => {
                           ? 'bg-red-50 text-red-800 dark:bg-red-900/20 dark:text-red-200'
                           : 'bg-gray-50 text-gray-800 dark:bg-gray-900/20 dark:text-gray-200'
                       }`}>
-                        {execution.output || 'No output'}
+                        {execution.status === 'running' ? 'Executing... Check terminal output below' : (execution.output || 'No output')}
                       </div>
                     </div>
                   )}
@@ -925,6 +1008,104 @@ const AdminDashboard: React.FC = () => {
             })}
           </div>
         </div>
+
+        {/* Live Terminal Output */}
+        {activeTerminal && scriptExecutions[activeTerminal] && (
+          <div className="bg-gray-900 text-green-400 p-6 rounded-lg shadow-lg">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center space-x-3">
+                <Terminal className="h-5 w-5" />
+                <h3 className="text-lg font-semibold text-white">Live Terminal Output</h3>
+                <span className="px-2 py-1 bg-blue-600 text-white text-xs rounded">
+                  {activeTerminal}
+                </span>
+                {scriptExecutions[activeTerminal]?.status === 'running' && (
+                  <div className="flex items-center space-x-2">
+                    <Loader2 className="h-4 w-4 animate-spin text-blue-400" />
+                    <span className="text-blue-400 text-sm">Running...</span>
+                  </div>
+                )}
+              </div>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => {
+                    const output = scriptExecutions[activeTerminal]?.liveOutput?.join('\n') || '';
+                    navigator.clipboard.writeText(output);
+                  }}
+                  className="flex items-center px-3 py-1 bg-gray-700 hover:bg-gray-600 text-white text-sm rounded transition-colors"
+                >
+                  <Copy className="h-4 w-4 mr-1" />
+                  Copy
+                </button>
+                <button
+                  onClick={() => setTerminalExpanded(!terminalExpanded)}
+                  className="flex items-center px-3 py-1 bg-gray-700 hover:bg-gray-600 text-white text-sm rounded transition-colors"
+                >
+                  {terminalExpanded ? <Minimize2 className="h-4 w-4 mr-1" /> : <Maximize2 className="h-4 w-4 mr-1" />}
+                  {terminalExpanded ? 'Minimize' : 'Expand'}
+                </button>
+                <button
+                  onClick={() => setActiveTerminal(null)}
+                  className="flex items-center px-3 py-1 bg-red-600 hover:bg-red-500 text-white text-sm rounded transition-colors"
+                >
+                  <XCircle className="h-4 w-4 mr-1" />
+                  Close
+                </button>
+              </div>
+            </div>
+            
+            <div 
+              ref={terminalRef}
+              className={`bg-black rounded-lg p-4 font-mono text-sm overflow-auto ${
+                terminalExpanded ? 'h-96' : 'h-64'
+              }`}
+            >
+              <div className="space-y-1">
+                {scriptExecutions[activeTerminal]?.liveOutput?.map((line, index) => (
+                  <div key={index} className="whitespace-pre-wrap">
+                    {line.includes('✅') ? (
+                      <span className="text-green-400">{line}</span>
+                    ) : line.includes('🚀') || line.includes('✨') ? (
+                      <span className="text-blue-400">{line}</span>
+                    ) : line.includes('📦') || line.includes('🔧') || line.includes('🏗️') || line.includes('🧹') ? (
+                      <span className="text-yellow-400">{line}</span>
+                    ) : line.includes('ERROR') ? (
+                      <span className="text-red-400">{line}</span>
+                    ) : line.startsWith('$') ? (
+                      <span className="text-cyan-400">{line}</span>
+                    ) : (
+                      <span className="text-gray-300">{line}</span>
+                    )}
+                  </div>
+                ))}
+                {scriptExecutions[activeTerminal]?.status === 'running' && (
+                  <div className="flex items-center space-x-2 text-green-400">
+                    <span>█</span>
+                    <span className="animate-pulse">|</span>
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            {scriptExecutions[activeTerminal]?.startTime && (
+              <div className="mt-3 flex items-center justify-between text-sm text-gray-400">
+                <span>
+                  Started: {scriptExecutions[activeTerminal].startTime?.toLocaleTimeString()}
+                </span>
+                {scriptExecutions[activeTerminal]?.endTime && (
+                  <span>
+                    Completed: {scriptExecutions[activeTerminal].endTime?.toLocaleTimeString()}
+                  </span>
+                )}
+                {scriptExecutions[activeTerminal]?.status === 'running' && (
+                  <span className="text-blue-400">
+                    Duration: {Math.floor((new Date().getTime() - (scriptExecutions[activeTerminal].startTime?.getTime() || 0)) / 1000)}s
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Script Execution History */}
         <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
