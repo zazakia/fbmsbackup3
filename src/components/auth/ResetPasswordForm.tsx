@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Lock, Eye, EyeOff, CheckCircle, Loader2, AlertCircle } from 'lucide-react';
+import { Lock, Eye, EyeOff, CheckCircle, Loader2, AlertCircle, Shield } from 'lucide-react';
 import { useSupabaseAuthStore } from '../../store/supabaseAuthStore';
 import { useToastStore } from '../../store/toastStore';
+import { validatePassword } from '../../utils/authSecurity';
+import { logSecurityEvent } from '../../utils/authSecurity';
 
 interface ResetPasswordFormProps {
   token?: string;
@@ -14,33 +16,22 @@ const ResetPasswordForm: React.FC<ResetPasswordFormProps> = ({ token, onSuccess 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [passwordStrength, setPasswordStrength] = useState<'weak' | 'medium' | 'strong'>('weak');
+  const [passwordValidation, setPasswordValidation] = useState<any>(null);
   const { resetPassword, isLoading, error } = useSupabaseAuthStore();
   const { addToast } = useToastStore();
 
-  const validatePassword = (password: string) => {
-    const hasUpperCase = /[A-Z]/.test(password);
-    const hasLowerCase = /[a-z]/.test(password);
-    const hasNumbers = /\d/.test(password);
-    const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
-    const isLongEnough = password.length >= 8;
-
-    const criteriaCount = [hasUpperCase, hasLowerCase, hasNumbers, hasSpecialChar, isLongEnough].filter(Boolean).length;
-    
-    if (criteriaCount < 3) return 'weak';
-    if (criteriaCount < 5) return 'medium';
-    return 'strong';
-  };
-
   useEffect(() => {
     if (password) {
-      setPasswordStrength(validatePassword(password));
+      setPasswordValidation(validatePassword(password));
+    } else {
+      setPasswordValidation(null);
     }
   }, [password]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Validate passwords match
     if (password !== confirmPassword) {
       addToast({
         type: 'error',
@@ -50,11 +41,13 @@ const ResetPasswordForm: React.FC<ResetPasswordFormProps> = ({ token, onSuccess 
       return;
     }
 
-    if (password.length < 8) {
+    // Validate password strength
+    if (!passwordValidation || !passwordValidation.isValid) {
+      const errors = passwordValidation?.errors || ['Password does not meet security requirements'];
       addToast({
         type: 'error',
-        title: 'Password Too Short',
-        message: 'Password must be at least 8 characters long'
+        title: 'Password Too Weak',
+        message: errors.join(', ')
       });
       return;
     }
@@ -71,6 +64,13 @@ const ResetPasswordForm: React.FC<ResetPasswordFormProps> = ({ token, onSuccess 
     setIsSubmitting(true);
     try {
       await resetPassword(token, password);
+      
+      logSecurityEvent({
+        type: 'password_reset',
+        email: 'unknown', // We don't have email in reset form
+        success: true
+      });
+      
       addToast({
         type: 'success',
         title: 'Password Reset Successful',
@@ -78,6 +78,13 @@ const ResetPasswordForm: React.FC<ResetPasswordFormProps> = ({ token, onSuccess 
       });
       onSuccess();
     } catch (error) {
+      logSecurityEvent({
+        type: 'password_reset',
+        email: 'unknown',
+        success: false,
+        reason: error instanceof Error ? error.message : 'Unknown error'
+      });
+      
       addToast({
         type: 'error',
         title: 'Reset Failed',
@@ -88,20 +95,20 @@ const ResetPasswordForm: React.FC<ResetPasswordFormProps> = ({ token, onSuccess 
     }
   };
 
-  const getStrengthColor = (strength: 'weak' | 'medium' | 'strong') => {
-    switch (strength) {
-      case 'weak': return 'bg-red-500';
-      case 'medium': return 'bg-yellow-500';
-      case 'strong': return 'bg-green-500';
-    }
+  const getStrengthColor = (score: number) => {
+    if (score < 30) return 'bg-red-500';
+    if (score < 60) return 'bg-yellow-500';
+    return 'bg-green-500';
   };
 
-  const getStrengthText = (strength: 'weak' | 'medium' | 'strong') => {
-    switch (strength) {
-      case 'weak': return 'Weak';
-      case 'medium': return 'Medium';
-      case 'strong': return 'Strong';
-    }
+  const getStrengthText = (score: number) => {
+    if (score < 30) return 'Weak';
+    if (score < 60) return 'Medium';
+    return 'Strong';
+  };
+
+  const getStrengthWidth = (score: number) => {
+    return `${Math.min(score, 100)}%`;
   };
 
   return (
@@ -144,20 +151,41 @@ const ResetPasswordForm: React.FC<ResetPasswordFormProps> = ({ token, onSuccess 
                   {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
               </div>
-              {password && (
+              {password && passwordValidation && (
                 <div className="mt-2">
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-gray-600 dark:text-gray-400">Password strength:</span>
-                    <span className={`font-medium ${passwordStrength === 'weak' ? 'text-red-600' : passwordStrength === 'medium' ? 'text-yellow-600' : 'text-green-600'}`}>
-                      {getStrengthText(passwordStrength)}
+                    <span className={`font-medium ${passwordValidation.score < 30 ? 'text-red-600' : passwordValidation.score < 60 ? 'text-yellow-600' : 'text-green-600'}`}>
+                      {getStrengthText(passwordValidation.score)} ({passwordValidation.score}/100)
                     </span>
                   </div>
                   <div className="mt-1 h-2 bg-gray-200 dark:bg-dark-600 rounded-full">
                     <div
-                      className={`h-full rounded-full transition-all duration-300 ${getStrengthColor(passwordStrength)}`}
-                      style={{ width: passwordStrength === 'weak' ? '33%' : passwordStrength === 'medium' ? '66%' : '100%' }}
+                      className={`h-full rounded-full transition-all duration-300 ${getStrengthColor(passwordValidation.score)}`}
+                      style={{ width: getStrengthWidth(passwordValidation.score) }}
                     />
                   </div>
+                  {passwordValidation.errors.length > 0 && (
+                    <div className="mt-2 text-xs text-red-600 dark:text-red-400">
+                      <ul className="list-disc list-inside space-y-1">
+                        {passwordValidation.errors.map((error: string, index: number) => (
+                          <li key={index}>{error}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {passwordValidation.suggestions.length > 0 && (
+                    <div className="mt-2 text-xs text-blue-600 dark:text-blue-400">
+                      <div className="flex items-start gap-1">
+                        <Shield className="h-3 w-3 mt-0.5 flex-shrink-0" />
+                        <ul className="space-y-1">
+                          {passwordValidation.suggestions.map((suggestion: string, index: number) => (
+                            <li key={index}>{suggestion}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -201,7 +229,13 @@ const ResetPasswordForm: React.FC<ResetPasswordFormProps> = ({ token, onSuccess 
 
             <button
               type="submit"
-              disabled={isSubmitting || isLoading || password !== confirmPassword || password.length < 8}
+              disabled={
+                isSubmitting || 
+                isLoading || 
+                password !== confirmPassword || 
+                !passwordValidation?.isValid ||
+                !password
+              }
               className="w-full bg-primary-600 hover:bg-primary-700 disabled:bg-primary-400 text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center"
             >
               {isSubmitting || isLoading ? (

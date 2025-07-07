@@ -7,6 +7,24 @@
   NODE_VERSION = "18"
   NPM_FLAGS = "--version"
 
+# Production environment settings
+[context.production.environment]
+  VITE_APP_ENV = "production"
+  VITE_SUPABASE_URL = "https://your-production-supabase-url.supabase.co"
+  VITE_SUPABASE_ANON_KEY = "your-production-anon-key"
+
+# Staging environment settings
+[context.deploy-preview.environment]
+  VITE_APP_ENV = "staging"
+  VITE_SUPABASE_URL = "https://your-staging-supabase-url.supabase.co"
+  VITE_SUPABASE_ANON_KEY = "your-staging-anon-key"
+
+# Branch deploy settings (for staging)
+[context.branch-deploy.environment]
+  VITE_APP_ENV = "staging"
+  VITE_SUPABASE_URL = "https://your-staging-supabase-url.supabase.co"
+  VITE_SUPABASE_ANON_KEY = "your-staging-anon-key"
+
 [[redirects]]
   from = "/*"
   to = "/index.html"

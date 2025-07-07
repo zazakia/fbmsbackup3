@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Save, Bell, Calendar, Database, Shield, User, Monitor, Download, Sparkles, Settings } from 'lucide-react';
+import { Save, Bell, Calendar, Database, Shield, User, Monitor, Download, Sparkles, Settings, Power } from 'lucide-react';
 import { useNotificationStore } from '../../store/notificationStore';
 import { useInventoryMonitor } from '../../services/inventoryMonitor';
 import { useToastStore } from '../../store/toastStore';
@@ -12,6 +12,8 @@ import SecuritySettings from './SecuritySettings';
 import SystemSettings from './SystemSettings';
 import EnhancedVersionSettings from './EnhancedVersionSettings';
 import TopBarSettingsSection from './TopBarSettingsSection';
+import MainModuleSettings from './MainModuleSettings';
+import MenuVisibilitySettings from './MenuVisibilitySettings';
 
 interface SettingsSection {
   id: string;
@@ -48,6 +50,18 @@ const SettingsPage: React.FC = () => {
       title: 'User Preferences',
       icon: <User className="h-5 w-5" />,
       description: 'Personal settings and preferences'
+    },
+    {
+      id: 'main-module',
+      title: 'Main Module Control',
+      icon: <Power className="h-5 w-5" />,
+      description: 'Enable or disable the main application module'
+    },
+    {
+      id: 'menu-visibility',
+      title: 'Menu Visibility',
+      icon: <Monitor className="h-5 w-5" />,
+      description: 'Control which menu items appear in the side navigation'
     },
     {
       id: 'topbar',
@@ -256,6 +270,10 @@ const SettingsPage: React.FC = () => {
 
   const renderContent = () => {
     switch (activeSection) {
+      case 'main-module':
+        return <MainModuleSettings />;
+      case 'menu-visibility':
+        return <MenuVisibilitySettings />;
       case 'topbar':
         return <TopBarSettingsSection />;
       case 'notifications':

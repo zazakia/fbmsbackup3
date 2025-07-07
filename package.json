@@ -20,7 +20,11 @@
     "deploy:build": "npm run build",
     "deploy:all": "./scripts/deploy.sh",
     "deploy:quick": "./scripts/deploy.sh",
-    "deploy:netlify": "netlify deploy --prod --dir=dist"
+    "deploy:netlify": "netlify deploy --prod --dir=dist",
+    "deploy:staging": "./scripts/deploy-staging.sh",
+    "deploy:production": "./scripts/deploy-production.sh",
+    "deploy:staging:msg": "./scripts/deploy-staging.sh",
+    "deploy:production:msg": "./scripts/deploy-production.sh"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.50.2",

@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
-import { Mail, ArrowLeft, CheckCircle, Loader2 } from 'lucide-react';
+import { Mail, ArrowLeft, CheckCircle, Loader2, AlertCircle } from 'lucide-react';
 import { useSupabaseAuthStore } from '../../store/supabaseAuthStore';
 import { useToastStore } from '../../store/toastStore';
+import { validateEmail } from '../../utils/validation';
+import { logSecurityEvent, checkRateLimit } from '../../utils/authSecurity';
 
 interface ForgotPasswordFormProps {
   onBackToLogin: () => void;
@@ -15,6 +17,8 @@ const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({ onBackToLogin }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate email
     if (!email.trim()) {
       addToast({
         type: 'error',
@@ -24,15 +28,59 @@ const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({ onBackToLogin }
       return;
     }
 
+    if (!validateEmail(email)) {
+      addToast({
+        type: 'error',
+        title: 'Invalid Email',
+        message: 'Please enter a valid email address'
+      });
+      return;
+    }
+
+    // Check rate limit
+    const rateLimitResult = checkRateLimit(`password-reset:${email}`);
+    if (!rateLimitResult.allowed) {
+      const lockTime = rateLimitResult.lockedUntil ? 
+        new Date(rateLimitResult.lockedUntil).toLocaleTimeString() : 'some time';
+      
+      addToast({
+        type: 'error',
+        title: 'Too Many Attempts',
+        message: `Please wait until ${lockTime} before trying again`
+      });
+      
+      logSecurityEvent({
+        type: 'password_reset',
+        email,
+        success: false,
+        reason: 'Rate limit exceeded'
+      });
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       await forgotPassword(email);
+      
+      logSecurityEvent({
+        type: 'password_reset',
+        email,
+        success: true
+      });
+      
       addToast({
         type: 'success',
         title: 'Reset Email Sent',
         message: 'Check your email for password reset instructions'
       });
     } catch (error) {
+      logSecurityEvent({
+        type: 'password_reset',
+        email,
+        success: false,
+        reason: error instanceof Error ? error.message : 'Unknown error'
+      });
+      
       addToast({
         type: 'error',
         title: 'Reset Failed',

@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Search, User, X, Plus } from 'lucide-react';
 import { Customer } from '../../types/business';
+import { useBusinessStore } from '../../store/businessStore';
+import { useToastStore } from '../../store/toastStore';
 
 interface CustomerSelectorProps {
   customers: Customer[];
@@ -20,6 +22,17 @@ const CustomerSelector: React.FC<CustomerSelectorProps> = ({
   onSelect // Legacy support
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [newCustomer, setNewCustomer] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    address: ''
+  });
+  
+  const { addCustomer } = useBusinessStore();
+  const { addToast } = useToastStore();
 
   const filteredCustomers = customers.filter(customer =>
     customer.isActive && (
@@ -37,6 +50,67 @@ const CustomerSelector: React.FC<CustomerSelectorProps> = ({
       onSelect(customer.id);
     }
     if (onClose) onClose();
+  };
+
+  const handleAddCustomer = async () => {
+    if (!newCustomer.firstName.trim() || !newCustomer.lastName.trim()) {
+      addToast({
+        type: 'error',
+        title: 'Validation Error',
+        message: 'First name and last name are required'
+      });
+      return;
+    }
+
+    try {
+      const customerData = {
+        firstName: newCustomer.firstName.trim(),
+        lastName: newCustomer.lastName.trim(),
+        email: newCustomer.email.trim() || undefined,
+        phone: newCustomer.phone.trim() || undefined,
+        address: newCustomer.address.trim() || undefined,
+        customerType: 'regular' as const,
+        creditLimit: 0,
+        currentBalance: 0,
+        totalPurchases: 0,
+        loyaltyPoints: 0,
+        discountPercentage: 0,
+        isActive: true
+      };
+
+      await addCustomer(customerData);
+      
+      addToast({
+        type: 'success',
+        title: 'Customer Added',
+        message: `${customerData.firstName} ${customerData.lastName} has been added successfully`
+      });
+
+      // Reset form
+      setNewCustomer({
+        firstName: '',
+        lastName: '',
+        email: '',
+        phone: '',
+        address: ''
+      });
+      setShowAddForm(false);
+      
+      // Find and select the newly added customer
+      const newlyAddedCustomer = customers.find(c => 
+        c.firstName === customerData.firstName && 
+        c.lastName === customerData.lastName
+      );
+      if (newlyAddedCustomer) {
+        handleCustomerSelect(newlyAddedCustomer);
+      }
+    } catch (error) {
+      addToast({
+        type: 'error',
+        title: 'Error',
+        message: error instanceof Error ? error.message : 'Failed to add customer'
+      });
+    }
   };
 
   if (!showModal) {
@@ -162,19 +236,85 @@ const CustomerSelector: React.FC<CustomerSelectorProps> = ({
           )}
         </div>
 
-        {/* Footer */}
+        {/* Footer - Add Customer Form or Button */}
         <div className="p-4 border-t border-gray-200">
-          <button 
-            onClick={() => {
-              // TODO: Implement customer creation functionality
-              console.log('Add new customer functionality to be implemented');
-              if (onClose) onClose();
-            }}
-            className="w-full flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Add New Customer
-          </button>
+          {!showAddForm ? (
+            <button 
+              onClick={() => setShowAddForm(true)}
+              className="w-full flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Add New Customer
+            </button>
+          ) : (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-medium text-gray-900">Add New Customer</h3>
+                <button
+                  onClick={() => setShowAddForm(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-2">
+                <input
+                  type="text"
+                  placeholder="First Name *"
+                  value={newCustomer.firstName}
+                  onChange={(e) => setNewCustomer({ ...newCustomer, firstName: e.target.value })}
+                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+                <input
+                  type="text"
+                  placeholder="Last Name *"
+                  value={newCustomer.lastName}
+                  onChange={(e) => setNewCustomer({ ...newCustomer, lastName: e.target.value })}
+                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+              
+              <input
+                type="email"
+                placeholder="Email"
+                value={newCustomer.email}
+                onChange={(e) => setNewCustomer({ ...newCustomer, email: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+              
+              <input
+                type="tel"
+                placeholder="Phone"
+                value={newCustomer.phone}
+                onChange={(e) => setNewCustomer({ ...newCustomer, phone: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+              
+              <input
+                type="text"
+                placeholder="Address"
+                value={newCustomer.address}
+                onChange={(e) => setNewCustomer({ ...newCustomer, address: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+              
+              <div className="flex space-x-2">
+                <button
+                  onClick={() => setShowAddForm(false)}
+                  className="flex-1 px-3 py-2 text-sm text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleAddCustomer}
+                  className="flex-1 px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Add Customer
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

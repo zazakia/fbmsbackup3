@@ -9,9 +9,44 @@ interface EnhancedVersions {
   reports: boolean;
 }
 
+interface MainModuleSettings {
+  enabled: boolean;
+}
+
+interface MenuVisibilitySettings {
+  dashboard: boolean;
+  sales: boolean;
+  inventory: boolean;
+  purchases: boolean;
+  customers: boolean;
+  customerTransactions: boolean;
+  suppliers: boolean;
+  expenses: boolean;
+  payroll: boolean;
+  accounting: boolean;
+  reports: boolean;
+  bir: boolean;
+  branches: boolean;
+  operations: boolean;
+  cashier: boolean;
+  marketing: boolean;
+  loyalty: boolean;
+  backup: boolean;
+  testing: boolean;
+  adminDashboard: boolean;
+  userRoles: boolean;
+  dataHistory: boolean;
+  settings: boolean;
+}
+
 interface SettingsStore {
   enhancedVersions: EnhancedVersions;
+  mainModule: MainModuleSettings;
+  menuVisibility: MenuVisibilitySettings;
   setEnhancedVersion: (module: string, isEnhanced: boolean) => void;
+  setMainModuleEnabled: (enabled: boolean) => void;
+  setMenuVisibility: (menuId: string, visible: boolean) => void;
+  toggleAllMenus: (visible: boolean) => void;
   resetToDefaults: () => void;
   toggleAllEnhanced: (enabled: boolean) => void;
 }
@@ -24,10 +59,42 @@ const defaultEnhancedVersions: EnhancedVersions = {
   reports: true     // Enhanced by default
 };
 
+const defaultMainModuleSettings: MainModuleSettings = {
+  enabled: true  // Main module enabled by default
+};
+
+const defaultMenuVisibilitySettings: MenuVisibilitySettings = {
+  dashboard: true,
+  sales: true,
+  inventory: true,
+  purchases: true,
+  customers: true,
+  customerTransactions: true,
+  suppliers: true,
+  expenses: true,
+  payroll: true,
+  accounting: true,
+  reports: true,
+  bir: true,
+  branches: true,
+  operations: true,
+  cashier: true,
+  marketing: true,
+  loyalty: true,
+  backup: true,
+  testing: true,
+  adminDashboard: true,
+  userRoles: true,
+  dataHistory: true,
+  settings: true,
+};
+
 export const useSettingsStore = create<SettingsStore>()(
   persist(
     (set, get) => ({
       enhancedVersions: defaultEnhancedVersions,
+      mainModule: defaultMainModuleSettings,
+      menuVisibility: defaultMenuVisibilitySettings,
 
       setEnhancedVersion: (module: string, isEnhanced: boolean) => {
         set((state) => ({
@@ -38,8 +105,40 @@ export const useSettingsStore = create<SettingsStore>()(
         }));
       },
 
+      setMainModuleEnabled: (enabled: boolean) => {
+        set((state) => ({
+          mainModule: {
+            ...state.mainModule,
+            enabled
+          }
+        }));
+      },
+
+      setMenuVisibility: (menuId: string, visible: boolean) => {
+        set((state) => ({
+          menuVisibility: {
+            ...state.menuVisibility,
+            [menuId]: visible
+          }
+        }));
+      },
+
+      toggleAllMenus: (visible: boolean) => {
+        set((state) => {
+          const newVisibility: MenuVisibilitySettings = {} as MenuVisibilitySettings;
+          Object.keys(state.menuVisibility).forEach(key => {
+            newVisibility[key as keyof MenuVisibilitySettings] = visible;
+          });
+          return { menuVisibility: newVisibility };
+        });
+      },
+
       resetToDefaults: () => {
-        set({ enhancedVersions: defaultEnhancedVersions });
+        set({ 
+          enhancedVersions: defaultEnhancedVersions,
+          mainModule: defaultMainModuleSettings,
+          menuVisibility: defaultMenuVisibilitySettings
+        });
       },
 
       toggleAllEnhanced: (enabled: boolean) => {
@@ -54,7 +153,7 @@ export const useSettingsStore = create<SettingsStore>()(
     }),
     {
       name: 'fbms-settings-store',
-      version: 1
+      version: 3
     }
   )
 );

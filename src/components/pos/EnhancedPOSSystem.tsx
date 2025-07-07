@@ -95,7 +95,8 @@ const EnhancedPOSSystem: React.FC = () => {
     createSale,
     updateStock,
     getCustomer,
-    fetchCustomers
+    fetchCustomers,
+    updateCustomer
   } = useBusinessStore();
   
   const { user } = useAuthStore();
@@ -333,13 +334,37 @@ const EnhancedPOSSystem: React.FC = () => {
   };
 
   const handleCompleteSale = async (paymentMethod: PaymentMethod, cashReceived?: number, splitPayments?: Array<{method: PaymentMethod; amount: number}>) => {
-    if (cart.length === 0) return;
+    if (cart.length === 0) {
+      addToast({
+        type: 'error',
+        title: 'Empty Cart',
+        message: 'Please add items to cart before completing sale'
+      });
+      return;
+    }
+
+    // Validate stock availability
+    for (const item of cart) {
+      if (item.product.stock < item.quantity) {
+        addToast({
+          type: 'error',
+          title: 'Insufficient Stock',
+          message: `Not enough stock for ${item.product.name}. Available: ${item.product.stock}, Required: ${item.quantity}`
+        });
+        return;
+      }
+    }
 
     try {
       const subtotal = getCartSubtotal();
       const discountAmount = getDiscountAmount();
       const total = calculateFinalTotal();
       const tax = total - calculateDiscountedSubtotal();
+
+      // Validate total amount
+      if (total <= 0) {
+        throw new Error('Invalid sale total amount');
+      }
       
       // Create sale record
       const saleData = {
@@ -365,15 +390,29 @@ const EnhancedPOSSystem: React.FC = () => {
         notes: discount.reason || undefined
       };
 
-      createSale(saleData);
-
-      // Update inventory
-      cart.forEach(item => {
-        updateStock(item.product.id, item.product.stock - item.quantity);
-      });
-
-      // Generate receipt
+      // Generate receipt number
       const receiptNumber = `RCP-${Date.now()}`;
+
+      // Create sale record (this will automatically update stock)
+      try {
+        createSale(saleData);
+      } catch (error) {
+        console.error('Error creating sale:', error);
+        throw new Error('Failed to create sale record');
+      }
+
+      // Update customer purchase history if customer is selected
+      if (selectedCustomer) {
+        try {
+          const updatedCustomer = {
+            totalPurchases: selectedCustomer.totalPurchases + total,
+            loyaltyPoints: selectedCustomer.loyaltyPoints + Math.floor(total / 100) // 1 point per ₱100 spent
+          };
+          await updateCustomer(selectedCustomer.id, updatedCustomer);
+        } catch (error) {
+          console.error('Error updating customer:', error);
+        }
+      }
       
       const transaction: POSTransaction = {
         id: `txn-${Date.now()}`,
@@ -404,10 +443,14 @@ const EnhancedPOSSystem: React.FC = () => {
       setShowPaymentModal(false);
 
       // Show success notification
+      const successMessage = selectedCustomer 
+        ? `Receipt: ${receiptNumber} - Total: ₱${total.toFixed(2)} - Customer: ${selectedCustomer.firstName} ${selectedCustomer.lastName} - Loyalty Points: +${Math.floor(total / 100)}`
+        : `Receipt: ${receiptNumber} - Total: ₱${total.toFixed(2)} - Walk-in Customer`;
+        
       addToast({
         type: 'success',
         title: 'Sale Completed',
-        message: `Receipt: ${receiptNumber} - Total: ₱${total.toFixed(2)}`
+        message: successMessage
       });
 
       addNotification(createSystemNotification(
