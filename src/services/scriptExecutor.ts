@@ -52,12 +52,12 @@ export class ScriptExecutor {
         'info'
       );
 
-      // For development/demo, we'll simulate real script execution
-      // In production, this would make an API call to the server
-      if (process.env.NODE_ENV === 'development') {
-        await this.simulateRealScriptExecution(scriptName, scriptPath, callbacks, controller.signal);
-      } else {
+      // Try real script execution first, fallback to simulation
+      try {
         await this.executeRealScript(scriptPath, args, callbacks, controller.signal);
+      } catch (error) {
+        console.warn('Real script execution failed, falling back to simulation:', error);
+        await this.simulateRealScriptExecution(scriptName, scriptPath, callbacks, controller.signal);
       }
 
     } catch (error) {
@@ -82,58 +82,102 @@ export class ScriptExecutor {
     callbacks: ScriptExecutionCallbacks,
     signal: AbortSignal
   ): Promise<void> {
-    const eventSource = new EventSource(`/api/execute-script`, {
-      // Note: EventSource doesn't support POST, so we'd need to use fetch with streaming
-      // This is a simplified example
+    const API_BASE = 'http://localhost:3001';
+    
+    // First check if the server is running
+    try {
+      const healthResponse = await fetch(`${API_BASE}/api/health`);
+      if (!healthResponse.ok) {
+        throw new Error('Script execution server not available');
+      }
+    } catch (error) {
+      throw new Error('Script execution server not running. Please start with: node simple-server.js');
+    }
+
+    // Use fetch with streaming for POST request
+    const response = await fetch(`${API_BASE}/api/execute-script`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        scriptPath: scriptPath,
+        args: args
+      })
     });
 
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to execute script');
+    }
+
+    if (!response.body) {
+      throw new Error('No response body received');
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
     const output: string[] = [];
 
-    eventSource.onmessage = (event) => {
-      if (signal.aborted) {
-        eventSource.close();
-        return;
-      }
-
-      try {
-        const data = JSON.parse(event.data);
-        
-        switch (data.type) {
-          case 'stdout':
-          case 'stderr':
-            const line = `[${new Date(data.timestamp).toLocaleTimeString()}] ${data.data}`;
-            output.push(line);
-            callbacks.onOutput?.(line, data.type);
-            break;
-            
-          case 'exit':
-            eventSource.close();
-            callbacks.onComplete?.({
-              success: data.code === 0,
-              output,
-              exitCode: data.code
-            });
-            break;
-            
-          case 'error':
-            eventSource.close();
-            callbacks.onError?.(data.error);
-            break;
+    try {
+      while (true) {
+        if (signal.aborted) {
+          reader.cancel();
+          break;
         }
-      } catch (error) {
-        console.error('Error parsing SSE data:', error);
+
+        const { done, value } = await reader.read();
+        
+        if (done) break;
+
+        const chunk = decoder.decode(value);
+        const lines = chunk.split('\n');
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const jsonStr = line.substring(6); // Remove 'data: ' prefix
+              if (jsonStr.trim()) {
+                const data = JSON.parse(jsonStr);
+                
+                switch (data.type) {
+                  case 'connected':
+                    console.log('Connected to script execution service');
+                    break;
+                    
+                  case 'started':
+                    console.log(`Script execution started: ${data.command}`);
+                    break;
+                    
+                  case 'stdout':
+                  case 'stderr':
+                    const logLine = `[${new Date(data.timestamp).toLocaleTimeString()}] ${data.data}`;
+                    output.push(logLine);
+                    callbacks.onOutput?.(logLine, data.type);
+                    break;
+                    
+                  case 'exit':
+                    callbacks.onComplete?.({
+                      success: data.code === 0,
+                      output,
+                      exitCode: data.code
+                    });
+                    return;
+                    
+                  case 'error':
+                    callbacks.onError?.(data.error || data.message);
+                    return;
+                }
+              }
+            } catch (parseError) {
+              console.warn('Failed to parse SSE data:', parseError);
+            }
+          }
+        }
       }
-    };
-
-    eventSource.onerror = () => {
-      eventSource.close();
-      callbacks.onError?.('Connection to script execution service failed');
-    };
-
-    // Handle abort
-    signal.addEventListener('abort', () => {
-      eventSource.close();
-    });
+    } finally {
+      reader.releaseLock();
+    }
   }
 
   private async simulateRealScriptExecution(
