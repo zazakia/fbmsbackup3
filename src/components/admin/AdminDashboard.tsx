@@ -34,7 +34,13 @@ import {
   AlertCircle,
   CheckSquare,
   XCircle,
-  Info
+  Info,
+  Calculator,
+  Receipt,
+  Building2,
+  Megaphone,
+  Cloud,
+  UserCog
 } from 'lucide-react';
 import { 
   getRealSystemMetrics, 
@@ -95,7 +101,7 @@ const AdminDashboard: React.FC = () => {
 
   const [activityLogs, setActivityLogs] = useState<ActivityLog[]>([]);
   const [userSessions, setUserSessions] = useState<UserSession[]>([]);
-  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'activity' | 'performance' | 'security'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'activity' | 'performance' | 'security' | 'management'>('overview');
   const [isAutoRefresh, setIsAutoRefresh] = useState(true);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
 
@@ -431,6 +437,235 @@ const AdminDashboard: React.FC = () => {
     </div>
   );
 
+  const renderManagementScripts = () => (
+    <div className="space-y-6">
+      {/* Management Scripts Overview */}
+      <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+        <h3 className="text-lg font-semibold mb-4 flex items-center">
+          <Settings className="h-5 w-5 mr-2" />
+          Management Scripts & Tools
+        </h3>
+        <p className="text-gray-600 dark:text-gray-400 mb-6">
+          Access all business management modules and administrative tools from this central dashboard.
+        </p>
+        
+        {/* Core Management Modules */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+          <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+            <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-2 flex items-center">
+              <Package className="h-4 w-4 mr-2" />
+              Inventory Management
+            </h4>
+            <p className="text-sm text-blue-700 dark:text-blue-300 mb-3">
+              Stock tracking, product management, and inventory analytics
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <span className="px-2 py-1 bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200 text-xs rounded">Enhanced</span>
+              <span className="px-2 py-1 bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200 text-xs rounded">Categories</span>
+              <span className="px-2 py-1 bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200 text-xs rounded">Stock Movement</span>
+            </div>
+          </div>
+
+          <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg border border-green-200 dark:border-green-800">
+            <h4 className="font-semibold text-green-900 dark:text-green-100 mb-2 flex items-center">
+              <ShoppingCart className="h-4 w-4 mr-2" />
+              Sales & POS
+            </h4>
+            <p className="text-sm text-green-700 dark:text-green-300 mb-3">
+              Point of sale system with payment processing
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <span className="px-2 py-1 bg-green-100 dark:bg-green-800 text-green-800 dark:text-green-200 text-xs rounded">Enhanced POS</span>
+              <span className="px-2 py-1 bg-green-100 dark:bg-green-800 text-green-800 dark:text-green-200 text-xs rounded">Cashier</span>
+              <span className="px-2 py-1 bg-green-100 dark:bg-green-800 text-green-800 dark:text-green-200 text-xs rounded">Payments</span>
+            </div>
+          </div>
+
+          <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg border border-purple-200 dark:border-purple-800">
+            <h4 className="font-semibold text-purple-900 dark:text-purple-100 mb-2 flex items-center">
+              <Users className="h-4 w-4 mr-2" />
+              Customer Management
+            </h4>
+            <p className="text-sm text-purple-700 dark:text-purple-300 mb-3">
+              Customer data, transactions, and relationship management
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <span className="px-2 py-1 bg-purple-100 dark:bg-purple-800 text-purple-800 dark:text-purple-200 text-xs rounded">Customers</span>
+              <span className="px-2 py-1 bg-purple-100 dark:bg-purple-800 text-purple-800 dark:text-purple-200 text-xs rounded">Transactions</span>
+              <span className="px-2 py-1 bg-purple-100 dark:bg-purple-800 text-purple-800 dark:text-purple-200 text-xs rounded">Loyalty</span>
+            </div>
+          </div>
+
+          <div className="bg-orange-50 dark:bg-orange-900/20 p-4 rounded-lg border border-orange-200 dark:border-orange-800">
+            <h4 className="font-semibold text-orange-900 dark:text-orange-100 mb-2 flex items-center">
+              <Calculator className="h-4 w-4 mr-2" />
+              Financial Management
+            </h4>
+            <p className="text-sm text-orange-700 dark:text-orange-300 mb-3">
+              Accounting, payroll, expenses, and financial reporting
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <span className="px-2 py-1 bg-orange-100 dark:bg-orange-800 text-orange-800 dark:text-orange-200 text-xs rounded">Accounting</span>
+              <span className="px-2 py-1 bg-orange-100 dark:bg-orange-800 text-orange-800 dark:text-orange-200 text-xs rounded">Payroll</span>
+              <span className="px-2 py-1 bg-orange-100 dark:bg-orange-800 text-orange-800 dark:text-orange-200 text-xs rounded">Expenses</span>
+            </div>
+          </div>
+
+          <div className="bg-indigo-50 dark:bg-indigo-900/20 p-4 rounded-lg border border-indigo-200 dark:border-indigo-800">
+            <h4 className="font-semibold text-indigo-900 dark:text-indigo-100 mb-2 flex items-center">
+              <Receipt className="h-4 w-4 mr-2" />
+              Purchase Management
+            </h4>
+            <p className="text-sm text-indigo-700 dark:text-indigo-300 mb-3">
+              Supplier management and purchase order processing
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <span className="px-2 py-1 bg-indigo-100 dark:bg-indigo-800 text-indigo-800 dark:text-indigo-200 text-xs rounded">Enhanced</span>
+              <span className="px-2 py-1 bg-indigo-100 dark:bg-indigo-800 text-indigo-800 dark:text-indigo-200 text-xs rounded">Suppliers</span>
+              <span className="px-2 py-1 bg-indigo-100 dark:bg-indigo-800 text-indigo-800 dark:text-indigo-200 text-xs rounded">Orders</span>
+            </div>
+          </div>
+
+          <div className="bg-teal-50 dark:bg-teal-900/20 p-4 rounded-lg border border-teal-200 dark:border-teal-800">
+            <h4 className="font-semibold text-teal-900 dark:text-teal-100 mb-2 flex items-center">
+              <FileText className="h-4 w-4 mr-2" />
+              Reports & Analytics
+            </h4>
+            <p className="text-sm text-teal-700 dark:text-teal-300 mb-3">
+              Business intelligence and reporting dashboard
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <span className="px-2 py-1 bg-teal-100 dark:bg-teal-800 text-teal-800 dark:text-teal-200 text-xs rounded">Enhanced</span>
+              <span className="px-2 py-1 bg-teal-100 dark:bg-teal-800 text-teal-800 dark:text-teal-200 text-xs rounded">Analytics</span>
+              <span className="px-2 py-1 bg-teal-100 dark:bg-teal-800 text-teal-800 dark:text-teal-200 text-xs rounded">BIR Forms</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Additional Management Tools */}
+        <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
+          <h4 className="font-semibold mb-4 flex items-center">
+            <Activity className="h-4 w-4 mr-2" />
+            Additional Management Tools
+          </h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">
+              <div className="flex items-center mb-2">
+                <Building2 className="h-4 w-4 mr-2 text-gray-600 dark:text-gray-400" />
+                <span className="font-medium text-sm">Multi-Branch</span>
+              </div>
+              <p className="text-xs text-gray-600 dark:text-gray-400">Branch management system</p>
+            </div>
+            
+            <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">
+              <div className="flex items-center mb-2">
+                <Megaphone className="h-4 w-4 mr-2 text-gray-600 dark:text-gray-400" />
+                <span className="font-medium text-sm">Marketing</span>
+              </div>
+              <p className="text-xs text-gray-600 dark:text-gray-400">Campaign management</p>
+            </div>
+            
+            <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">
+              <div className="flex items-center mb-2">
+                <Cloud className="h-4 w-4 mr-2 text-gray-600 dark:text-gray-400" />
+                <span className="font-medium text-sm">Cloud Backup</span>
+              </div>
+              <p className="text-xs text-gray-600 dark:text-gray-400">Data backup & sync</p>
+            </div>
+            
+            <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">
+              <div className="flex items-center mb-2">
+                <UserCog className="h-4 w-4 mr-2 text-gray-600 dark:text-gray-400" />
+                <span className="font-medium text-sm">User Roles</span>
+              </div>
+              <p className="text-xs text-gray-600 dark:text-gray-400">Role management</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Database & Deployment Scripts */}
+        <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
+          <h4 className="font-semibold mb-4 flex items-center">
+            <Database className="h-4 w-4 mr-2" />
+            Database & Deployment Scripts
+          </h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-lg border border-red-200 dark:border-red-800">
+              <h5 className="font-semibold text-red-900 dark:text-red-100 mb-2">Database Scripts</h5>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">Essential Tables Setup</span>
+                  <span className="px-2 py-1 bg-red-100 dark:bg-red-800 text-red-800 dark:text-red-200 text-xs rounded">SQL</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">Admin Features Tables</span>
+                  <span className="px-2 py-1 bg-red-100 dark:bg-red-800 text-red-800 dark:text-red-200 text-xs rounded">SQL</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">User Settings Tables</span>
+                  <span className="px-2 py-1 bg-red-100 dark:bg-red-800 text-red-800 dark:text-red-200 text-xs rounded">SQL</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">Database Fixes</span>
+                  <span className="px-2 py-1 bg-red-100 dark:bg-red-800 text-red-800 dark:text-red-200 text-xs rounded">Multiple</span>
+                </div>
+              </div>
+            </div>
+            
+            <div className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg border border-yellow-200 dark:border-yellow-800">
+              <h5 className="font-semibold text-yellow-900 dark:text-yellow-100 mb-2">Deployment Scripts</h5>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">Production Deploy</span>
+                  <span className="px-2 py-1 bg-yellow-100 dark:bg-yellow-800 text-yellow-800 dark:text-yellow-200 text-xs rounded">Bash</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">Staging Deploy</span>
+                  <span className="px-2 py-1 bg-yellow-100 dark:bg-yellow-800 text-yellow-800 dark:text-yellow-200 text-xs rounded">Bash</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">Netlify Setup</span>
+                  <span className="px-2 py-1 bg-yellow-100 dark:bg-yellow-800 text-yellow-800 dark:text-yellow-200 text-xs rounded">Bash</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">Backup & Protect</span>
+                  <span className="px-2 py-1 bg-yellow-100 dark:bg-yellow-800 text-yellow-800 dark:text-yellow-200 text-xs rounded">Bash</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Security Enhancements */}
+        <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
+          <h4 className="font-semibold mb-4 flex items-center">
+            <Shield className="h-4 w-4 mr-2" />
+            Security Enhancements
+          </h4>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg border border-green-200 dark:border-green-800">
+              <h5 className="font-semibold text-green-900 dark:text-green-100 mb-2">Auth Security</h5>
+              <p className="text-sm text-green-700 dark:text-green-300 mb-2">Authentication security utilities</p>
+              <span className="px-2 py-1 bg-green-100 dark:bg-green-800 text-green-800 dark:text-green-200 text-xs rounded">TypeScript</span>
+            </div>
+            
+            <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg border border-green-200 dark:border-green-800">
+              <h5 className="font-semibold text-green-900 dark:text-green-100 mb-2">Validation Tests</h5>
+              <p className="text-sm text-green-700 dark:text-green-300 mb-2">Security validation test suite</p>
+              <span className="px-2 py-1 bg-green-100 dark:bg-green-800 text-green-800 dark:text-green-200 text-xs rounded">Jest</span>
+            </div>
+            
+            <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg border border-green-200 dark:border-green-800">
+              <h5 className="font-semibold text-green-900 dark:text-green-100 mb-2">Database Security</h5>
+              <p className="text-sm text-green-700 dark:text-green-300 mb-2">Database security constraints</p>
+              <span className="px-2 py-1 bg-green-100 dark:bg-green-800 text-green-800 dark:text-green-200 text-xs rounded">Migration</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div className="p-6 max-w-7xl mx-auto">
       {/* Header */}
@@ -510,18 +745,19 @@ const AdminDashboard: React.FC = () => {
 
       {/* Tab Navigation */}
       <div className="mb-6">
-        <nav className="flex space-x-8">
+        <nav className="flex space-x-8 overflow-x-auto pb-2">
           {[
             { id: 'overview', label: 'Overview', icon: BarChart3 },
             { id: 'users', label: 'Users', icon: Users },
             { id: 'activity', label: 'Activity', icon: Activity },
             { id: 'performance', label: 'Performance', icon: TrendingUp },
-            { id: 'security', label: 'Security', icon: Shield }
+            { id: 'security', label: 'Security', icon: Shield },
+            { id: 'management', label: 'Management Scripts', icon: Settings }
           ].map(({ id, label, icon: Icon }) => (
             <button
               key={id}
               onClick={() => setActiveTab(id as any)}
-              className={`flex items-center px-4 py-2 rounded-lg font-medium transition-colors ${
+              className={`flex items-center px-4 py-2 rounded-lg font-medium transition-colors whitespace-nowrap ${
                 activeTab === id
                   ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
                   : 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200'
@@ -541,6 +777,7 @@ const AdminDashboard: React.FC = () => {
         {activeTab === 'activity' && renderActivity()}
         {activeTab === 'performance' && renderOverview()}
         {activeTab === 'security' && renderActivity()}
+        {activeTab === 'management' && renderManagementScripts()}
       </div>
     </div>
   );
