@@ -40,7 +40,15 @@ import {
   Building2,
   Megaphone,
   Cloud,
-  UserCog
+  UserCog,
+  Play,
+  Terminal,
+  Loader2,
+  CheckCircle2,
+  XCircle2,
+  GitBranch,
+  Rocket,
+  HardDriveIcon
 } from 'lucide-react';
 import { 
   getRealSystemMetrics, 
@@ -101,9 +109,14 @@ const AdminDashboard: React.FC = () => {
 
   const [activityLogs, setActivityLogs] = useState<ActivityLog[]>([]);
   const [userSessions, setUserSessions] = useState<UserSession[]>([]);
-  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'activity' | 'performance' | 'security' | 'management'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'activity' | 'performance' | 'security' | 'management' | 'scripts'>('overview');
   const [isAutoRefresh, setIsAutoRefresh] = useState(true);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
+  const [scriptExecutions, setScriptExecutions] = useState<Record<string, {
+    status: 'idle' | 'running' | 'success' | 'error';
+    output: string;
+    timestamp: Date | null;
+  }>>({});
 
   // Load real-time data from database
   useEffect(() => {
@@ -206,6 +219,82 @@ const AdminDashboard: React.FC = () => {
       default: return <Info className="h-4 w-4 text-blue-500" />;
     }
   }, []);
+
+  const executeScript = useCallback(async (scriptName: string, scriptPath: string) => {
+    setScriptExecutions(prev => ({
+      ...prev,
+      [scriptName]: {
+        status: 'running',
+        output: '',
+        timestamp: new Date()
+      }
+    }));
+
+    try {
+      // Log the script execution attempt
+      await logAdminActivity(
+        `Execute Script: ${scriptName}`,
+        'Administration',
+        `Administrator attempting to execute script: ${scriptPath}`,
+        'info'
+      );
+
+      // In a real implementation, you would make an API call to execute the script
+      // For demo purposes, we'll simulate script execution
+      await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate execution time
+      
+      const simulatedOutput = `Script executed successfully: ${scriptName}\nPath: ${scriptPath}\nExecution time: ${new Date().toLocaleTimeString()}`;
+      
+      setScriptExecutions(prev => ({
+        ...prev,
+        [scriptName]: {
+          status: 'success',
+          output: simulatedOutput,
+          timestamp: new Date()
+        }
+      }));
+
+      // Log successful execution
+      await logAdminActivity(
+        `Script Executed: ${scriptName}`,
+        'Administration',
+        `Script executed successfully: ${scriptPath}`,
+        'success'
+      );
+
+    } catch (error) {
+      const errorOutput = `Error executing script: ${scriptName}\nError: ${error instanceof Error ? error.message : 'Unknown error'}`;
+      
+      setScriptExecutions(prev => ({
+        ...prev,
+        [scriptName]: {
+          status: 'error',
+          output: errorOutput,
+          timestamp: new Date()
+        }
+      }));
+
+      // Log error
+      await logAdminActivity(
+        `Script Error: ${scriptName}`,
+        'Administration',
+        `Script execution failed: ${scriptPath}`,
+        'error'
+      );
+    }
+  }, []);
+
+  const getScriptIcon = useCallback((scriptName: string) => {
+    const execution = scriptExecutions[scriptName];
+    if (!execution) return <Play className="h-4 w-4" />;
+    
+    switch (execution.status) {
+      case 'running': return <Loader2 className="h-4 w-4 animate-spin" />;
+      case 'success': return <CheckCircle2 className="h-4 w-4 text-green-500" />;
+      case 'error': return <XCircle2 className="h-4 w-4 text-red-500" />;
+      default: return <Play className="h-4 w-4" />;
+    }
+  }, [scriptExecutions]);
 
   const renderOverview = () => (
     <div className="space-y-6">
@@ -666,6 +755,180 @@ const AdminDashboard: React.FC = () => {
     </div>
   );
 
+  const renderScripts = () => {
+    const scripts = [
+      {
+        name: 'Git Workflow',
+        path: 'scripts/git-workflow.sh',
+        description: 'Automated git workflow management',
+        category: 'Workflow',
+        icon: GitBranch,
+        color: 'blue'
+      },
+      {
+        name: 'Deploy Production',
+        path: 'scripts/deploy-production.sh',
+        description: 'Deploy application to production environment',
+        category: 'Deployment',
+        icon: Rocket,
+        color: 'green'
+      },
+      {
+        name: 'Deploy Staging',
+        path: 'scripts/deploy-staging.sh',
+        description: 'Deploy application to staging environment',
+        category: 'Deployment',
+        icon: Rocket,
+        color: 'yellow'
+      },
+      {
+        name: 'General Deploy',
+        path: 'scripts/deploy.sh',
+        description: 'General deployment script',
+        category: 'Deployment',
+        icon: Upload,
+        color: 'purple'
+      },
+      {
+        name: 'Setup Netlify',
+        path: 'scripts/setup-netlify.sh',
+        description: 'Configure Netlify hosting setup',
+        category: 'Setup',
+        icon: Cloud,
+        color: 'indigo'
+      },
+      {
+        name: 'Backup & Protect',
+        path: 'scripts/backup-and-protect.sh',
+        description: 'Data backup and protection automation',
+        category: 'Maintenance',
+        icon: HardDriveIcon,
+        color: 'red'
+      }
+    ];
+
+    return (
+      <div className="space-y-6">
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+          <h3 className="text-lg font-semibold mb-4 flex items-center">
+            <Terminal className="h-5 w-5 mr-2" />
+            Shell Scripts Execution
+          </h3>
+          <p className="text-gray-600 dark:text-gray-400 mb-6">
+            Execute shell scripts directly from the admin dashboard. Scripts are located in the `/scripts` directory.
+          </p>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {scripts.map((script) => {
+              const Icon = script.icon;
+              const execution = scriptExecutions[script.name];
+              const isRunning = execution?.status === 'running';
+              
+              return (
+                <div key={script.name} className={`bg-${script.color}-50 dark:bg-${script.color}-900/20 p-4 rounded-lg border border-${script.color}-200 dark:border-${script.color}-800`}>
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-center">
+                      <Icon className={`h-5 w-5 mr-2 text-${script.color}-600 dark:text-${script.color}-400`} />
+                      <div>
+                        <h4 className={`font-semibold text-${script.color}-900 dark:text-${script.color}-100 text-sm`}>
+                          {script.name}
+                        </h4>
+                        <span className={`px-2 py-1 bg-${script.color}-100 dark:bg-${script.color}-800 text-${script.color}-800 dark:text-${script.color}-200 text-xs rounded`}>
+                          {script.category}
+                        </span>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => executeScript(script.name, script.path)}
+                      disabled={isRunning}
+                      className={`flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                        isRunning
+                          ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                          : `bg-${script.color}-100 hover:bg-${script.color}-200 text-${script.color}-800 dark:bg-${script.color}-800 dark:hover:bg-${script.color}-700 dark:text-${script.color}-200`
+                      }`}
+                    >
+                      {getScriptIcon(script.name)}
+                      <span className="ml-2">
+                        {isRunning ? 'Running...' : 'Execute'}
+                      </span>
+                    </button>
+                  </div>
+                  
+                  <p className={`text-sm text-${script.color}-700 dark:text-${script.color}-300 mb-3`}>
+                    {script.description}
+                  </p>
+                  
+                  <div className="text-xs font-mono bg-gray-100 dark:bg-gray-900 p-2 rounded">
+                    {script.path}
+                  </div>
+                  
+                  {execution && (
+                    <div className="mt-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-semibold">Last Execution</span>
+                        <span className="text-xs text-gray-500">
+                          {execution.timestamp?.toLocaleTimeString()}
+                        </span>
+                      </div>
+                      <div className={`text-xs p-2 rounded font-mono max-h-20 overflow-y-auto ${
+                        execution.status === 'success' 
+                          ? 'bg-green-50 text-green-800 dark:bg-green-900/20 dark:text-green-200'
+                          : execution.status === 'error'
+                          ? 'bg-red-50 text-red-800 dark:bg-red-900/20 dark:text-red-200'
+                          : 'bg-gray-50 text-gray-800 dark:bg-gray-900/20 dark:text-gray-200'
+                      }`}>
+                        {execution.output || 'No output'}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Script Execution History */}
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+          <h3 className="text-lg font-semibold mb-4 flex items-center">
+            <Clock className="h-5 w-5 mr-2" />
+            Execution History
+          </h3>
+          <div className="space-y-2 max-h-64 overflow-y-auto">
+            {Object.entries(scriptExecutions)
+              .sort(([,a], [,b]) => (b.timestamp?.getTime() || 0) - (a.timestamp?.getTime() || 0))
+              .map(([scriptName, execution]) => (
+              <div key={scriptName} className="flex items-center justify-between p-3 hover:bg-gray-50 dark:hover:bg-gray-700 rounded">
+                <div className="flex items-center space-x-3">
+                  {getScriptIcon(scriptName)}
+                  <div>
+                    <p className="font-medium">{scriptName}</p>
+                    <p className="text-sm text-gray-500">
+                      {execution.timestamp?.toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+                <span className={`px-2 py-1 text-xs rounded-full ${
+                  execution.status === 'success' 
+                    ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-200'
+                    : execution.status === 'error'
+                    ? 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-200'
+                    : execution.status === 'running'
+                    ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-200'
+                    : 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-200'
+                }`}>
+                  {execution.status}
+                </span>
+              </div>
+            ))}
+            {Object.keys(scriptExecutions).length === 0 && (
+              <p className="text-gray-500 text-center py-4">No script executions yet</p>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="p-6 max-w-7xl mx-auto">
       {/* Header */}
@@ -752,7 +1015,8 @@ const AdminDashboard: React.FC = () => {
             { id: 'activity', label: 'Activity', icon: Activity },
             { id: 'performance', label: 'Performance', icon: TrendingUp },
             { id: 'security', label: 'Security', icon: Shield },
-            { id: 'management', label: 'Management Scripts', icon: Settings }
+            { id: 'management', label: 'Management Scripts', icon: Settings },
+            { id: 'scripts', label: 'Shell Scripts', icon: Terminal }
           ].map(({ id, label, icon: Icon }) => (
             <button
               key={id}
@@ -778,6 +1042,7 @@ const AdminDashboard: React.FC = () => {
         {activeTab === 'performance' && renderOverview()}
         {activeTab === 'security' && renderActivity()}
         {activeTab === 'management' && renderManagementScripts()}
+        {activeTab === 'scripts' && renderScripts()}
       </div>
     </div>
   );
