@@ -760,7 +760,14 @@ const AdminDashboard: React.FC = () => {
         description: 'Automated git workflow management',
         category: 'Workflow',
         icon: GitBranch,
-        color: 'blue'
+        color: 'blue',
+        bgClass: 'bg-blue-50 dark:bg-blue-900/20',
+        borderClass: 'border-blue-200 dark:border-blue-800',
+        iconClass: 'text-blue-600 dark:text-blue-400',
+        titleClass: 'text-blue-900 dark:text-blue-100',
+        textClass: 'text-blue-700 dark:text-blue-300',
+        buttonClass: 'bg-blue-100 hover:bg-blue-200 text-blue-800 dark:bg-blue-800 dark:hover:bg-blue-700 dark:text-blue-200',
+        tagClass: 'bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200'
       },
       {
         name: 'Deploy Production',
@@ -768,7 +775,14 @@ const AdminDashboard: React.FC = () => {
         description: 'Deploy application to production environment',
         category: 'Deployment',
         icon: Rocket,
-        color: 'green'
+        color: 'green',
+        bgClass: 'bg-green-50 dark:bg-green-900/20',
+        borderClass: 'border-green-200 dark:border-green-800',
+        iconClass: 'text-green-600 dark:text-green-400',
+        titleClass: 'text-green-900 dark:text-green-100',
+        textClass: 'text-green-700 dark:text-green-300',
+        buttonClass: 'bg-green-100 hover:bg-green-200 text-green-800 dark:bg-green-800 dark:hover:bg-green-700 dark:text-green-200',
+        tagClass: 'bg-green-100 dark:bg-green-800 text-green-800 dark:text-green-200'
       },
       {
         name: 'Deploy Staging',
@@ -776,7 +790,14 @@ const AdminDashboard: React.FC = () => {
         description: 'Deploy application to staging environment',
         category: 'Deployment',
         icon: Rocket,
-        color: 'yellow'
+        color: 'yellow',
+        bgClass: 'bg-yellow-50 dark:bg-yellow-900/20',
+        borderClass: 'border-yellow-200 dark:border-yellow-800',
+        iconClass: 'text-yellow-600 dark:text-yellow-400',
+        titleClass: 'text-yellow-900 dark:text-yellow-100',
+        textClass: 'text-yellow-700 dark:text-yellow-300',
+        buttonClass: 'bg-yellow-100 hover:bg-yellow-200 text-yellow-800 dark:bg-yellow-800 dark:hover:bg-yellow-700 dark:text-yellow-200',
+        tagClass: 'bg-yellow-100 dark:bg-yellow-800 text-yellow-800 dark:text-yellow-200'
       },
       {
         name: 'General Deploy',
@@ -784,7 +805,14 @@ const AdminDashboard: React.FC = () => {
         description: 'General deployment script',
         category: 'Deployment',
         icon: Upload,
-        color: 'purple'
+        color: 'purple',
+        bgClass: 'bg-purple-50 dark:bg-purple-900/20',
+        borderClass: 'border-purple-200 dark:border-purple-800',
+        iconClass: 'text-purple-600 dark:text-purple-400',
+        titleClass: 'text-purple-900 dark:text-purple-100',
+        textClass: 'text-purple-700 dark:text-purple-300',
+        buttonClass: 'bg-purple-100 hover:bg-purple-200 text-purple-800 dark:bg-purple-800 dark:hover:bg-purple-700 dark:text-purple-200',
+        tagClass: 'bg-purple-100 dark:bg-purple-800 text-purple-800 dark:text-purple-200'
       },
       {
         name: 'Setup Netlify',
@@ -792,7 +820,14 @@ const AdminDashboard: React.FC = () => {
         description: 'Configure Netlify hosting setup',
         category: 'Setup',
         icon: Cloud,
-        color: 'indigo'
+        color: 'indigo',
+        bgClass: 'bg-indigo-50 dark:bg-indigo-900/20',
+        borderClass: 'border-indigo-200 dark:border-indigo-800',
+        iconClass: 'text-indigo-600 dark:text-indigo-400',
+        titleClass: 'text-indigo-900 dark:text-indigo-100',
+        textClass: 'text-indigo-700 dark:text-indigo-300',
+        buttonClass: 'bg-indigo-100 hover:bg-indigo-200 text-indigo-800 dark:bg-indigo-800 dark:hover:bg-indigo-700 dark:text-indigo-200',
+        tagClass: 'bg-indigo-100 dark:bg-indigo-800 text-indigo-800 dark:text-indigo-200'
       },
       {
         name: 'Backup & Protect',
@@ -800,7 +835,14 @@ const AdminDashboard: React.FC = () => {
         description: 'Data backup and protection automation',
         category: 'Maintenance',
         icon: HardDrive,
-        color: 'red'
+        color: 'red',
+        bgClass: 'bg-red-50 dark:bg-red-900/20',
+        borderClass: 'border-red-200 dark:border-red-800',
+        iconClass: 'text-red-600 dark:text-red-400',
+        titleClass: 'text-red-900 dark:text-red-100',
+        textClass: 'text-red-700 dark:text-red-300',
+        buttonClass: 'bg-red-100 hover:bg-red-200 text-red-800 dark:bg-red-800 dark:hover:bg-red-700 dark:text-red-200',
+        tagClass: 'bg-red-100 dark:bg-red-800 text-red-800 dark:text-red-200'
       }
     ];
 
@@ -822,15 +864,15 @@ const AdminDashboard: React.FC = () => {
               const isRunning = execution?.status === 'running';
               
               return (
-                <div key={script.name} className={`bg-${script.color}-50 dark:bg-${script.color}-900/20 p-4 rounded-lg border border-${script.color}-200 dark:border-${script.color}-800`}>
+                <div key={script.name} className={`${script.bgClass} p-4 rounded-lg border ${script.borderClass}`}>
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center">
-                      <Icon className={`h-5 w-5 mr-2 text-${script.color}-600 dark:text-${script.color}-400`} />
+                      <Icon className={`h-5 w-5 mr-2 ${script.iconClass}`} />
                       <div>
-                        <h4 className={`font-semibold text-${script.color}-900 dark:text-${script.color}-100 text-sm`}>
+                        <h4 className={`font-semibold ${script.titleClass} text-sm`}>
                           {script.name}
                         </h4>
-                        <span className={`px-2 py-1 bg-${script.color}-100 dark:bg-${script.color}-800 text-${script.color}-800 dark:text-${script.color}-200 text-xs rounded`}>
+                        <span className={`px-2 py-1 ${script.tagClass} text-xs rounded`}>
                           {script.category}
                         </span>
                       </div>
@@ -841,7 +883,7 @@ const AdminDashboard: React.FC = () => {
                       className={`flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                         isRunning
                           ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                          : `bg-${script.color}-100 hover:bg-${script.color}-200 text-${script.color}-800 dark:bg-${script.color}-800 dark:hover:bg-${script.color}-700 dark:text-${script.color}-200`
+                          : script.buttonClass
                       }`}
                     >
                       {getScriptIcon(script.name)}
@@ -851,7 +893,7 @@ const AdminDashboard: React.FC = () => {
                     </button>
                   </div>
                   
-                  <p className={`text-sm text-${script.color}-700 dark:text-${script.color}-300 mb-3`}>
+                  <p className={`text-sm ${script.textClass} mb-3`}>
                     {script.description}
                   </p>
                   
