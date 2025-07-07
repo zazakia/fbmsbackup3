@@ -352,7 +352,7 @@ const App: React.FC = () => {
     <ErrorBoundary>
       <ProtectedRoute>
         <NavigationProvider activeModule={activeModule} onModuleChange={handleModuleChange}>
-          <div className="min-h-screen bg-gray-50 dark:bg-dark-950 flex transition-colors duration-300">
+          <div className="min-h-screen w-full bg-gray-50 dark:bg-dark-950 flex transition-colors duration-300">
           {/* Sidebar */}
           <Sidebar 
             isOpen={sidebarOpen}
@@ -363,7 +363,7 @@ const App: React.FC = () => {
           />
 
           {/* Main Content */}
-          <div className="flex-1 flex flex-col lg:ml-64">
+          <div className="flex-1 flex flex-col lg:ml-64 min-w-0">
             {/* Header */}
             <Header 
               onMenuToggle={handleSidebarToggle}
@@ -372,7 +372,7 @@ const App: React.FC = () => {
 
             {/* Content Area */}
             <main className="flex-1 overflow-y-auto bg-gray-50 dark:bg-dark-950 transition-colors duration-300">
-              <div className="p-2 sm:p-4 md:p-6 pb-20 lg:pb-6 w-full max-w-full overflow-x-hidden">
+              <div className="p-2 sm:p-4 md:p-6 pb-20 lg:pb-6 w-full min-w-0 overflow-x-hidden">
                 
                 {/* Version selector removed - now in settings */}
                 <Suspense fallback={<LoadingSpinner message="Loading module..." size="lg" className="min-h-[400px]" />}>

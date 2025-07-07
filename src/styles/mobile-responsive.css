@@ -1,5 +1,20 @@
 /* Mobile Responsive Utilities */
 
+/* Ensure full viewport width usage across all screen sizes */
+.viewport-full {
+  width: 100vw;
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+
+/* Responsive container that adapts to screen size */
+.responsive-container {
+  width: 100%;
+  max-width: 100vw;
+  margin: 0 auto;
+  padding: 0 clamp(0.5rem, 2vw, 1.5rem);
+}
+
 /* Touch-friendly button sizes */
 .mobile-touch-target {
   min-height: 44px;
