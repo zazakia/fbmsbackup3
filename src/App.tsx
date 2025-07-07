@@ -40,6 +40,7 @@ import { useSettingsStore } from './store/settingsStore';
 import { canAccessModule } from './utils/permissions';
 import { setupDevAuth } from './utils/supabase';
 import { NavigationProvider } from './contexts/NavigationContext';
+import { useSecurity } from './hooks/useSecurity';
 import './utils/devCommands'; // Initialize dev commands
 import './styles/mobile-responsive.css'; // Mobile responsive styles
 import TestDashboard from './components/test/TestDashboard';
@@ -84,6 +85,7 @@ const App: React.FC = () => {
   const { initializeTheme } = useThemeStore();
   const { user } = useSupabaseAuthStore();
   const { enhancedVersions, menuVisibility } = useSettingsStore();
+  const { securityStatus } = useSecurity();
 
   // Check for OAuth callback
   const isOAuthCallback = window.location.hash.includes('access_token') || 

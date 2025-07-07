@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useBusinessStore } from '../../store/businessStore';
 import { BIRPDFGenerator, BIRFormData } from '../../utils/pdfGenerator';
 import { formatCurrency } from '../../utils/formatters';
+import { useSecurity } from '../../hooks/useSecurity';
 import { FileDown, Loader2 } from 'lucide-react';
 
 interface LocalBIRFormData {
@@ -17,6 +18,7 @@ interface LocalBIRFormData {
 
 const BIRForms: React.FC = () => {
   const { sales, journalEntries, products, customers } = useBusinessStore();
+  const { rateLimits } = useSecurity();
   const [selectedForm, setSelectedForm] = useState<string>('vat');
   const [formPeriod, setFormPeriod] = useState<string>('monthly');
   const [reportingPeriod, setReportingPeriod] = useState<string>('current');
@@ -160,6 +162,8 @@ const BIRForms: React.FC = () => {
   const exportToPDF = async (formType: string, data: any) => {
     setIsGeneratingPDF(true);
     try {
+      // Check PDF generation rate limit
+      rateLimits.pdf.enforceLimit();
       const currentDate = new Date();
       const formData: BIRFormData = {
         businessName: businessInfo.name,
