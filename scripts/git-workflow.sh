@@ -193,10 +193,29 @@ done
 CURRENT_BRANCH=$(git branch --show-current)
 print_status "Current branch: $CURRENT_BRANCH"
 
-# Get commit message from argument or prompt
+# Load commit message generator
+source "$(dirname "$0")/utils/commit-message-generator.sh" 2>/dev/null || {
+    print_warning "Commit message generator not found. Using manual input."
+}
+
+# Get commit message from argument or auto-generate
 if [ -z "$COMMIT_MESSAGE" ]; then
-    echo -n "Enter commit message: "
-    read COMMIT_MESSAGE
+    if command -v generate_smart_commit_message &> /dev/null; then
+        print_status "Auto-generating commit message..."
+        COMMIT_MESSAGE=$(generate_smart_commit_message)
+        print_status "Generated message: '$COMMIT_MESSAGE'"
+        
+        # Ask for confirmation
+        echo -n "Use this message? (y/N): "
+        read -r USE_GENERATED
+        if [ "$USE_GENERATED" != "y" ] && [ "$USE_GENERATED" != "Y" ]; then
+            echo -n "Enter custom commit message: "
+            read COMMIT_MESSAGE
+        fi
+    else
+        echo -n "Enter commit message: "
+        read COMMIT_MESSAGE
+    fi
 fi
 
 # Get branch name from argument or use current
