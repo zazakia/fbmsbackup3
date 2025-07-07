@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { useBusinessStore } from '../../store/businessStore';
+import { BIRPDFGenerator, BIRFormData } from '../../utils/pdfGenerator';
+import { FileDown, Loader2 } from 'lucide-react';
 
-interface BIRFormData {
+interface LocalBIRFormData {
   formType: string;
   period: string;
   businessName: string;
@@ -17,6 +19,7 @@ const BIRForms: React.FC = () => {
   const [selectedForm, setSelectedForm] = useState<string>('vat');
   const [formPeriod, setFormPeriod] = useState<string>('monthly');
   const [reportingPeriod, setReportingPeriod] = useState<string>('current');
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState<boolean>(false);
 
   // Business information (should come from settings/store)
   const businessInfo = {
@@ -151,10 +154,72 @@ const BIRForms: React.FC = () => {
   const incomeTaxData = generateIncomeTaxData();
   const alphalistData = generateAlphalistData();
 
-  const exportToPDF = (formType: string, data: any) => {
-    // This would integrate with a PDF library like jsPDF
-    console.log(`Exporting ${formType} to PDF:`, data);
-    alert(`${formType} form exported successfully!`);
+  const exportToPDF = async (formType: string, data: any) => {
+    setIsGeneratingPDF(true);
+    try {
+      const currentDate = new Date();
+      const formData: BIRFormData = {
+        businessName: businessInfo.name,
+        businessAddress: businessInfo.address,
+        tin: businessInfo.tin,
+        rdoCode: '001', // Should come from business settings
+        taxPeriod: currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+      };
+
+      let pdfBlob: Blob;
+      let filename: string;
+
+      switch (formType.toLowerCase()) {
+        case 'vat':
+          formData.grossSales = data.grossSales;
+          formData.exemptSales = data.exemptSales;
+          formData.zeroRatedSales = data.zeroRatedSales;
+          formData.taxableSales = data.totalSales;
+          formData.outputTax = data.vatOutput;
+          formData.inputTax = data.vatInput;
+          formData.netVAT = data.vatPayable;
+          
+          pdfBlob = await BIRPDFGenerator.generateForm2550M(formData);
+          filename = `BIR-2550M-${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}.pdf`;
+          break;
+
+        case 'withholding tax':
+          formData.payeeName = 'Sample Payee'; // Should come from actual data
+          formData.payeeAddress = 'Sample Address';
+          formData.payeeTIN = '123-456-789-001';
+          formData.incomePayment = data.totalPayments;
+          formData.taxWithheld = data.withholdingTax;
+          
+          pdfBlob = await BIRPDFGenerator.generateForm2307(formData);
+          filename = `BIR-2307-${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}.pdf`;
+          break;
+
+        case 'income tax':
+          formData.grossIncome = data.grossIncome;
+          formData.deductions = data.deductions;
+          formData.netIncome = data.netIncome;
+          formData.incomeTax = data.estimatedTax;
+          formData.creditsPayments = data.previousQuarterTax;
+          formData.taxDue = data.taxDue;
+          
+          pdfBlob = await BIRPDFGenerator.generateForm1701Q(formData);
+          filename = `BIR-1701Q-${currentDate.getFullYear()}-Q${Math.floor(currentDate.getMonth() / 3) + 1}.pdf`;
+          break;
+
+        default:
+          throw new Error('Unsupported form type');
+      }
+
+      BIRPDFGenerator.downloadPDF(pdfBlob, filename);
+      
+      // Show success message
+      alert(`${formType} form exported successfully!`);
+    } catch (error) {
+      console.error('PDF generation failed:', error);
+      alert('Failed to generate PDF. Please try again.');
+    } finally {
+      setIsGeneratingPDF(false);
+    }
   };
 
   const renderVATForm = () => (
@@ -164,9 +229,20 @@ const BIRForms: React.FC = () => {
           <h3 className="text-xl font-semibold">BIR Form 2550M - Monthly VAT Declaration</h3>
           <button
             onClick={() => exportToPDF('VAT', vatData)}
-            className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+            disabled={isGeneratingPDF}
+            className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
-            Export PDF
+            {isGeneratingPDF ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Generating...
+              </>
+            ) : (
+              <>
+                <FileDown className="h-4 w-4" />
+                Export PDF
+              </>
+            )}
           </button>
         </div>
         
@@ -242,9 +318,20 @@ const BIRForms: React.FC = () => {
           <h3 className="text-xl font-semibold">BIR Form 2307 - Certificate of Creditable Tax</h3>
           <button
             onClick={() => exportToPDF('Withholding Tax', withholdingTaxData)}
-            className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+            disabled={isGeneratingPDF}
+            className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
-            Export PDF
+            {isGeneratingPDF ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Generating...
+              </>
+            ) : (
+              <>
+                <FileDown className="h-4 w-4" />
+                Export PDF
+              </>
+            )}
           </button>
         </div>
         
@@ -305,9 +392,20 @@ const BIRForms: React.FC = () => {
           <h3 className="text-xl font-semibold">BIR Form 1701Q - Quarterly Income Tax Return</h3>
           <button
             onClick={() => exportToPDF('Income Tax', incomeTaxData)}
-            className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+            disabled={isGeneratingPDF}
+            className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
-            Export PDF
+            {isGeneratingPDF ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Generating...
+              </>
+            ) : (
+              <>
+                <FileDown className="h-4 w-4" />
+                Export PDF
+              </>
+            )}
           </button>
         </div>
         

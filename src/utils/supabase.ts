@@ -6,8 +6,10 @@ const supabaseAnonKey = import.meta.env.VITE_PUBLIC_SUPABASE_ANON_KEY as string;
 // Note: Service role key is not exposed to browser for security reasons
 // We'll use the anon key and rely on RLS policies
 
-console.log('Supabase URL:', supabaseUrl);
-console.log('Environment:', import.meta.env.MODE);
+// Supabase client configuration
+if (import.meta.env.DEV) {
+  console.log('Environment:', import.meta.env.MODE);
+}
 
 // Create the main Supabase client
 export const supabase = createClient(
@@ -36,21 +38,8 @@ export async function setupDevAuth() {
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session) {
-        console.log('Setting up development authentication...');
-        console.log('🔐 Admin credentials: admin@fbms.com / Qweasd145698@');
-        
-        // Try to sign in with the admin user
-        const { error } = await supabase.auth.signInWithPassword({
-          email: 'admin@fbms.com',
-          password: 'Qweasd145698@'
-        });
-        
-        if (error) {
-          console.log('Admin login failed:', error.message);
-          console.log('You can use the login form to sign in with admin@fbms.com');
-        } else {
-          console.log('✅ Development authentication successful - logged in as admin');
-        }
+        console.log('Development mode: Please use the login form to authenticate');
+        console.log('Create an account or use existing credentials to sign in');
       } else {
         console.log('Already authenticated with Supabase');
       }

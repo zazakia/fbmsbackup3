@@ -1,44 +1,38 @@
 import React, { useState } from 'react';
-import { Eye, EyeOff, Mail, Lock, AlertCircle, Zap } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, AlertCircle } from 'lucide-react';
 import { useSupabaseAuthStore } from '../../store/supabaseAuthStore';
-import { validateEmail } from '../../utils/auth';
+import { useSafeForm } from '../../hooks/useSafeForm';
 
 interface LoginFormProps {
   onSwitchToRegister: () => void;
 }
 
 const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister }) => {
-  const [formData, setFormData] = useState({
+  const [showPassword, setShowPassword] = useState(false);
+  const { login, isLoading, error, clearError } = useSupabaseAuthStore();
+  
+  const {
+    data: formData,
+    errors: validationErrors,
+    isValid,
+    updateField,
+    validate,
+    getFieldProps
+  } = useSafeForm({
     email: '',
     password: ''
   });
-  const [showPassword, setShowPassword] = useState(false);
-  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
-
-  const { login, isLoading, error, clearError } = useSupabaseAuthStore();
-
-  const validateForm = (): boolean => {
-    const errors: Record<string, string> = {};
-
-    if (!formData.email) {
-      errors.email = 'Email is required';
-    } else if (!validateEmail(formData.email)) {
-      errors.email = 'Please enter a valid email address';
-    }
-
-    if (!formData.password) {
-      errors.password = 'Password is required';
-    }
-
-    setValidationErrors(errors);
-    return Object.keys(errors).length === 0;
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     clearError();
 
-    if (!validateForm()) {
+    if (!validate()) {
+      return;
+    }
+
+    // Additional validation for required fields
+    if (!formData.email || !formData.password) {
       return;
     }
 
@@ -57,38 +51,8 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister }) => {
     }
   };
 
-  const handleIClick = async () => {
-    clearError();
-    setFormData({
-      email: 'admin@fbms.com',
-      password: 'Qweasd145698@'
-    });
-    
-    try {
-      await login({
-        email: 'admin@fbms.com',
-        password: 'Qweasd145698@'
-      });
-    } catch (error) {
-      // Check if this is an unregistered user error
-      if (error instanceof Error && error.message === 'UNREGISTERED_USER') {
-        // Show a helpful message and redirect to sign up
-        if (confirm('This email is not registered. Would you like to create a new account?')) {
-          onSwitchToRegister();
-        }
-        return;
-      }
-      // Other errors are handled by the store
-    }
-  };
-
   const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-    
-    // Clear validation error when user starts typing
-    if (validationErrors[field]) {
-      setValidationErrors(prev => ({ ...prev, [field]: '' }));
-    }
+    updateField(field, value);
     
     // Clear auth error when user makes changes
     if (error) {
@@ -140,40 +104,6 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister }) => {
           </div>
         )}
 
-        {/* I Click Button */}
-        <div className="mb-6">
-          <button
-            type="button"
-            onClick={handleIClick}
-            disabled={isLoading}
-            className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white py-3 px-4 rounded-lg font-medium hover:from-green-600 hover:to-emerald-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
-          >
-            {isLoading ? (
-              <div className="flex items-center justify-center">
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                Signing In...
-              </div>
-            ) : (
-              <>
-                <Zap className="h-5 w-5 mr-2" />
-                I Click - Quick Login
-              </>
-            )}
-          </button>
-          <p className="text-xs text-gray-500 text-center mt-2">
-            Instantly login with demo credentials
-          </p>
-        </div>
-
-        {/* Divider */}
-        <div className="relative mb-6">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-gray-300" />
-          </div>
-          <div className="relative flex justify-center text-sm">
-            <span className="px-2 bg-white text-gray-500">Or sign in manually</span>
-          </div>
-        </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
@@ -259,14 +189,6 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister }) => {
           </p>
         </div>
 
-        <div className="mt-6 pt-6 border-t border-gray-200">
-          <div className="text-center">
-            <p className="text-sm text-gray-500 mb-2">Demo Credentials:</p>
-            <p className="text-xs text-gray-400">
-              Email: admin@fbms.com | Password: Qweasd145698@
-            </p>
-          </div>
-        </div>
       </div>
     </div>
   );
