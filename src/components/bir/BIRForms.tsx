@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useBusinessStore } from '../../store/businessStore';
 import { BIRPDFGenerator, BIRFormData } from '../../utils/pdfGenerator';
+import { formatCurrency } from '../../utils/formatters';
 import { FileDown, Loader2 } from 'lucide-react';
 
 interface LocalBIRFormData {
@@ -52,13 +53,13 @@ const BIRForms: React.FC = () => {
     const vatInput = totalSales * 0.08; // Estimated VAT input
     
     return {
-      grossSales: totalSales,
-      vatOutput,
-      vatInput,
-      vatPayable: vatOutput - vatInput,
+      grossSales: totalSales || 0,
+      vatOutput: vatOutput || 0,
+      vatInput: vatInput || 0,
+      vatPayable: (vatOutput || 0) - (vatInput || 0),
       zeroRatedSales: 0,
       exemptSales: 0,
-      totalSales: totalSales
+      totalSales: totalSales || 0
     };
   };
 
@@ -76,9 +77,11 @@ const BIRForms: React.FC = () => {
              entry.account.includes('Withholding');
     });
 
+    const totalPayments = periodEntries.reduce((sum, entry) => sum + (entry.amount || 0), 0);
+    
     return {
-      totalPayments: periodEntries.reduce((sum, entry) => sum + entry.amount, 0),
-      withholdingTax: periodEntries.reduce((sum, entry) => sum + entry.amount, 0) * 0.02, // 2% rate
+      totalPayments: totalPayments || 0,
+      withholdingTax: (totalPayments || 0) * 0.02, // 2% rate
       entries: periodEntries
     };
   };
@@ -102,23 +105,23 @@ const BIRForms: React.FC = () => {
 
     const revenue = quarterEntries
       .filter(entry => entry.account.includes('Revenue'))
-      .reduce((sum, entry) => sum + entry.amount, 0);
+      .reduce((sum, entry) => sum + (entry.amount || 0), 0);
     
     const expenses = quarterEntries
       .filter(entry => entry.account.includes('Expense'))
-      .reduce((sum, entry) => sum + entry.amount, 0);
+      .reduce((sum, entry) => sum + (entry.amount || 0), 0);
 
-    const netIncome = revenue - expenses;
+    const netIncome = (revenue || 0) - (expenses || 0);
     const estimatedTax = Math.max(0, netIncome * 0.25); // 25% corporate tax rate
 
     return {
       quarter: currentQuarter,
-      grossIncome: revenue,
-      deductions: expenses,
-      netIncome,
-      estimatedTax,
+      grossIncome: revenue || 0,
+      deductions: expenses || 0,
+      netIncome: netIncome || 0,
+      estimatedTax: estimatedTax || 0,
       previousQuarterTax: 0,
-      taxDue: estimatedTax
+      taxDue: estimatedTax || 0
     };
   };
 
@@ -131,20 +134,20 @@ const BIRForms: React.FC = () => {
         lastName: 'Santos',
         firstName: 'Juan',
         middleName: 'Dela Cruz',
-        grossCompensation: 25000,
+        grossCompensation: 25000 || 0,
         nonTaxableCompensation: 0,
-        taxableCompensation: 25000,
-        withholdingTax: 2500
+        taxableCompensation: 25000 || 0,
+        withholdingTax: 2500 || 0
       },
       {
         tin: '123-456-789-002',
         lastName: 'Garcia',
         firstName: 'Maria',
         middleName: 'Santos',
-        grossCompensation: 30000,
+        grossCompensation: 30000 || 0,
         nonTaxableCompensation: 0,
-        taxableCompensation: 30000,
-        withholdingTax: 3000
+        taxableCompensation: 30000 || 0,
+        withholdingTax: 3000 || 0
       }
     ];
   };
@@ -278,31 +281,31 @@ const BIRForms: React.FC = () => {
             <tbody>
               <tr>
                 <td className="border border-gray-300 px-4 py-2">Gross Sales/Receipts</td>
-                <td className="border border-gray-300 px-4 py-2 text-right">₱{vatData.grossSales.toLocaleString()}</td>
+                <td className="border border-gray-300 px-4 py-2 text-right">{formatCurrency(vatData.grossSales)}</td>
               </tr>
               <tr>
                 <td className="border border-gray-300 px-4 py-2">Zero-Rated Sales</td>
-                <td className="border border-gray-300 px-4 py-2 text-right">₱{vatData.zeroRatedSales.toLocaleString()}</td>
+                <td className="border border-gray-300 px-4 py-2 text-right">{formatCurrency(vatData.zeroRatedSales)}</td>
               </tr>
               <tr>
                 <td className="border border-gray-300 px-4 py-2">Exempt Sales</td>
-                <td className="border border-gray-300 px-4 py-2 text-right">₱{vatData.exemptSales.toLocaleString()}</td>
+                <td className="border border-gray-300 px-4 py-2 text-right">{formatCurrency(vatData.exemptSales)}</td>
               </tr>
               <tr className="bg-gray-50">
                 <td className="border border-gray-300 px-4 py-2 font-semibold">Total Sales</td>
-                <td className="border border-gray-300 px-4 py-2 text-right font-semibold">₱{vatData.totalSales.toLocaleString()}</td>
+                <td className="border border-gray-300 px-4 py-2 text-right font-semibold">{formatCurrency(vatData.totalSales)}</td>
               </tr>
               <tr>
                 <td className="border border-gray-300 px-4 py-2">Output VAT (12%)</td>
-                <td className="border border-gray-300 px-4 py-2 text-right">₱{vatData.vatOutput.toLocaleString()}</td>
+                <td className="border border-gray-300 px-4 py-2 text-right">{formatCurrency(vatData.vatOutput)}</td>
               </tr>
               <tr>
                 <td className="border border-gray-300 px-4 py-2">Input VAT</td>
-                <td className="border border-gray-300 px-4 py-2 text-right">₱{vatData.vatInput.toLocaleString()}</td>
+                <td className="border border-gray-300 px-4 py-2 text-right">{formatCurrency(vatData.vatInput)}</td>
               </tr>
               <tr className="bg-red-50">
                 <td className="border border-gray-300 px-4 py-2 font-semibold text-red-700">VAT Payable</td>
-                <td className="border border-gray-300 px-4 py-2 text-right font-semibold text-red-700">₱{vatData.vatPayable.toLocaleString()}</td>
+                <td className="border border-gray-300 px-4 py-2 text-right font-semibold text-red-700">{formatCurrency(vatData.vatPayable)}</td>
               </tr>
             </tbody>
           </table>
@@ -368,15 +371,15 @@ const BIRForms: React.FC = () => {
             <tbody>
               <tr>
                 <td className="border border-gray-300 px-4 py-2">Professional Services</td>
-                <td className="border border-gray-300 px-4 py-2 text-right">₱{withholdingTaxData.totalPayments.toLocaleString()}</td>
+                <td className="border border-gray-300 px-4 py-2 text-right">{formatCurrency(withholdingTaxData.totalPayments)}</td>
                 <td className="border border-gray-300 px-4 py-2 text-right">2%</td>
-                <td className="border border-gray-300 px-4 py-2 text-right">₱{withholdingTaxData.withholdingTax.toLocaleString()}</td>
+                <td className="border border-gray-300 px-4 py-2 text-right">{formatCurrency(withholdingTaxData.withholdingTax)}</td>
               </tr>
               <tr className="bg-gray-50">
                 <td className="border border-gray-300 px-4 py-2 font-semibold">Total</td>
-                <td className="border border-gray-300 px-4 py-2 text-right font-semibold">₱{withholdingTaxData.totalPayments.toLocaleString()}</td>
+                <td className="border border-gray-300 px-4 py-2 text-right font-semibold">{formatCurrency(withholdingTaxData.totalPayments)}</td>
                 <td className="border border-gray-300 px-4 py-2 text-right font-semibold">-</td>
-                <td className="border border-gray-300 px-4 py-2 text-right font-semibold">₱{withholdingTaxData.withholdingTax.toLocaleString()}</td>
+                <td className="border border-gray-300 px-4 py-2 text-right font-semibold">{formatCurrency(withholdingTaxData.withholdingTax)}</td>
               </tr>
             </tbody>
           </table>
@@ -440,27 +443,27 @@ const BIRForms: React.FC = () => {
             <tbody>
               <tr>
                 <td className="border border-gray-300 px-4 py-2">Gross Income</td>
-                <td className="border border-gray-300 px-4 py-2 text-right">₱{incomeTaxData.grossIncome.toLocaleString()}</td>
+                <td className="border border-gray-300 px-4 py-2 text-right">{formatCurrency(incomeTaxData.grossIncome)}</td>
               </tr>
               <tr>
                 <td className="border border-gray-300 px-4 py-2">Less: Deductions</td>
-                <td className="border border-gray-300 px-4 py-2 text-right">₱{incomeTaxData.deductions.toLocaleString()}</td>
+                <td className="border border-gray-300 px-4 py-2 text-right">{formatCurrency(incomeTaxData.deductions)}</td>
               </tr>
               <tr className="bg-gray-50">
                 <td className="border border-gray-300 px-4 py-2 font-semibold">Net Income</td>
-                <td className="border border-gray-300 px-4 py-2 text-right font-semibold">₱{incomeTaxData.netIncome.toLocaleString()}</td>
+                <td className="border border-gray-300 px-4 py-2 text-right font-semibold">{formatCurrency(incomeTaxData.netIncome)}</td>
               </tr>
               <tr>
                 <td className="border border-gray-300 px-4 py-2">Estimated Tax (25%)</td>
-                <td className="border border-gray-300 px-4 py-2 text-right">₱{incomeTaxData.estimatedTax.toLocaleString()}</td>
+                <td className="border border-gray-300 px-4 py-2 text-right">{formatCurrency(incomeTaxData.estimatedTax)}</td>
               </tr>
               <tr>
                 <td className="border border-gray-300 px-4 py-2">Less: Previous Quarter Tax</td>
-                <td className="border border-gray-300 px-4 py-2 text-right">₱{incomeTaxData.previousQuarterTax.toLocaleString()}</td>
+                <td className="border border-gray-300 px-4 py-2 text-right">{formatCurrency(incomeTaxData.previousQuarterTax)}</td>
               </tr>
               <tr className="bg-red-50">
                 <td className="border border-gray-300 px-4 py-2 font-semibold text-red-700">Tax Due</td>
-                <td className="border border-gray-300 px-4 py-2 text-right font-semibold text-red-700">₱{incomeTaxData.taxDue.toLocaleString()}</td>
+                <td className="border border-gray-300 px-4 py-2 text-right font-semibold text-red-700">{formatCurrency(incomeTaxData.taxDue)}</td>
               </tr>
             </tbody>
           </table>
@@ -523,10 +526,10 @@ const BIRForms: React.FC = () => {
                   <td className="border border-gray-300 px-4 py-2">{employee.lastName}</td>
                   <td className="border border-gray-300 px-4 py-2">{employee.firstName}</td>
                   <td className="border border-gray-300 px-4 py-2">{employee.middleName}</td>
-                  <td className="border border-gray-300 px-4 py-2 text-right">₱{employee.grossCompensation.toLocaleString()}</td>
-                  <td className="border border-gray-300 px-4 py-2 text-right">₱{employee.nonTaxableCompensation.toLocaleString()}</td>
-                  <td className="border border-gray-300 px-4 py-2 text-right">₱{employee.taxableCompensation.toLocaleString()}</td>
-                  <td className="border border-gray-300 px-4 py-2 text-right">₱{employee.withholdingTax.toLocaleString()}</td>
+                  <td className="border border-gray-300 px-4 py-2 text-right">{formatCurrency(employee.grossCompensation)}</td>
+                  <td className="border border-gray-300 px-4 py-2 text-right">{formatCurrency(employee.nonTaxableCompensation)}</td>
+                  <td className="border border-gray-300 px-4 py-2 text-right">{formatCurrency(employee.taxableCompensation)}</td>
+                  <td className="border border-gray-300 px-4 py-2 text-right">{formatCurrency(employee.withholdingTax)}</td>
                 </tr>
               ))}
             </tbody>

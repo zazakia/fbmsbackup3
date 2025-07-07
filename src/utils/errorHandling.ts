@@ -342,17 +342,19 @@ export class EnhancedErrorBoundary extends React.Component<
         return this.props.fallback(this.state.error);
       }
 
-      return (
-        <div className="error-boundary-fallback p-6 bg-red-50 border border-red-200 rounded-lg">
-          <h2 className="text-lg font-semibold text-red-800 mb-2">Something went wrong</h2>
-          <p className="text-red-600 mb-4">{formatErrorForUI(this.state.error)}</p>
-          <button
-            onClick={() => this.setState({ hasError: false, error: undefined })}
-            className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
-          >
-            Try Again
-          </button>
-        </div>
+      return React.createElement(
+        'div',
+        { className: 'error-boundary-fallback p-6 bg-red-50 border border-red-200 rounded-lg' },
+        React.createElement('h2', { className: 'text-lg font-semibold text-red-800 mb-2' }, 'Something went wrong'),
+        React.createElement('p', { className: 'text-red-600 mb-4' }, formatErrorForUI(this.state.error)),
+        React.createElement(
+          'button',
+          {
+            onClick: () => this.setState({ hasError: false, error: undefined }),
+            className: 'px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700'
+          },
+          'Try Again'
+        )
       );
     }
 
