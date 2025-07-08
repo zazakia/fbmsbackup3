@@ -695,7 +695,7 @@ export async function getStockMovements(productId: string, filters?: { startDate
   const { data, error } = await query;
   if (error) return { data: null, error };
   return {
-    data: (data || []).map((m: any) => ({ ...m, created_at: new Date(m.created_at) })),
+    data: (data || []).map((m: Record<string, unknown>) => ({ ...m, created_at: new Date(m.created_at as string) })),
     error: null
   };
 }

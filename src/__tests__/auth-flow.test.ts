@@ -6,6 +6,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import React from 'react';
 import { createClient } from '@supabase/supabase-js';
 import LoginForm from '../components/auth/LoginForm';
 import RegisterForm from '../components/auth/RegisterForm';
@@ -68,7 +69,7 @@ describe('Authentication Flow Tests', () => {
 
   describe('Login Flow', () => {
     it('should render login form with all required fields', () => {
-      render(<LoginForm onSwitchToRegister={() => {}} />);
+      render(React.createElement(LoginForm, { onSwitchToRegister: () => {} }));
       
       expect(screen.getByLabelText(/email address/i)).toBeInTheDocument();
       expect(screen.getByLabelText(/password/i)).toBeInTheDocument();
@@ -77,7 +78,7 @@ describe('Authentication Flow Tests', () => {
 
     it('should validate required fields', async () => {
       const user = userEvent.setup();
-      render(<LoginForm onSwitchToRegister={() => {}} />);
+      render(React.createElement(LoginForm, { onSwitchToRegister: () => {} }));
       
       const submitButton = screen.getByRole('button', { name: /sign in/i });
       await user.click(submitButton);
@@ -88,7 +89,7 @@ describe('Authentication Flow Tests', () => {
 
     it('should validate email format', async () => {
       const user = userEvent.setup();
-      render(<LoginForm onSwitchToRegister={() => {}} />);
+      render(React.createElement(LoginForm, { onSwitchToRegister: () => {} }));
       
       const emailInput = screen.getByLabelText(/email address/i);
       const submitButton = screen.getByRole('button', { name: /sign in/i });
@@ -104,7 +105,7 @@ describe('Authentication Flow Tests', () => {
       const mockLogin = vi.fn().mockResolvedValue({});
       mockAuthStore.login = mockLogin;
       
-      render(<LoginForm onSwitchToRegister={() => {}} />);
+      render(React.createElement(LoginForm, { onSwitchToRegister: () => {} }));
       
       const emailInput = screen.getByLabelText(/email address/i);
       const passwordInput = screen.getByLabelText(/password/i);
@@ -122,7 +123,7 @@ describe('Authentication Flow Tests', () => {
 
     it('should show loading state during login', () => {
       mockAuthStore.isLoading = true;
-      render(<LoginForm onSwitchToRegister={() => {}} />);
+      render(React.createElement(LoginForm, { onSwitchToRegister: () => {} }));
       
       expect(screen.getByText(/signing in.../i)).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /signing in.../i })).toBeDisabled();
@@ -130,7 +131,7 @@ describe('Authentication Flow Tests', () => {
 
     it('should display error messages', () => {
       mockAuthStore.error = 'Invalid login credentials';
-      render(<LoginForm onSwitchToRegister={() => {}} />);
+      render(React.createElement(LoginForm, { onSwitchToRegister: () => {} }));
       
       expect(screen.getByText(/invalid login credentials/i)).toBeInTheDocument();
     });
@@ -144,7 +145,7 @@ describe('Authentication Flow Tests', () => {
       // Mock window.confirm to return true
       window.confirm = vi.fn().mockReturnValue(true);
       
-      render(<LoginForm onSwitchToRegister={mockSwitchToRegister} />);
+      render(React.createElement(LoginForm, { onSwitchToRegister: mockSwitchToRegister }));
       
       const emailInput = screen.getByLabelText(/email address/i);
       const passwordInput = screen.getByLabelText(/password/i);
@@ -162,7 +163,7 @@ describe('Authentication Flow Tests', () => {
 
   describe('Registration Flow', () => {
     it('should render registration form with all required fields', () => {
-      render(<RegisterForm onSwitchToLogin={() => {}} />);
+      render(React.createElement(RegisterForm, { onSwitchToLogin: () => {} }));
       
       expect(screen.getByLabelText(/full name/i)).toBeInTheDocument();
       expect(screen.getByLabelText(/email address/i)).toBeInTheDocument();
@@ -173,7 +174,7 @@ describe('Authentication Flow Tests', () => {
 
     it('should validate password strength', async () => {
       const user = userEvent.setup();
-      render(<RegisterForm onSwitchToLogin={() => {}} />);
+      render(React.createElement(RegisterForm, { onSwitchToLogin: () => {} }));
       
       const passwordInput = screen.getByLabelText(/^password$/i);
       const submitButton = screen.getByRole('button', { name: /create account/i });
@@ -186,7 +187,7 @@ describe('Authentication Flow Tests', () => {
 
     it('should validate password confirmation', async () => {
       const user = userEvent.setup();
-      render(<RegisterForm onSwitchToLogin={() => {}} />);
+      render(React.createElement(RegisterForm, { onSwitchToLogin: () => {} }));
       
       const passwordInput = screen.getByLabelText(/^password$/i);
       const confirmPasswordInput = screen.getByLabelText(/confirm password/i);
@@ -204,7 +205,7 @@ describe('Authentication Flow Tests', () => {
       const mockRegister = vi.fn().mockResolvedValue({});
       mockAuthStore.register = mockRegister;
       
-      render(<RegisterForm onSwitchToLogin={() => {}} />);
+      render(React.createElement(RegisterForm, { onSwitchToLogin: () => {} }));
       
       const nameInput = screen.getByLabelText(/full name/i);
       const emailInput = screen.getByLabelText(/email address/i);
@@ -334,7 +335,7 @@ describe('Authentication Flow Tests', () => {
   describe('Input Sanitization', () => {
     it('should sanitize malicious input in login form', async () => {
       const user = userEvent.setup();
-      render(<LoginForm onSwitchToRegister={() => {}} />);
+      render(React.createElement(LoginForm, { onSwitchToRegister: () => {} }));
       
       const emailInput = screen.getByLabelText(/email address/i);
       const maliciousInput = '<script>alert("xss")</script>test@example.com';
@@ -347,7 +348,7 @@ describe('Authentication Flow Tests', () => {
 
     it('should sanitize malicious input in registration form', async () => {
       const user = userEvent.setup();
-      render(<RegisterForm onSwitchToLogin={() => {}} />);
+      render(React.createElement(RegisterForm, { onSwitchToLogin: () => {} }));
       
       const nameInput = screen.getByLabelText(/full name/i);
       const maliciousInput = '<img src=x onerror=alert("xss")>John Doe';
@@ -362,7 +363,7 @@ describe('Authentication Flow Tests', () => {
 
   describe('Accessibility', () => {
     it('should have proper ARIA labels and roles', () => {
-      render(<LoginForm onSwitchToRegister={() => {}} />);
+      render(React.createElement(LoginForm, { onSwitchToRegister: () => {} }));
       
       const emailInput = screen.getByLabelText(/email address/i);
       const passwordInput = screen.getByLabelText(/password/i);
@@ -375,7 +376,7 @@ describe('Authentication Flow Tests', () => {
 
     it('should show error messages with proper ARIA attributes', async () => {
       const user = userEvent.setup();
-      render(<LoginForm onSwitchToRegister={() => {}} />);
+      render(React.createElement(LoginForm, { onSwitchToRegister: () => {} }));
       
       const submitButton = screen.getByRole('button', { name: /sign in/i });
       await user.click(submitButton);
@@ -386,7 +387,7 @@ describe('Authentication Flow Tests', () => {
 
     it('should support keyboard navigation', async () => {
       const user = userEvent.setup();
-      render(<LoginForm onSwitchToRegister={() => {}} />);
+      render(React.createElement(LoginForm, { onSwitchToRegister: () => {} }));
       
       const emailInput = screen.getByLabelText(/email address/i);
       const passwordInput = screen.getByLabelText(/password/i);
@@ -411,7 +412,7 @@ describe('Authentication Flow Tests', () => {
       
       // Render and unmount multiple times
       for (let i = 0; i < 10; i++) {
-        const { unmount } = render(<LoginForm onSwitchToRegister={() => {}} />);
+        const { unmount } = render(React.createElement(LoginForm, { onSwitchToRegister: () => {} }));
         unmount();
       }
       
@@ -427,7 +428,7 @@ describe('Authentication Flow Tests', () => {
       const user = userEvent.setup();
       const mockValidation = vi.fn();
       
-      render(<LoginForm onSwitchToRegister={() => {}} />);
+      render(React.createElement(LoginForm, { onSwitchToRegister: () => {} }));
       
       const emailInput = screen.getByLabelText(/email address/i);
       

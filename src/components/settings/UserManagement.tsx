@@ -14,6 +14,7 @@ import {
 import { User as ApiUser, getUsers, updateUser, deleteUser } from '../../api/users';
 import { UserRole } from '../../types/auth';
 import { hasPermission } from '../../utils/permissions';
+import { isAdmin, debugPermissionCheck } from '../../utils/adminOverride';
 import { useSupabaseAuthStore } from '../../store/supabaseAuthStore';
 import { useToastStore } from '../../store/toastStore';
 import UserForm from './UserForm';
@@ -57,7 +58,10 @@ const UserManagement: React.FC = () => {
   };
 
   const handleEditUser = (user: ApiUser) => {
-    if (!currentUser || !hasPermission(currentUser.role, 'users', 'edit')) {
+    const hasAccess = isAdmin(currentUser?.role) || hasPermission(currentUser?.role || 'employee', 'users', 'edit');
+    debugPermissionCheck('UserManagement.handleEditUser', currentUser?.role, 'users', 'edit', hasAccess);
+    
+    if (!currentUser || !hasAccess) {
       addToast({
         type: 'error',
         title: 'Access Denied',
@@ -70,7 +74,10 @@ const UserManagement: React.FC = () => {
   };
 
   const handleDeleteUser = async (user: ApiUser) => {
-    if (!currentUser || !hasPermission(currentUser.role, 'users', 'delete')) {
+    const hasAccess = isAdmin(currentUser?.role) || hasPermission(currentUser?.role || 'employee', 'users', 'delete');
+    debugPermissionCheck('UserManagement.handleDeleteUser', currentUser?.role, 'users', 'delete', hasAccess);
+    
+    if (!currentUser || !hasAccess) {
       addToast({
         type: 'error',
         title: 'Access Denied',

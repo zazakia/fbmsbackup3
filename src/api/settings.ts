@@ -187,7 +187,7 @@ export class SettingsAPI {
       const { id: _id, userId: _userId, createdAt: _createdAt, updatedAt: _updatedAt, ...rawUpdates } = updates;
       
       // Transform field names from camelCase to snake_case
-      const dbUpdates: any = {};
+      const dbUpdates: Record<string, unknown> = {};
       Object.entries(rawUpdates).forEach(([key, value]) => {
         if (key === 'dateFormat') {
           dbUpdates.date_format = value;

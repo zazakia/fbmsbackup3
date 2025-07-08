@@ -13,7 +13,7 @@ export interface ValidationRule {
   minLength?: number;
   maxLength?: number;
   pattern?: RegExp;
-  custom?: (value: any) => string | null;
+  custom?: (value: unknown) => string | null;
   sanitize?: boolean;
 }
 
@@ -63,7 +63,7 @@ export const validatePagIBIG = (pagibig: string): boolean => {
 };
 
 // Enhanced field validator with sanitization
-export const validateField = (value: any, rules: ValidationRule, options?: FormValidationOptions): { error: string | null; sanitizedValue?: any } => {
+export const validateField = (value: unknown, rules: ValidationRule, options?: FormValidationOptions): { error: string | null; sanitizedValue?: unknown } => {
   const { required, minLength, maxLength, pattern, custom, sanitize } = rules;
   let processedValue = value;
 
@@ -119,7 +119,7 @@ export const validateField = (value: any, rules: ValidationRule, options?: FormV
 };
 
 // Enhanced numeric validation
-export const validateNumeric = (value: any, field: string, options?: { 
+export const validateNumeric = (value: unknown, field: string, options?: { 
   min?: number; 
   max?: number; 
   integer?: boolean;
@@ -158,7 +158,7 @@ export const validateNumeric = (value: any, field: string, options?: {
 };
 
 // Date validation
-export const validateDate = (value: any, field: string, options?: {
+export const validateDate = (value: unknown, field: string, options?: {
   minDate?: Date;
   maxDate?: Date;
   futureOnly?: boolean;
@@ -198,13 +198,13 @@ export const validateDate = (value: any, field: string, options?: {
 
 // Enhanced object validation with sanitization
 export const validateObject = (
-  data: Record<string, any>, 
+  data: Record<string, unknown>, 
   rules: ValidationRule[], 
   options?: FormValidationOptions
 ): ValidationResult => {
   const errors: Record<string, string> = {};
   const warnings: Record<string, string> = {};
-  const sanitizedData: Record<string, any> = {};
+  const sanitizedData: Record<string, unknown> = {};
 
   rules.forEach(rule => {
     const value = data[rule.field];

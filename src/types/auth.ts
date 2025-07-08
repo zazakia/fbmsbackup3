@@ -10,7 +10,7 @@ export interface User {
   lastLogin?: Date;
 }
 
-export type UserRole = 'admin' | 'manager' | 'cashier' | 'accountant';
+export type UserRole = 'admin' | 'manager' | 'cashier' | 'accountant' | 'employee';
 
 export interface AuthState {
   user: User | null;

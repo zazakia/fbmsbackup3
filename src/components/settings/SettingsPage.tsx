@@ -5,6 +5,7 @@ import { useInventoryMonitor } from '../../services/inventoryMonitor';
 import { useToastStore } from '../../store/toastStore';
 import { useSupabaseAuthStore } from '../../store/supabaseAuthStore';
 import { hasPermission } from '../../utils/permissions';
+import { isAdmin } from '../../utils/adminOverride';
 import UserManagement from './UserManagement';
 import UserPreferences from './UserPreferences';
 import NotificationSettings from './NotificationSettings';
@@ -79,7 +80,7 @@ const SettingsPage: React.FC = () => {
       id: 'security',
       title: 'Security & Privacy',
       icon: <Shield className="h-5 w-5" />,
-      description: user && hasPermission(user.role, 'users', 'view') ? 'User management and permissions' : 'Security settings and privacy controls'
+      description: user && (isAdmin(user.role) || hasPermission(user.role, 'users', 'view')) ? 'User management and permissions' : 'Security settings and privacy controls'
     },
     {
       id: 'reports',

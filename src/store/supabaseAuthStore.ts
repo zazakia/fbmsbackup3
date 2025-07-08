@@ -79,16 +79,16 @@ export const useSupabaseAuthStore = create<SupabaseAuthStore>()(
               // Create basic user from auth data and insert into database
               console.warn('User profile not found in database, creating user profile...');
               
-              // Check if this should be an admin user
+              // SECURITY: Remove automatic admin role assignment based on email
+              // All new users default to lowest privilege role
               const email = data.user.email || '';
-              const isAdminEmail = email === 'admin@fbms.com' || email.includes('@admin.') || email.includes('admin@');
               
               const newUserData = {
                 id: data.user.id,
                 email: email,
                 first_name: data.user.user_metadata?.first_name || '',
                 last_name: data.user.user_metadata?.last_name || '',
-                role: isAdminEmail ? 'admin' : 'cashier', // Check for admin emails
+                role: 'employee', // Default to lowest privilege role for security
                 is_active: true,
               };
 
@@ -112,7 +112,7 @@ export const useSupabaseAuthStore = create<SupabaseAuthStore>()(
                 email: email,
                 firstName: data.user.user_metadata?.first_name || '',
                 lastName: data.user.user_metadata?.last_name || '',
-                role: isAdminEmail ? 'admin' : 'cashier', // Check for admin emails
+                role: 'employee', // Default to lowest privilege role for security
                 isActive: true,
                 createdAt: new Date(),
               };
@@ -316,16 +316,16 @@ export const useSupabaseAuthStore = create<SupabaseAuthStore>()(
             } else {
               console.warn('User profile not found in database during auth check, creating user profile...');
               
-              // Check if this should be an admin user
+              // SECURITY: Remove automatic admin role assignment based on email
+              // All new users default to lowest privilege role
               const email = session.user.email || '';
-              const isAdminEmail = email === 'admin@fbms.com' || email.includes('@admin.') || email.includes('admin@');
               
               const newUserData = {
                 id: session.user.id,
                 email: email,
                 first_name: session.user.user_metadata?.first_name || '',
                 last_name: session.user.user_metadata?.last_name || '',
-                role: isAdminEmail ? 'admin' : 'cashier', // Check for admin emails
+                role: 'employee', // Default to lowest privilege role for security
                 is_active: true,
               };
 
@@ -349,7 +349,7 @@ export const useSupabaseAuthStore = create<SupabaseAuthStore>()(
                 email: email,
                 firstName: session.user.user_metadata?.first_name || '',
                 lastName: session.user.user_metadata?.last_name || '',
-                role: isAdminEmail ? 'admin' : 'cashier', // Check for admin emails
+                role: 'employee', // Default to lowest privilege role for security
                 isActive: true,
                 createdAt: new Date(),
               };
@@ -665,9 +665,8 @@ supabaseAnon.auth.onAuthStateChange((event, session) => {
           .single();
         
         if (!existingProfile) {
-          // Create user profile for OAuth user
+          // Create user profile for OAuth user - SECURITY: No automatic admin assignment
           const email = session.user.email || '';
-          const isAdminEmail = email === 'admin@fbms.com' || email.includes('@admin.') || email.includes('admin@');
           
           const { error: profileError } = await supabase
             .from('users')
@@ -678,7 +677,7 @@ supabaseAnon.auth.onAuthStateChange((event, session) => {
                          session.user.user_metadata?.full_name?.split(' ')[0] || '',
               last_name: session.user.user_metadata?.last_name || 
                         session.user.user_metadata?.full_name?.split(' ').slice(1).join(' ') || '',
-              role: isAdminEmail ? 'admin' : 'cashier', // Check for admin emails
+              role: 'employee', // Default to lowest privilege role for security
               is_active: true,
             });
           

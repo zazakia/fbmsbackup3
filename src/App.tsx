@@ -31,7 +31,7 @@ import LoadingSpinner from './components/LoadingSpinner';
 import ErrorBoundary from './components/ErrorBoundary';
 import PermissionGuard from './components/PermissionGuard';
 import { ToastContainer } from './components/Toast';
-import VersionSelector from './components/VersionSelector';
+// import VersionSelector from './components/VersionSelector'; // Currently unused
 // import EnhancedVersionMenu from './components/EnhancedVersionMenu'; // Moved to settings
 import { useToastStore } from './store/toastStore';
 import { useThemeStore } from './store/themeStore';
@@ -42,11 +42,15 @@ import { setupDevAuth } from './utils/supabase';
 import { NavigationProvider } from './contexts/NavigationContext';
 import { useSecurity } from './hooks/useSecurity';
 import './utils/devCommands'; // Initialize dev commands
+import './utils/debugUser'; // Debug utilities  
+import './utils/adminAccessTest'; // Admin access testing
+import './utils/adminAccessFix'; // Admin access fix utilities
 import './styles/mobile-responsive.css'; // Mobile responsive styles
 import TestDashboard from './components/test/TestDashboard';
 import AdminDashboard from './components/admin/AdminDashboard';
 import AuthCallback from './components/auth/AuthCallback';
 import PerformanceMonitor from './components/PerformanceMonitor';
+import UserDebugInfo from './components/auth/UserDebugInfo';
 import { 
   LazyUserRoleManagement, 
   LazySupplierManagement, 
@@ -86,6 +90,7 @@ const App: React.FC = () => {
   const { user } = useSupabaseAuthStore();
   const { enhancedVersions, menuVisibility } = useSettingsStore();
   const { securityStatus } = useSecurity();
+  console.log('Security status:', securityStatus); // TODO: Use security status in UI
 
   // Check for OAuth callback
   const isOAuthCallback = window.location.hash.includes('access_token') || 
@@ -176,7 +181,7 @@ const App: React.FC = () => {
       }
       
       return true;
-    }), [user?.role, menuVisibility]);
+    }), [user, menuVisibility, allMenuItems, menuIdToVisibilityKey]);
 
   // Version change handling is now in settings store
 
@@ -408,6 +413,9 @@ const App: React.FC = () => {
         
         {/* Performance Monitor (Development Only) */}
         <PerformanceMonitor />
+        
+        {/* User Debug Info (Development Only) */}
+        {import.meta.env.DEV && <UserDebugInfo />}
       </ProtectedRoute>
     </ErrorBoundary>
   );

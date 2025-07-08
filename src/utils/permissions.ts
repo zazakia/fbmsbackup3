@@ -55,28 +55,58 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     { module: 'bir', actions: ['view', 'create', 'edit'] },
     { module: 'purchases', actions: ['view'] },
     { module: 'customers', actions: ['view'] }
+  ],
+  employee: [
+    { module: 'dashboard', actions: ['view'] },
+    { module: 'inventory', actions: ['view'] },
+    { module: 'customers', actions: ['view'] },
+    { module: 'reports', actions: ['view'] },
+    { module: 'settings', actions: ['view'] }
   ]
 };
 
 export function hasPermission(userRole: UserRole, module: string, action: string): boolean {
-  if (userRole === 'admin') return true; // Always allow admin
+  // Admin always has permission - this is the critical fix
+  if (userRole === 'admin') {
+    console.log(`🔓 Admin access granted for ${module}:${action}`);
+    return true;
+  }
+  
   const rolePermissions = ROLE_PERMISSIONS[userRole];
   if (!rolePermissions) {
     console.warn(`No permissions found for role: ${userRole}`);
     return false;
   }
   const modulePermission = rolePermissions.find(p => p.module === module);
-  return modulePermission ? modulePermission.actions.includes(action) : false;
+  const result = modulePermission ? modulePermission.actions.includes(action) : false;
+  
+  if (!result) {
+    console.log(`❌ Permission denied for ${userRole}: ${module}:${action}`);
+  }
+  
+  return result;
 }
 
 export function canAccessModule(userRole: UserRole, module: string): boolean {
-  if (userRole === 'admin') return true; // Always allow admin
+  // Admin always has module access - this is the critical fix
+  if (userRole === 'admin') {
+    console.log(`🔓 Admin module access granted for ${module}`);
+    return true;
+  }
+  
   const rolePermissions = ROLE_PERMISSIONS[userRole];
   if (!rolePermissions) {
     console.warn(`No permissions found for role: ${userRole}`);
     return false;
   }
-  return rolePermissions.some(p => p.module === module);
+  
+  const result = rolePermissions.some(p => p.module === module);
+  
+  if (!result) {
+    console.log(`❌ Module access denied for ${userRole}: ${module}`);
+  }
+  
+  return result;
 }
 
 export function getModuleActions(userRole: UserRole, module: string): string[] {
