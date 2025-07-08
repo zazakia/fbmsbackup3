@@ -7,12 +7,13 @@ import React, { useEffect, useState } from 'react';
 import { useSupabaseAuthStore } from '../../store/supabaseAuthStore';
 import { useSettingsStore } from '../../store/settingsStore';
 import { canAccessModule, getUserAccessibleModules } from '../../utils/permissions';
-import { User, Shield, AlertTriangle, CheckCircle, Settings } from 'lucide-react';
+import { User, Shield, AlertTriangle, CheckCircle, Settings, ChevronLeft, ChevronRight } from 'lucide-react';
 
 const UserDebugInfo: React.FC = () => {
   const { user, isAuthenticated } = useSupabaseAuthStore();
   const { menuVisibility } = useSettingsStore();
   const [accessibleModules, setAccessibleModules] = useState<string[]>([]);
+  const [isCollapsed, setIsCollapsed] = useState(true);
 
   useEffect(() => {
     if (user?.role) {
@@ -33,77 +34,104 @@ const UserDebugInfo: React.FC = () => {
   }
 
   return (
-    <div className="fixed bottom-4 right-4 bg-white border border-gray-200 rounded-lg p-4 shadow-lg max-w-md">
+    <div className={`fixed bottom-4 transition-all duration-300 bg-white border border-gray-200 shadow-lg ${
+      isCollapsed 
+        ? 'right-0 rounded-l-lg' 
+        : 'right-4 rounded-lg max-w-md'
+    }`}>
       <div className="space-y-3">
-        <div className="flex items-center gap-2 text-green-700">
-          <CheckCircle className="h-5 w-5" />
-          <span className="font-medium">User Debug Info</span>
+        <div 
+          className={`flex items-center justify-between cursor-pointer hover:bg-gray-50 ${
+            isCollapsed 
+              ? 'p-2 rounded-l-lg' 
+              : 'p-4 rounded-t-lg'
+          }`}
+          onClick={() => setIsCollapsed(!isCollapsed)}
+        >
+          {isCollapsed ? (
+            <div className="flex items-center gap-1">
+              <CheckCircle className="h-4 w-4 text-green-700" />
+              <ChevronLeft className="h-3 w-3 text-gray-500" />
+            </div>
+          ) : (
+            <>
+              <div className="flex items-center gap-2 text-green-700">
+                <CheckCircle className="h-5 w-5" />
+                <span className="font-medium">User Debug Info</span>
+              </div>
+              <ChevronRight className="h-4 w-4 text-gray-500" />
+            </>
+          )}
         </div>
         
-        <div className="space-y-2 text-sm">
-          <div>
-            <span className="font-medium">Email:</span> {user.email}
-          </div>
-          <div>
-            <span className="font-medium">Role:</span> 
-            <span className={`ml-2 px-2 py-1 rounded text-xs font-medium ${
-              user.role === 'admin' ? 'bg-red-100 text-red-800' :
-              user.role === 'manager' ? 'bg-blue-100 text-blue-800' :
-              user.role === 'cashier' ? 'bg-green-100 text-green-800' :
-              'bg-gray-100 text-gray-800'
-            }`}>
-              {user.role}
-            </span>
-          </div>
-          <div>
-            <span className="font-medium">Authenticated:</span> {isAuthenticated ? '✅' : '❌'}
-          </div>
-          <div>
-            <span className="font-medium">Active:</span> {user.isActive ? '✅' : '❌'}
-          </div>
-        </div>
-
-        <div className="border-t pt-3">
-          <div className="font-medium text-sm mb-2">Accessible Modules:</div>
-          <div className="flex flex-wrap gap-1">
-            {accessibleModules.map(module => (
-              <span key={module} className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded">
-                {module}
-              </span>
-            ))}
-          </div>
-        </div>
-
-        <div className="border-t pt-3">
-          <div className="font-medium text-sm mb-2">Admin Access Check:</div>
-          <div className="space-y-1 text-xs">
-            <div>
-              Admin Dashboard: {canAccessModule(user.role, 'admin-dashboard') ? '✅' : '❌'}
+        {!isCollapsed && (
+          <div className="px-4 pb-4 space-y-3">
+            <div className="space-y-2 text-sm">
+              <div>
+                <span className="font-medium">Email:</span> {user.email}
+              </div>
+              <div>
+                <span className="font-medium">Role:</span> 
+                <span className={`ml-2 px-2 py-1 rounded text-xs font-medium ${
+                  user.role === 'admin' ? 'bg-red-100 text-red-800' :
+                  user.role === 'manager' ? 'bg-blue-100 text-blue-800' :
+                  user.role === 'cashier' ? 'bg-green-100 text-green-800' :
+                  'bg-gray-100 text-gray-800'
+                }`}>
+                  {user.role}
+                </span>
+              </div>
+              <div>
+                <span className="font-medium">Authenticated:</span> {isAuthenticated ? '✅' : '❌'}
+              </div>
+              <div>
+                <span className="font-medium">Active:</span> {user.isActive ? '✅' : '❌'}
+              </div>
             </div>
-            <div>
-              Menu Visibility (adminDashboard): {menuVisibility.adminDashboard ? '✅' : '❌'}
+
+            <div className="border-t pt-3">
+              <div className="font-medium text-sm mb-2">Accessible Modules:</div>
+              <div className="flex flex-wrap gap-1">
+                {accessibleModules.map(module => (
+                  <span key={module} className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded">
+                    {module}
+                  </span>
+                ))}
+              </div>
             </div>
-            <div>
-              Role Check (admin): {user.role === 'admin' ? '✅' : '❌'}
+
+            <div className="border-t pt-3">
+              <div className="font-medium text-sm mb-2">Admin Access Check:</div>
+              <div className="space-y-1 text-xs">
+                <div>
+                  Admin Dashboard: {canAccessModule(user.role, 'admin-dashboard') ? '✅' : '❌'}
+                </div>
+                <div>
+                  Menu Visibility (adminDashboard): {menuVisibility.adminDashboard ? '✅' : '❌'}
+                </div>
+                <div>
+                  Role Check (admin): {user.role === 'admin' ? '✅' : '❌'}
+                </div>
+              </div>
+            </div>
+
+            <div className="border-t pt-3">
+              <button
+                onClick={() => {
+                  console.log('=== USER DEBUG INFO ===');
+                  console.log('User object:', user);
+                  console.log('Is authenticated:', isAuthenticated);
+                  console.log('Accessible modules:', accessibleModules);
+                  console.log('Menu visibility settings:', menuVisibility);
+                  console.log('Admin dashboard access:', canAccessModule(user.role, 'admin-dashboard'));
+                }}
+                className="text-xs bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700"
+              >
+                Log Full Debug Info
+              </button>
             </div>
           </div>
-        </div>
-
-        <div className="border-t pt-3">
-          <button
-            onClick={() => {
-              console.log('=== USER DEBUG INFO ===');
-              console.log('User object:', user);
-              console.log('Is authenticated:', isAuthenticated);
-              console.log('Accessible modules:', accessibleModules);
-              console.log('Menu visibility settings:', menuVisibility);
-              console.log('Admin dashboard access:', canAccessModule(user.role, 'admin-dashboard'));
-            }}
-            className="text-xs bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700"
-          >
-            Log Full Debug Info
-          </button>
-        </div>
+        )}
       </div>
     </div>
   );

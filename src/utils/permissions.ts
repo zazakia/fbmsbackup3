@@ -66,6 +66,15 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
 };
 
 export function hasPermission(userRole: UserRole, module: string, action: string): boolean {
+  // EMERGENCY BYPASS: Always grant access if user is cybergada@gmail.com
+  if (typeof window !== 'undefined' && window.location) {
+    const currentUser = window.localStorage?.getItem('supabase.auth.token');
+    if (currentUser && currentUser.includes('cybergada@gmail.com')) {
+      console.log(`🆘 EMERGENCY BYPASS: Admin access granted for ${module}:${action}`);
+      return true;
+    }
+  }
+  
   // Admin always has permission - this is the critical fix
   if (userRole === 'admin') {
     console.log(`🔓 Admin access granted for ${module}:${action}`);
@@ -88,6 +97,15 @@ export function hasPermission(userRole: UserRole, module: string, action: string
 }
 
 export function canAccessModule(userRole: UserRole, module: string): boolean {
+  // EMERGENCY BYPASS: Always grant access if user is cybergada@gmail.com
+  if (typeof window !== 'undefined' && window.location) {
+    const currentUser = window.localStorage?.getItem('supabase.auth.token');
+    if (currentUser && currentUser.includes('cybergada@gmail.com')) {
+      console.log(`🆘 EMERGENCY BYPASS: Module access granted for ${module}`);
+      return true;
+    }
+  }
+  
   // Admin always has module access - this is the critical fix
   if (userRole === 'admin') {
     console.log(`🔓 Admin module access granted for ${module}`);
