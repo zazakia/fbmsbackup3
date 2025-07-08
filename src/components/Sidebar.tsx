@@ -1,5 +1,6 @@
-import React, { memo } from 'react';
-import { X, BarChart3 } from 'lucide-react';
+import React, { memo, useState } from 'react';
+import { X, BarChart3, LogOut, User, AlertTriangle } from 'lucide-react';
+import { useSupabaseAuthStore } from '../store/supabaseAuthStore';
 
 interface MenuItem {
   id: string;
@@ -22,6 +23,23 @@ const Sidebar: React.FC<SidebarProps> = memo(({
   onModuleChange, 
   onClose 
 }) => {
+  const { user, logout } = useSupabaseAuthStore();
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      // Close mobile sidebar after logout
+      onClose();
+      setShowLogoutConfirm(false);
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+  };
+
+  const confirmLogout = () => {
+    setShowLogoutConfirm(true);
+  };
   return (
     <>
       {/* Desktop Sidebar */}
@@ -63,7 +81,32 @@ const Sidebar: React.FC<SidebarProps> = memo(({
         </nav>
         
         {/* Fixed Footer */}
-        <div className="p-4 border-t border-gray-200 dark:border-dark-700 flex-shrink-0">
+        <div className="p-4 border-t border-gray-200 dark:border-dark-700 flex-shrink-0 space-y-3">
+          {/* User Info & Logout */}
+          <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-dark-700 rounded-lg">
+            <div className="flex items-center space-x-3">
+              <div className="w-8 h-8 bg-primary-100 dark:bg-primary-900 rounded-full flex items-center justify-center">
+                <User className="h-4 w-4 text-primary-600 dark:text-primary-400" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                  {user?.firstName || user?.email?.split('@')[0] || 'User'}
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                  {user?.role || 'Staff'}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={confirmLogout}
+              className="p-2 text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all duration-200"
+              title="Logout"
+            >
+              <LogOut className="h-4 w-4" />
+            </button>
+          </div>
+          
+          {/* Help Section */}
           <div className="bg-gradient-to-r from-primary-500 to-primary-600 rounded-lg p-4 text-white">
             <h3 className="font-semibold text-sm">Need Help?</h3>
             <p className="text-xs mt-1 text-primary-100">Contact our support team</p>
@@ -121,7 +164,32 @@ const Sidebar: React.FC<SidebarProps> = memo(({
         </nav>
 
         {/* Fixed Footer */}
-        <div className="p-4 border-t border-gray-200 dark:border-dark-700 flex-shrink-0">
+        <div className="p-4 border-t border-gray-200 dark:border-dark-700 flex-shrink-0 space-y-3">
+          {/* User Info & Logout */}
+          <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-dark-700 rounded-lg">
+            <div className="flex items-center space-x-3">
+              <div className="w-8 h-8 bg-primary-100 dark:bg-primary-900 rounded-full flex items-center justify-center">
+                <User className="h-4 w-4 text-primary-600 dark:text-primary-400" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                  {user?.firstName || user?.email?.split('@')[0] || 'User'}
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                  {user?.role || 'Staff'}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={confirmLogout}
+              className="p-2 text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all duration-200"
+              title="Logout"
+            >
+              <LogOut className="h-4 w-4" />
+            </button>
+          </div>
+          
+          {/* Help Section */}
           <div className="bg-gradient-to-r from-primary-500 to-primary-600 rounded-lg p-4 text-white">
             <h3 className="font-semibold text-sm">Need Help?</h3>
             <p className="text-xs mt-1 text-primary-100">Contact our support team</p>
@@ -131,6 +199,49 @@ const Sidebar: React.FC<SidebarProps> = memo(({
           </div>
         </div>
       </div>
+
+      {/* Logout Confirmation Modal */}
+      {showLogoutConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-dark-800 rounded-lg shadow-xl p-6 w-full max-w-md mx-4">
+            <div className="flex items-center space-x-3 mb-4">
+              <div className="w-10 h-10 bg-red-100 dark:bg-red-900/20 rounded-full flex items-center justify-center">
+                <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                  Confirm Logout
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Are you sure you want to logout?
+                </p>
+              </div>
+            </div>
+            
+            <div className="mb-4">
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                You will need to login again to access the system.
+              </p>
+            </div>
+            
+            <div className="flex space-x-3">
+              <button
+                onClick={() => setShowLogoutConfirm(false)}
+                className="flex-1 px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-dark-700 rounded-lg hover:bg-gray-200 dark:hover:bg-dark-600 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleLogout}
+                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center justify-center"
+              >
+                <LogOut className="h-4 w-4 mr-2" />
+                Logout
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 });
