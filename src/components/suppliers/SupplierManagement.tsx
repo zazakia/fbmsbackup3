@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { useToastStore } from '../../store/toastStore';
 import { supabase } from '../../utils/supabase';
+import { formatNumber } from '../../utils/formatters';
 
 interface Supplier {
   id: string;
@@ -279,9 +280,9 @@ const SupplierManagement: React.FC = () => {
   };
 
   const filteredSuppliers = suppliers.filter(supplier => {
-    const matchesSearch = supplier.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         supplier.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         supplier.contact_person.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = (supplier.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (supplier.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (supplier.contact_person || '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || supplier.status === statusFilter;
     
     return matchesSearch && matchesStatus;
@@ -291,16 +292,16 @@ const SupplierManagement: React.FC = () => {
     const csvContent = [
       ['Name', 'Contact Person', 'Email', 'Phone', 'Address', 'City', 'Country', 'Status', 'Payment Terms', 'Credit Limit'].join(','),
       ...filteredSuppliers.map(supplier => [
-        supplier.name,
-        supplier.contact_person,
-        supplier.email,
-        supplier.phone,
-        supplier.address,
-        supplier.city,
-        supplier.country,
-        supplier.status,
-        `${supplier.payment_terms} days`,
-        supplier.credit_limit.toString()
+        supplier.name || '',
+        supplier.contact_person || '',
+        supplier.email || '',
+        supplier.phone || '',
+        supplier.address || '',
+        supplier.city || '',
+        supplier.country || '',
+        supplier.status || 'active',
+        `${supplier.payment_terms || '30'} days`,
+        formatNumber(supplier.credit_limit)
       ].join(','))
     ].join('\n');
 
@@ -458,15 +459,42 @@ const SupplierManagement: React.FC = () => {
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-              {filteredSuppliers.map((supplier) => (
+              {filteredSuppliers.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-12 text-center">
+                    <div className="flex flex-col items-center">
+                      <Truck className="h-12 w-12 text-gray-400 mb-4" />
+                      <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                        No suppliers found
+                      </h3>
+                      <p className="text-gray-500 dark:text-gray-400 mb-4">
+                        {searchTerm || statusFilter !== 'all' 
+                          ? 'Try adjusting your search or filter criteria.'
+                          : 'Get started by adding your first supplier.'
+                        }
+                      </p>
+                      {(!searchTerm && statusFilter === 'all') && (
+                        <button
+                          onClick={() => setShowForm(true)}
+                          className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                        >
+                          <Plus className="h-4 w-4 mr-2" />
+                          Add Supplier
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                filteredSuppliers.map((supplier) => (
                 <tr key={supplier.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div>
                       <div className="text-sm font-medium text-gray-900 dark:text-white">
-                        {supplier.name}
+                        {supplier.name || 'N/A'}
                       </div>
                       <div className="text-sm text-gray-500 dark:text-gray-400">
-                        {supplier.contact_person}
+                        {supplier.contact_person || 'N/A'}
                       </div>
                     </div>
                   </td>
@@ -474,11 +502,11 @@ const SupplierManagement: React.FC = () => {
                     <div className="text-sm text-gray-900 dark:text-white">
                       <div className="flex items-center mb-1">
                         <Mail className="h-3 w-3 mr-1 text-gray-400" />
-                        {supplier.email}
+                        {supplier.email || 'N/A'}
                       </div>
                       <div className="flex items-center">
                         <Phone className="h-3 w-3 mr-1 text-gray-400" />
-                        {supplier.phone}
+                        {supplier.phone || 'N/A'}
                       </div>
                     </div>
                   </td>
@@ -486,16 +514,16 @@ const SupplierManagement: React.FC = () => {
                     <div className="text-sm text-gray-900 dark:text-white">
                       <div className="flex items-center">
                         <MapPin className="h-3 w-3 mr-1 text-gray-400" />
-                        {supplier.city}, {supplier.country}
+                        {supplier.city || 'N/A'}, {supplier.country || 'N/A'}
                       </div>
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm text-gray-900 dark:text-white">
-                      {supplier.payment_terms} days
+                      {supplier.payment_terms || '30'} days
                     </div>
                     <div className="text-sm text-gray-500 dark:text-gray-400">
-                      Credit: ${supplier.credit_limit.toLocaleString()}
+                      Credit: ${formatNumber(supplier.credit_limit)}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -520,7 +548,8 @@ const SupplierManagement: React.FC = () => {
                     </div>
                   </td>
                 </tr>
-              ))}
+                ))
+              )}
             </tbody>
           </table>
         </div>

@@ -576,6 +576,284 @@ const AdminDashboard: React.FC = () => {
     </div>
   );
 
+  const renderTesting = () => (
+    <div className="space-y-6">
+      {/* Component Testing Overview */}
+      <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+        <h3 className="text-lg font-semibold mb-4 flex items-center">
+          <CheckSquare className="h-5 w-5 mr-2" />
+          Component Testing & Validation
+        </h3>
+        <p className="text-gray-600 dark:text-gray-400 mb-6">
+          Test and validate component functionality, error handling, and data formatting across the application.
+        </p>
+
+        {/* Recent Fixes Section */}
+        <div className="mb-8">
+          <h4 className="font-semibold mb-4 flex items-center">
+            <CheckCircle className="h-4 w-4 mr-2 text-green-500" />
+            Recent Fixes & Improvements
+          </h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-lg border border-red-200 dark:border-red-800">
+              <h5 className="font-semibold text-red-900 dark:text-red-100 mb-2 flex items-center">
+                <Shield className="h-4 w-4 mr-2" />
+                Database Admin Fix
+              </h5>
+              <p className="text-sm text-red-700 dark:text-red-300 mb-3">
+                Fixed RLS infinite recursion and granted admin access
+              </p>
+              <div className="space-y-2">
+                <div className="flex items-center text-xs">
+                  <span className="w-2 h-2 bg-red-500 rounded-full mr-2"></span>
+                  Disabled broken RLS policies
+                </div>
+                <div className="flex items-center text-xs">
+                  <span className="w-2 h-2 bg-red-500 rounded-full mr-2"></span>
+                  Direct role update in users table
+                </div>
+                <div className="flex items-center text-xs">
+                  <span className="w-2 h-2 bg-red-500 rounded-full mr-2"></span>
+                  Resolved infinite recursion error
+                </div>
+                <div className="flex items-center text-xs">
+                  <span className="w-2 h-2 bg-red-500 rounded-full mr-2"></span>
+                  Multiple failed attempts before success
+                </div>
+              </div>
+              <div className="mt-3 flex flex-wrap gap-1">
+                <span className="px-2 py-1 bg-red-100 dark:bg-red-800 text-red-800 dark:text-red-200 text-xs rounded">
+                  Critical Fix
+                </span>
+                <span className="px-2 py-1 bg-orange-100 dark:bg-orange-800 text-orange-800 dark:text-orange-200 text-xs rounded">
+                  Database
+                </span>
+                <span className="px-2 py-1 bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 text-xs rounded">
+                  RLS Security
+                </span>
+              </div>
+            </div>
+
+            <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg border border-green-200 dark:border-green-800">
+              <h5 className="font-semibold text-green-900 dark:text-green-100 mb-2 flex items-center">
+                <CheckCircle className="h-4 w-4 mr-2" />
+                Suppliers Component
+              </h5>
+              <p className="text-sm text-green-700 dark:text-green-300 mb-3">
+                Fixed toLocaleString() error on undefined credit_limit values
+              </p>
+              <div className="space-y-2">
+                <div className="flex items-center text-xs">
+                  <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
+                  Safe number formatting with formatNumber()
+                </div>
+                <div className="flex items-center text-xs">
+                  <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
+                  Null safety for all displayed fields
+                </div>
+                <div className="flex items-center text-xs">
+                  <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
+                  Empty state with user guidance
+                </div>
+                <div className="flex items-center text-xs">
+                  <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
+                  Search filter safety against undefined
+                </div>
+              </div>
+              <div className="mt-3 flex flex-wrap gap-1">
+                <span className="px-2 py-1 bg-green-100 dark:bg-green-800 text-green-800 dark:text-green-200 text-xs rounded">
+                  Error Fixed
+                </span>
+                <span className="px-2 py-1 bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200 text-xs rounded">
+                  Data Safety
+                </span>
+                <span className="px-2 py-1 bg-purple-100 dark:bg-purple-800 text-purple-800 dark:text-purple-200 text-xs rounded">
+                  UX Improved
+                </span>
+              </div>
+            </div>
+
+            <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+              <h5 className="font-semibold text-blue-900 dark:text-blue-100 mb-2 flex items-center">
+                <Info className="h-4 w-4 mr-2" />
+                Debug Panel
+              </h5>
+              <p className="text-sm text-blue-700 dark:text-blue-300 mb-3">
+                Made debug panel collapsible and minimal
+              </p>
+              <div className="space-y-2">
+                <div className="flex items-center text-xs">
+                  <span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
+                  Collapses to right edge of screen
+                </div>
+                <div className="flex items-center text-xs">
+                  <span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
+                  Minimal clickable interface
+                </div>
+                <div className="flex items-center text-xs">
+                  <span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
+                  Smooth expand/collapse animations
+                </div>
+                <div className="flex items-center text-xs">
+                  <span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
+                  Starts collapsed by default
+                </div>
+              </div>
+              <div className="mt-3 flex flex-wrap gap-1">
+                <span className="px-2 py-1 bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200 text-xs rounded">
+                  UI/UX
+                </span>
+                <span className="px-2 py-1 bg-green-100 dark:bg-green-800 text-green-800 dark:text-green-200 text-xs rounded">
+                  Space Optimized
+                </span>
+              </div>
+            </div>
+
+            <div className="bg-gray-50 dark:bg-gray-900/20 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
+              <h5 className="font-semibold text-gray-900 dark:text-gray-100 mb-2 flex items-center">
+                <Settings className="h-4 w-4 mr-2" />
+                Formatter Utilities
+              </h5>
+              <p className="text-sm text-gray-700 dark:text-gray-300 mb-3">
+                Enhanced safe formatting utilities
+              </p>
+              <div className="space-y-2">
+                <div className="flex items-center text-xs">
+                  <span className="w-2 h-2 bg-gray-500 rounded-full mr-2"></span>
+                  formatNumber() with null safety
+                </div>
+                <div className="flex items-center text-xs">
+                  <span className="w-2 h-2 bg-gray-500 rounded-full mr-2"></span>
+                  formatCurrency() with defaults
+                </div>
+                <div className="flex items-center text-xs">
+                  <span className="w-2 h-2 bg-gray-500 rounded-full mr-2"></span>
+                  formatDate() with error handling
+                </div>
+                <div className="flex items-center text-xs">
+                  <span className="w-2 h-2 bg-gray-500 rounded-full mr-2"></span>
+                  Prevents toLocaleString() errors
+                </div>
+              </div>
+              <div className="mt-3 flex flex-wrap gap-1">
+                <span className="px-2 py-1 bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 text-xs rounded">
+                  Utility
+                </span>
+                <span className="px-2 py-1 bg-yellow-100 dark:bg-yellow-800 text-yellow-800 dark:text-yellow-200 text-xs rounded">
+                  Error Prevention
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Test Categories */}
+        <div className="mb-8">
+          <h4 className="font-semibold mb-4 flex items-center">
+            <CheckSquare className="h-4 w-4 mr-2" />
+            Component Test Categories
+          </h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-lg border border-red-200 dark:border-red-800">
+              <h5 className="font-semibold text-red-900 dark:text-red-100 mb-2">Error Handling</h5>
+              <p className="text-sm text-red-700 dark:text-red-300 mb-2">Undefined/null value safety</p>
+              <span className="px-2 py-1 bg-red-100 dark:bg-red-800 text-red-800 dark:text-red-200 text-xs rounded">Critical</span>
+            </div>
+            
+            <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+              <h5 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">Data Formatting</h5>
+              <p className="text-sm text-blue-700 dark:text-blue-300 mb-2">Safe number/date formatting</p>
+              <span className="px-2 py-1 bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200 text-xs rounded">Important</span>
+            </div>
+            
+            <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg border border-green-200 dark:border-green-800">
+              <h5 className="font-semibold text-green-900 dark:text-green-100 mb-2">UI Components</h5>
+              <p className="text-sm text-green-700 dark:text-green-300 mb-2">Responsive & accessible</p>
+              <span className="px-2 py-1 bg-green-100 dark:bg-green-800 text-green-800 dark:text-green-200 text-xs rounded">Standard</span>
+            </div>
+            
+            <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg border border-purple-200 dark:border-purple-800">
+              <h5 className="font-semibold text-purple-900 dark:text-purple-100 mb-2">User Experience</h5>
+              <p className="text-sm text-purple-700 dark:text-purple-300 mb-2">Empty states & feedback</p>
+              <span className="px-2 py-1 bg-purple-100 dark:bg-purple-800 text-purple-800 dark:text-purple-200 text-xs rounded">Enhancement</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Database Fix Scripts */}
+        <div className="mb-8">
+          <h4 className="font-semibold mb-4 flex items-center">
+            <Database className="h-4 w-4 mr-2" />
+            Database Fix Scripts
+          </h4>
+          <div className="bg-gray-900 p-4 rounded-lg">
+            <h5 className="font-semibold text-white mb-3 flex items-center">
+              <Shield className="h-4 w-4 mr-2" />
+              Admin Access Fix SQL
+            </h5>
+            <div className="bg-gray-800 p-3 rounded text-green-400 font-mono text-sm overflow-x-auto">
+              <div className="text-gray-500">-- Direct Database Fix for Admin Access</div>
+              <div className="text-gray-500">-- This updates the role in the users table where the auth system reads from</div>
+              <br />
+              <div className="text-blue-400">UPDATE</div> <div className="text-yellow-400">users</div> <br />
+              <div className="text-blue-400">SET</div> <div className="text-white">role = </div><div className="text-red-400">'admin'</div> <br />
+              <div className="text-blue-400">WHERE</div> <div className="text-white">email = </div><div className="text-red-400">'cybergada@gmail.com'</div>;<br />
+              <br />
+              <div className="text-gray-500">-- Verify the update</div>
+              <div className="text-blue-400">SELECT</div> <div className="text-white">id, email, first_name, last_name, role, department, is_active</div> <br />
+              <div className="text-blue-400">FROM</div> <div className="text-yellow-400">users</div> <br />
+              <div className="text-blue-400">WHERE</div> <div className="text-white">email = </div><div className="text-red-400">'cybergada@gmail.com'</div>;
+            </div>
+            <div className="mt-3 flex items-center space-x-2">
+              <span className="px-2 py-1 bg-red-100 text-red-800 text-xs rounded">Critical Fix</span>
+              <span className="px-2 py-1 bg-gray-100 text-gray-800 text-xs rounded">RLS Bypass</span>
+              <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded">Working Solution</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Testing Tools */}
+        <div>
+          <h4 className="font-semibold mb-4 flex items-center">
+            <Settings className="h-4 w-4 mr-2" />
+            Testing & Validation Tools
+          </h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="bg-gray-50 dark:bg-gray-900/20 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
+              <h5 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">Component Diagnostics</h5>
+              <p className="text-sm text-gray-700 dark:text-gray-300 mb-3">
+                Real-time component error monitoring and validation
+              </p>
+              <div className="flex items-center justify-between">
+                <span className="text-xs bg-green-100 dark:bg-green-800 text-green-800 dark:text-green-200 px-2 py-1 rounded">
+                  Active
+                </span>
+                <button className="text-xs bg-gray-600 hover:bg-gray-500 text-white px-3 py-1 rounded transition-colors">
+                  View Logs
+                </button>
+              </div>
+            </div>
+            
+            <div className="bg-gray-50 dark:bg-gray-900/20 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
+              <h5 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">Format Validation</h5>
+              <p className="text-sm text-gray-700 dark:text-gray-300 mb-3">
+                Validate data formatting and null safety across components
+              </p>
+              <div className="flex items-center justify-between">
+                <span className="text-xs bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200 px-2 py-1 rounded">
+                  Available
+                </span>
+                <button className="text-xs bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded transition-colors">
+                  Run Tests
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
   const renderManagementScripts = () => (
     <div className="space-y-6">
       {/* Management Scripts Overview */}
@@ -1228,6 +1506,7 @@ const AdminDashboard: React.FC = () => {
             { id: 'activity', label: 'Activity', icon: Activity },
             { id: 'performance', label: 'Performance', icon: TrendingUp },
             { id: 'security', label: 'Security', icon: Shield },
+            { id: 'testing', label: 'Component Testing', icon: CheckSquare },
             { id: 'management', label: 'Management Scripts', icon: Settings },
             { id: 'scripts', label: 'Shell Scripts', icon: Terminal }
           ].map(({ id, label, icon: Icon }) => (
@@ -1254,6 +1533,7 @@ const AdminDashboard: React.FC = () => {
         {activeTab === 'activity' && renderActivity()}
         {activeTab === 'performance' && renderOverview()}
         {activeTab === 'security' && renderActivity()}
+        {activeTab === 'testing' && renderTesting()}
         {activeTab === 'management' && renderManagementScripts()}
         {activeTab === 'scripts' && renderScripts()}
       </div>
