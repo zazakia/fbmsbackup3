@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Eye, EyeOff, Mail, Lock, AlertCircle } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, AlertCircle, UserPlus } from 'lucide-react';
 import { useSupabaseAuthStore } from '../../store/supabaseAuthStore';
 import { useSafeForm } from '../../hooks/useSafeForm';
 
@@ -9,6 +9,7 @@ interface LoginFormProps {
 
 const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister }) => {
   const [showPassword, setShowPassword] = useState(false);
+  const [showUnregisteredPrompt, setShowUnregisteredPrompt] = useState(false);
   const { login, isLoading, error, clearError } = useSupabaseAuthStore();
   
   const {
@@ -41,10 +42,8 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister }) => {
     } catch (error) {
       // Check if this is an unregistered user error
       if (error instanceof Error && error.message === 'UNREGISTERED_USER') {
-        // Show a helpful message and redirect to sign up
-        if (confirm('This email is not registered. Would you like to create a new account?')) {
-          onSwitchToRegister();
-        }
+        // Show a better UI prompt instead of browser confirm
+        setShowUnregisteredPrompt(true);
         return;
       }
       // Other errors are handled by the store
@@ -54,10 +53,22 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister }) => {
   const handleInputChange = (field: string, value: string) => {
     updateField(field, value);
     
-    // Clear auth error when user makes changes
+    // Clear auth error and unregistered prompt when user makes changes
     if (error) {
       clearError();
     }
+    if (showUnregisteredPrompt) {
+      setShowUnregisteredPrompt(false);
+    }
+  };
+
+  const handleCreateAccount = () => {
+    setShowUnregisteredPrompt(false);
+    onSwitchToRegister();
+  };
+
+  const handleCancelPrompt = () => {
+    setShowUnregisteredPrompt(false);
   };
 
   return (
@@ -190,6 +201,50 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister }) => {
         </div>
 
       </div>
+
+      {/* Unregistered User Prompt Modal */}
+      {showUnregisteredPrompt && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md mx-4">
+            <div className="flex items-center space-x-3 mb-4">
+              <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                <UserPlus className="h-5 w-5 text-blue-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Email Not Registered
+                </h3>
+                <p className="text-sm text-gray-600">
+                  This email address is not registered.
+                </p>
+              </div>
+            </div>
+            
+            <div className="mb-4">
+              <p className="text-sm text-gray-700">
+                The email <strong>{formData.email}</strong> is not registered in our system. 
+                Would you like to create a new account?
+              </p>
+            </div>
+            
+            <div className="flex space-x-3">
+              <button
+                onClick={handleCancelPrompt}
+                className="flex-1 px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCreateAccount}
+                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center"
+              >
+                <UserPlus className="h-4 w-4 mr-2" />
+                Create Account
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

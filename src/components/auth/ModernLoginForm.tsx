@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Mail, Lock, Eye, EyeOff, LogIn, Loader2, Github, AlertCircle, Shield } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, LogIn, Loader2, Github, AlertCircle, Shield, UserPlus } from 'lucide-react';
 import { useSupabaseAuthStore } from '../../store/supabaseAuthStore';
 import { useToastStore } from '../../store/toastStore';
 import { triggerAdminSetup } from '../../utils/setupAdmin';
@@ -16,6 +16,7 @@ const ModernLoginForm: React.FC<ModernLoginFormProps> = ({ onSwitchToRegister, o
   const [rememberMe, setRememberMe] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [socialLoading, setSocialLoading] = useState<string | null>(null);
+  const [showUnregisteredPrompt, setShowUnregisteredPrompt] = useState(false);
   
   const { 
     login, 
@@ -53,16 +54,8 @@ const ModernLoginForm: React.FC<ModernLoginFormProps> = ({ onSwitchToRegister, o
       
       // Check if this is an unregistered user error
       if (errorMessage === 'UNREGISTERED_USER') {
-        // Show helpful message and redirect to sign up
-        if (confirm('This email is not registered. Would you like to create a new account?')) {
-          onSwitchToRegister();
-        } else {
-          addToast({
-            type: 'info',
-            title: 'Registration Required',
-            message: 'This email is not registered. Please sign up first or use a different email.'
-          });
-        }
+        // Show better UI prompt instead of browser confirm
+        setShowUnregisteredPrompt(true);
         return;
       }
       
@@ -135,6 +128,16 @@ const ModernLoginForm: React.FC<ModernLoginFormProps> = ({ onSwitchToRegister, o
         form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
       }
     }, 100);
+  };
+
+  // Handle unregistered user prompt
+  const handleCreateAccount = () => {
+    setShowUnregisteredPrompt(false);
+    onSwitchToRegister();
+  };
+
+  const handleCancelPrompt = () => {
+    setShowUnregisteredPrompt(false);
   };
 
   // Admin account setup
@@ -377,6 +380,50 @@ const ModernLoginForm: React.FC<ModernLoginFormProps> = ({ onSwitchToRegister, o
           </p>
         </div>
       </div>
+
+      {/* Unregistered User Prompt Modal */}
+      {showUnregisteredPrompt && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-dark-800 rounded-lg shadow-xl p-6 w-full max-w-md mx-4">
+            <div className="flex items-center space-x-3 mb-4">
+              <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/20 rounded-full flex items-center justify-center">
+                <UserPlus className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                  Email Not Registered
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  This email address is not registered.
+                </p>
+              </div>
+            </div>
+            
+            <div className="mb-4">
+              <p className="text-sm text-gray-700 dark:text-gray-300">
+                The email <strong>{email}</strong> is not registered in our system. 
+                Would you like to create a new account?
+              </p>
+            </div>
+            
+            <div className="flex space-x-3">
+              <button
+                onClick={handleCancelPrompt}
+                className="flex-1 px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-dark-700 rounded-lg hover:bg-gray-200 dark:hover:bg-dark-600 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCreateAccount}
+                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center"
+              >
+                <UserPlus className="h-4 w-4 mr-2" />
+                Create Account
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

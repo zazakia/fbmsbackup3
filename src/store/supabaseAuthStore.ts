@@ -46,10 +46,16 @@ export const useSupabaseAuthStore = create<SupabaseAuthStore>()(
           });
 
           if (error) {
-            // Check if this is a "user not found" error
-            if (error.message.includes('Invalid login credentials') || 
-                error.message.includes('Email not confirmed') ||
-                error.message.includes('User not found')) {
+            // Handle different types of auth errors
+            if (error.message.includes('Invalid login credentials')) {
+              throw new Error('Invalid email or password. Please check your credentials and try again.');
+            }
+            if (error.message.includes('Email not confirmed')) {
+              throw new Error('Please check your email and click the confirmation link before signing in.');
+            }
+            if (error.message.includes('User not found') || 
+                error.message.includes('Signup not allowed') ||
+                error.message.includes('User does not exist')) {
               throw new Error('UNREGISTERED_USER');
             }
             throw new Error(error.message);
