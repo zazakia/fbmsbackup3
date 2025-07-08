@@ -1,83 +1,74 @@
 import React, { useState } from 'react';
-import { Eye, EyeOff, Mail, Lock, AlertCircle, Zap } from 'lucide-react';
-import { useAuthStore } from '../../store/authStore';
-import { validateEmail } from '../../utils/auth';
+import { Eye, EyeOff, Mail, Lock, AlertCircle, UserPlus } from 'lucide-react';
+import { useSupabaseAuthStore } from '../../store/supabaseAuthStore';
+import { useSafeForm } from '../../hooks/useSafeForm';
 
 interface LoginFormProps {
   onSwitchToRegister: () => void;
 }
 
 const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister }) => {
-  const [formData, setFormData] = useState({
+  const [showPassword, setShowPassword] = useState(false);
+  const [showUnregisteredPrompt, setShowUnregisteredPrompt] = useState(false);
+  const { login, isLoading, error, clearError } = useSupabaseAuthStore();
+  
+  const {
+    data: formData,
+    errors: validationErrors,
+    isValid,
+    updateField,
+    validate,
+    getFieldProps
+  } = useSafeForm({
     email: '',
     password: ''
   });
-  const [showPassword, setShowPassword] = useState(false);
-  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
-
-  const { login, isLoading, error, clearError } = useAuthStore();
-
-  const validateForm = (): boolean => {
-    const errors: Record<string, string> = {};
-
-    if (!formData.email) {
-      errors.email = 'Email is required';
-    } else if (!validateEmail(formData.email)) {
-      errors.email = 'Please enter a valid email address';
-    }
-
-    if (!formData.password) {
-      errors.password = 'Password is required';
-    }
-
-    setValidationErrors(errors);
-    return Object.keys(errors).length === 0;
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     clearError();
 
-    if (!validateForm()) {
+    if (!validate()) {
+      return;
+    }
+
+    // Additional validation for required fields
+    if (!formData.email || !formData.password) {
       return;
     }
 
     try {
       await login(formData);
     } catch (error) {
-      // Error is handled by the store
-    }
-  };
-
-  const handleIClick = async () => {
-    clearError();
-    setFormData({
-      email: 'admin@fbms.com',
-      password: 'admin123'
-    });
-    
-    try {
-      await login({
-        email: 'admin@fbms.com',
-        password: 'admin123'
-      });
-    } catch (error) {
-      // Error is handled by the store
+      // Check if this is an unregistered user error
+      if (error instanceof Error && error.message === 'UNREGISTERED_USER') {
+        // Show a better UI prompt instead of browser confirm
+        setShowUnregisteredPrompt(true);
+        return;
+      }
+      // Other errors are handled by the store
     }
   };
 
   const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    updateField(field, value);
     
-    // Clear validation error when user starts typing
-    if (validationErrors[field]) {
-      setValidationErrors(prev => ({ ...prev, [field]: '' }));
-    }
-    
-    // Clear auth error when user makes changes
+    // Clear auth error and unregistered prompt when user makes changes
     if (error) {
       clearError();
     }
+    if (showUnregisteredPrompt) {
+      setShowUnregisteredPrompt(false);
+    }
+  };
+
+  const handleCreateAccount = () => {
+    setShowUnregisteredPrompt(false);
+    onSwitchToRegister();
+  };
+
+  const handleCancelPrompt = () => {
+    setShowUnregisteredPrompt(false);
   };
 
   return (
@@ -92,46 +83,38 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister }) => {
         </div>
 
         {error && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center">
-            <AlertCircle className="h-5 w-5 text-red-500 mr-3" />
-            <span className="text-red-700 text-sm">{error}</span>
+          <div className={`mb-6 p-4 border rounded-lg flex items-center ${
+            error.includes('not registered') 
+              ? 'bg-blue-50 border-blue-200' 
+              : 'bg-red-50 border-red-200'
+          }`}>
+            <AlertCircle className={`h-5 w-5 mr-3 ${
+              error.includes('not registered') 
+                ? 'text-blue-500' 
+                : 'text-red-500'
+            }`} />
+            <div className="flex-1">
+              <span className={`text-sm ${
+                error.includes('not registered') 
+                  ? 'text-blue-700' 
+                  : 'text-red-700'
+              }`}>
+                {error}
+              </span>
+              {error.includes('not registered') && (
+                <div className="mt-2">
+                  <button
+                    onClick={onSwitchToRegister}
+                    className="text-blue-600 hover:text-blue-700 font-medium text-sm underline"
+                  >
+                    Create your account here →
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
-        {/* I Click Button */}
-        <div className="mb-6">
-          <button
-            type="button"
-            onClick={handleIClick}
-            disabled={isLoading}
-            className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white py-3 px-4 rounded-lg font-medium hover:from-green-600 hover:to-emerald-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
-          >
-            {isLoading ? (
-              <div className="flex items-center justify-center">
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                Signing In...
-              </div>
-            ) : (
-              <>
-                <Zap className="h-5 w-5 mr-2" />
-                I Click - Quick Login
-              </>
-            )}
-          </button>
-          <p className="text-xs text-gray-500 text-center mt-2">
-            Instantly login with demo credentials
-          </p>
-        </div>
-
-        {/* Divider */}
-        <div className="relative mb-6">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-gray-300" />
-          </div>
-          <div className="relative flex justify-center text-sm">
-            <span className="px-2 bg-white text-gray-500">Or sign in manually</span>
-          </div>
-        </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
@@ -153,7 +136,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister }) => {
               />
             </div>
             {validationErrors.email && (
-              <p className="mt-1 text-sm text-red-600">{validationErrors.email}</p>
+              <p id="email-error" className="mt-1 text-sm text-red-600">{validationErrors.email}</p>
             )}
           </div>
 
@@ -179,12 +162,13 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister }) => {
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
                 disabled={isLoading}
+                tabIndex={-1}
               >
                 {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
               </button>
             </div>
             {validationErrors.password && (
-              <p className="mt-1 text-sm text-red-600">{validationErrors.password}</p>
+              <p id="password-error" className="mt-1 text-sm text-red-600">{validationErrors.password}</p>
             )}
           </div>
 
@@ -217,15 +201,51 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister }) => {
           </p>
         </div>
 
-        <div className="mt-6 pt-6 border-t border-gray-200">
-          <div className="text-center">
-            <p className="text-sm text-gray-500 mb-2">Demo Credentials:</p>
-            <p className="text-xs text-gray-400">
-              Email: admin@fbms.com | Password: admin123
-            </p>
+      </div>
+
+      {/* Unregistered User Prompt Modal */}
+      {showUnregisteredPrompt && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md mx-4">
+            <div className="flex items-center space-x-3 mb-4">
+              <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                <UserPlus className="h-5 w-5 text-blue-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Email Not Registered
+                </h3>
+                <p className="text-sm text-gray-600">
+                  This email address is not registered.
+                </p>
+              </div>
+            </div>
+            
+            <div className="mb-4">
+              <p className="text-sm text-gray-700">
+                The email <strong>{formData.email}</strong> is not registered in our system. 
+                Would you like to create a new account?
+              </p>
+            </div>
+            
+            <div className="flex space-x-3">
+              <button
+                onClick={handleCancelPrompt}
+                className="flex-1 px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCreateAccount}
+                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center"
+              >
+                <UserPlus className="h-4 w-4 mr-2" />
+                Create Account
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff, User, Mail, Lock, Building, AlertCircle, CheckCircle } from 'lucide-react';
-import { useAuthStore } from '../../store/authStore';
+import { useSupabaseAuthStore } from '../../store/supabaseAuthStore';
 import { validateEmail, validatePassword, validateName } from '../../utils/auth';
 
 interface RegisterFormProps {
@@ -20,7 +20,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
 
-  const { register, isLoading, error, clearError } = useAuthStore();
+  const { register, isLoading, error, clearError } = useSupabaseAuthStore();
 
   const validateForm = (): boolean => {
     const errors: Record<string, string> = {};

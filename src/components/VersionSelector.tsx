@@ -1,7 +1,5 @@
 import React, { useState } from 'react';
 import { 
-  ToggleLeft, 
-  ToggleRight, 
   Zap, 
   Star, 
   Settings, 
@@ -12,8 +10,7 @@ import {
   ShoppingCart,
   Calculator,
   Receipt,
-  BarChart3,
-  CreditCard
+  BarChart3
 } from 'lucide-react';
 
 interface VersionSelectorProps {

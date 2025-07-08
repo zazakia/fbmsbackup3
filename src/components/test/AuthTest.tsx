@@ -12,7 +12,7 @@ import {
   Key
 } from 'lucide-react';
 import { useToastStore } from '../../store/toastStore';
-import { useAuthStore } from '../../store/authStore';
+import { useSupabaseAuthStore } from '../../store/supabaseAuthStore';
 
 interface TestResult {
   name: string;
@@ -28,32 +28,38 @@ const AuthTest: React.FC = () => {
   const [authState, setAuthState] = useState<any>({});
   
   const { addToast } = useToastStore();
-  const { user, login, logout } = useAuthStore();
+  const { user, signIn, signOut } = useSupabaseAuthStore();
 
   const mockUsers = [
     {
       id: '1',
-      firstName: 'Admin',
-      lastName: 'User',
       email: 'admin@fbms.com',
       password: 'admin123',
-      role: 'admin' as const
+      user_metadata: {
+        first_name: 'Admin',
+        last_name: 'User',
+        role: 'admin'
+      }
     },
     {
       id: '2',
-      firstName: 'Manager',
-      lastName: 'User',
       email: 'manager@fbms.com',
       password: 'manager123',
-      role: 'manager' as const
+      user_metadata: {
+        first_name: 'Manager',
+        last_name: 'User',
+        role: 'manager'
+      }
     },
     {
       id: '3',
-      firstName: 'Cashier',
-      lastName: 'User',
       email: 'cashier@fbms.com',
       password: 'cashier123',
-      role: 'cashier' as const
+      user_metadata: {
+        first_name: 'Cashier',
+        last_name: 'User',
+        role: 'cashier'
+      }
     }
   ];
 
@@ -581,7 +587,7 @@ const AuthTest: React.FC = () => {
                     <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
                       <span className="text-sm font-medium text-gray-700 dark:text-gray-300">User:</span>
                       <span className="text-sm text-gray-900 dark:text-gray-100">
-                        {authState.user.firstName} {authState.user.lastName}
+                        {authState.user.user_metadata?.first_name || authState.user.firstName} {authState.user.user_metadata?.last_name || authState.user.lastName}
                       </span>
                     </div>
                     
@@ -595,7 +601,7 @@ const AuthTest: React.FC = () => {
                     <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
                       <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Role:</span>
                       <span className="px-2 py-1 text-xs rounded-full bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200">
-                        {authState.user.role}
+                        {authState.user.user_metadata?.role || authState.user.role || 'N/A'}
                       </span>
                     </div>
                   </>

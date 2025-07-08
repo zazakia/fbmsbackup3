@@ -1,8 +1,10 @@
 // Comprehensive validation utilities for FBMS
+import { sanitizeInput, sanitizeEmail, validatePassword } from './authSecurity';
 
 export interface ValidationResult {
   isValid: boolean;
   errors: Record<string, string>;
+  warnings?: Record<string, string>;
 }
 
 export interface ValidationRule {
@@ -11,7 +13,14 @@ export interface ValidationRule {
   minLength?: number;
   maxLength?: number;
   pattern?: RegExp;
-  custom?: (value: any) => string | null;
+  custom?: (value: unknown) => string | null;
+  sanitize?: boolean;
+}
+
+export interface FormValidationOptions {
+  sanitizeInputs?: boolean;
+  strictMode?: boolean;
+  fieldLabels?: Record<string, string>;
 }
 
 // Email validation
@@ -53,56 +62,210 @@ export const validatePagIBIG = (pagibig: string): boolean => {
   return pagibigRegex.test(pagibig);
 };
 
-// Generic field validator
-export const validateField = (value: any, rules: ValidationRule): string | null => {
-  const { required, minLength, maxLength, pattern, custom } = rules;
+// Enhanced field validator with sanitization
+export const validateField = (value: unknown, rules: ValidationRule, options?: FormValidationOptions): { error: string | null; sanitizedValue?: unknown } => {
+  const { required, minLength, maxLength, pattern, custom, sanitize } = rules;
+  let processedValue = value;
+
+  // Sanitize input if requested
+  if ((sanitize || options?.sanitizeInputs) && typeof value === 'string') {
+    if (rules.field === 'email') {
+      processedValue = sanitizeEmail(value);
+    } else {
+      processedValue = sanitizeInput(value);
+    }
+  }
 
   // Check if required
-  if (required && (!value || value.toString().trim() === '')) {
-    return `${rules.field} is required`;
+  if (required && (!processedValue || processedValue.toString().trim() === '')) {
+    const fieldLabel = options?.fieldLabels?.[rules.field] || rules.field;
+    return { error: `${fieldLabel} is required` };
   }
 
   // If not required and empty, skip other validations
-  if (!value || value.toString().trim() === '') {
-    return null;
+  if (!processedValue || processedValue.toString().trim() === '') {
+    return { error: null, sanitizedValue: processedValue };
   }
 
-  const stringValue = value.toString();
+  const stringValue = processedValue.toString();
 
   // Check minimum length
   if (minLength && stringValue.length < minLength) {
-    return `${rules.field} must be at least ${minLength} characters`;
+    const fieldLabel = options?.fieldLabels?.[rules.field] || rules.field;
+    return { error: `${fieldLabel} must be at least ${minLength} characters` };
   }
 
   // Check maximum length
   if (maxLength && stringValue.length > maxLength) {
-    return `${rules.field} must not exceed ${maxLength} characters`;
+    const fieldLabel = options?.fieldLabels?.[rules.field] || rules.field;
+    return { error: `${fieldLabel} must not exceed ${maxLength} characters` };
   }
 
   // Check pattern
   if (pattern && !pattern.test(stringValue)) {
-    return `${rules.field} format is invalid`;
+    const fieldLabel = options?.fieldLabels?.[rules.field] || rules.field;
+    return { error: `${fieldLabel} format is invalid` };
   }
 
   // Custom validation
   if (custom) {
-    return custom(value);
+    const customError = custom(processedValue);
+    if (customError) {
+      return { error: customError };
+    }
+  }
+
+  return { error: null, sanitizedValue: processedValue };
+};
+
+// Enhanced numeric validation
+export const validateNumeric = (value: unknown, field: string, options?: { 
+  min?: number; 
+  max?: number; 
+  integer?: boolean;
+  precision?: number;
+}): string | null => {
+  if (value === null || value === undefined || value === '') {
+    return null; // Let required validation handle empty values
+  }
+
+  const numValue = typeof value === 'string' ? parseFloat(value) : value;
+
+  if (isNaN(numValue)) {
+    return `${field} must be a valid number`;
+  }
+
+  if (options?.integer && !Number.isInteger(numValue)) {
+    return `${field} must be a whole number`;
+  }
+
+  if (options?.min !== undefined && numValue < options.min) {
+    return `${field} must be at least ${options.min}`;
+  }
+
+  if (options?.max !== undefined && numValue > options.max) {
+    return `${field} must not exceed ${options.max}`;
+  }
+
+  if (options?.precision !== undefined) {
+    const decimalPlaces = (numValue.toString().split('.')[1] || '').length;
+    if (decimalPlaces > options.precision) {
+      return `${field} can have at most ${options.precision} decimal places`;
+    }
   }
 
   return null;
 };
 
-// Validate object against multiple rules
-export const validateObject = (data: Record<string, any>, rules: ValidationRule[]): ValidationResult => {
+// Date validation
+export const validateDate = (value: unknown, field: string, options?: {
+  minDate?: Date;
+  maxDate?: Date;
+  futureOnly?: boolean;
+  pastOnly?: boolean;
+}): string | null => {
+  if (!value) {
+    return null; // Let required validation handle empty values
+  }
+
+  const date = new Date(value);
+  
+  if (isNaN(date.getTime())) {
+    return `${field} must be a valid date`;
+  }
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  if (options?.futureOnly && date <= today) {
+    return `${field} must be a future date`;
+  }
+
+  if (options?.pastOnly && date > today) {
+    return `${field} cannot be a future date`;
+  }
+
+  if (options?.minDate && date < options.minDate) {
+    return `${field} must be after ${options.minDate.toLocaleDateString()}`;
+  }
+
+  if (options?.maxDate && date > options.maxDate) {
+    return `${field} must be before ${options.maxDate.toLocaleDateString()}`;
+  }
+
+  return null;
+};
+
+// Enhanced object validation with sanitization
+export const validateObject = (
+  data: Record<string, unknown>, 
+  rules: ValidationRule[], 
+  options?: FormValidationOptions
+): ValidationResult => {
   const errors: Record<string, string> = {};
+  const warnings: Record<string, string> = {};
+  const sanitizedData: Record<string, unknown> = {};
 
   rules.forEach(rule => {
     const value = data[rule.field];
-    const error = validateField(value, rule);
-    if (error) {
-      errors[rule.field] = error;
+    const result = validateField(value, rule, options);
+    
+    if (result.error) {
+      errors[rule.field] = result.error;
+    }
+    
+    if (result.sanitizedValue !== undefined) {
+      sanitizedData[rule.field] = result.sanitizedValue;
     }
   });
+
+  // Add warnings for security concerns
+  if (options?.strictMode) {
+    for (const [field, value] of Object.entries(data)) {
+      if (typeof value === 'string') {
+        // Check for potential XSS patterns
+        if (/<script|javascript:|on\w+=/i.test(value)) {
+          warnings[field] = 'Potentially unsafe content detected';
+        }
+        
+        // Check for SQL injection patterns
+        if (/(\b(union|select|insert|update|delete|drop|exec|sp_)\b|--|\/\*|\*\/)/i.test(value)) {
+          warnings[field] = 'Potentially unsafe SQL patterns detected';
+        }
+      }
+    }
+  }
+
+  return {
+    isValid: Object.keys(errors).length === 0,
+    errors,
+    warnings: Object.keys(warnings).length > 0 ? warnings : undefined,
+    sanitizedData: options?.sanitizeInputs ? sanitizedData : undefined
+  };
+};
+
+// Authentication-specific validation
+export const validateAuthData = (data: { email: string; password: string }): ValidationResult => {
+  const errors: Record<string, string> = {};
+
+  // Email validation
+  if (!data.email) {
+    errors.email = 'Email is required';
+  } else if (!validateEmail(data.email)) {
+    errors.email = 'Invalid email format';
+  } else if (data.email.length > 320) {
+    errors.email = 'Email is too long';
+  }
+
+  // Password validation
+  if (!data.password) {
+    errors.password = 'Password is required';
+  } else {
+    const passwordValidation = validatePassword(data.password);
+    if (!passwordValidation.isValid) {
+      errors.password = passwordValidation.errors.join(', ');
+    }
+  }
 
   return {
     isValid: Object.keys(errors).length === 0,
@@ -110,94 +273,180 @@ export const validateObject = (data: Record<string, any>, rules: ValidationRule[
   };
 };
 
-// Customer validation rules
+// Registration data validation
+export const validateRegistrationData = (data: {
+  email: string;
+  password: string;
+  confirmPassword: string;
+  firstName: string;
+  lastName: string;
+  role?: string;
+}): ValidationResult => {
+  const errors: Record<string, string> = {};
+
+  // Basic auth validation
+  const authValidation = validateAuthData(data);
+  Object.assign(errors, authValidation.errors);
+
+  // Confirm password
+  if (!data.confirmPassword) {
+    errors.confirmPassword = 'Please confirm your password';
+  } else if (data.password !== data.confirmPassword) {
+    errors.confirmPassword = 'Passwords do not match';
+  }
+
+  // First name
+  if (!data.firstName) {
+    errors.firstName = 'First name is required';
+  } else if (data.firstName.length < 2) {
+    errors.firstName = 'First name must be at least 2 characters';
+  } else if (data.firstName.length > 50) {
+    errors.firstName = 'First name must not exceed 50 characters';
+  } else if (!/^[a-zA-Z\s\u00C0-\u017F]+$/.test(data.firstName)) {
+    errors.firstName = 'First name can only contain letters and spaces';
+  }
+
+  // Last name
+  if (!data.lastName) {
+    errors.lastName = 'Last name is required';
+  } else if (data.lastName.length < 2) {
+    errors.lastName = 'Last name must be at least 2 characters';
+  } else if (data.lastName.length > 50) {
+    errors.lastName = 'Last name must not exceed 50 characters';
+  } else if (!/^[a-zA-Z\s\u00C0-\u017F]+$/.test(data.lastName)) {
+    errors.lastName = 'Last name can only contain letters and spaces';
+  }
+
+  // Role validation (if provided)
+  if (data.role) {
+    const validRoles = ['admin', 'manager', 'cashier', 'accountant'];
+    if (!validRoles.includes(data.role)) {
+      errors.role = 'Invalid role selected';
+    }
+  }
+
+  return {
+    isValid: Object.keys(errors).length === 0,
+    errors
+  };
+};
+
+// Enhanced customer validation rules
 export const customerValidationRules: ValidationRule[] = [
   {
     field: 'firstName',
     required: true,
     minLength: 2,
     maxLength: 50,
-    pattern: /^[a-zA-Z\s]+$/
+    pattern: /^[a-zA-Z\s\u00C0-\u017F]+$/,
+    sanitize: true
   },
   {
     field: 'lastName',
     required: true,
     minLength: 2,
     maxLength: 50,
-    pattern: /^[a-zA-Z\s]+$/
+    pattern: /^[a-zA-Z\s\u00C0-\u017F]+$/,
+    sanitize: true
   },
   {
     field: 'email',
     required: false,
+    maxLength: 320,
+    sanitize: true,
     custom: (value) => value && !validateEmail(value) ? 'Invalid email format' : null
   },
   {
     field: 'phone',
     required: false,
+    maxLength: 20,
+    sanitize: true,
     custom: (value) => value && !validatePhilippinePhone(value) ? 'Invalid Philippine phone number format' : null
+  },
+  {
+    field: 'address',
+    required: false,
+    maxLength: 500,
+    sanitize: true
+  },
+  {
+    field: 'company',
+    required: false,
+    maxLength: 100,
+    sanitize: true
   },
   {
     field: 'creditLimit',
     required: false,
-    custom: (value) => {
-      if (value !== undefined && value !== null && (isNaN(value) || value < 0)) {
-        return 'Credit limit must be a positive number';
-      }
-      return null;
-    }
+    custom: (value) => validateNumeric(value, 'Credit limit', { min: 0, max: 999999.99, precision: 2 })
   }
 ];
 
-// Product validation rules
+// Enhanced product validation rules
 export const productValidationRules: ValidationRule[] = [
   {
     field: 'name',
     required: true,
     minLength: 2,
-    maxLength: 100
+    maxLength: 200,
+    sanitize: true
+  },
+  {
+    field: 'description',
+    required: false,
+    maxLength: 1000,
+    sanitize: true
   },
   {
     field: 'sku',
     required: true,
     minLength: 3,
     maxLength: 50,
-    pattern: /^[A-Z0-9-]+$/
+    pattern: /^[A-Z0-9-_]+$/,
+    custom: (value) => {
+      if (value && typeof value === 'string') {
+        return value.toUpperCase() === value ? null : 'SKU must be uppercase';
+      }
+      return null;
+    }
   },
   {
     field: 'category',
     required: true,
     minLength: 2,
-    maxLength: 50
+    maxLength: 100,
+    sanitize: true
+  },
+  {
+    field: 'unit',
+    required: false,
+    maxLength: 20,
+    sanitize: true
   },
   {
     field: 'price',
     required: true,
-    custom: (value) => {
-      if (isNaN(value) || value < 0) {
-        return 'Price must be a positive number';
-      }
-      return null;
-    }
+    custom: (value) => validateNumeric(value, 'Price', { min: 0, max: 999999.99, precision: 2 })
   },
   {
     field: 'cost',
-    required: true,
-    custom: (value) => {
-      if (isNaN(value) || value < 0) {
-        return 'Cost must be a positive number';
-      }
-      return null;
-    }
+    required: false,
+    custom: (value) => validateNumeric(value, 'Cost', { min: 0, max: 999999.99, precision: 2 })
   },
   {
-    field: 'stock',
+    field: 'quantity',
     required: true,
-    custom: (value) => {
-      if (!Number.isInteger(Number(value)) || value < 0) {
-        return 'Stock must be a non-negative integer';
-      }
-      return null;
-    }
+    custom: (value) => validateNumeric(value, 'Quantity', { min: 0, max: 999999, integer: true })
+  },
+  {
+    field: 'minStock',
+    required: false,
+    custom: (value) => validateNumeric(value, 'Minimum stock', { min: 0, max: 999999, integer: true })
+  },
+  {
+    field: 'maxStock',
+    required: false,
+    custom: (value) => validateNumeric(value, 'Maximum stock', { min: 0, max: 999999, integer: true })
   }
 ];
 

@@ -18,7 +18,7 @@ const EmployeeList: React.FC<EmployeeListProps> = ({ onEdit, onDelete, onViewDet
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
   const filteredEmployees = useMemo(() => {
-    let filtered = employees.filter(employee => {
+    const filtered = employees.filter(employee => {
       const matchesSearch = 
         employee.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         employee.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||

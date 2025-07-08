@@ -4,13 +4,13 @@ export interface User {
   firstName: string;
   lastName: string;
   role: UserRole;
-  businessId: string;
+  department?: string;
   isActive: boolean;
   createdAt: Date;
   lastLogin?: Date;
 }
 
-export type UserRole = 'admin' | 'manager' | 'cashier' | 'accountant';
+export type UserRole = 'admin' | 'manager' | 'cashier' | 'accountant' | 'employee';
 
 export interface AuthState {
   user: User | null;
@@ -29,6 +29,6 @@ export interface RegisterData {
   password: string;
   firstName: string;
   lastName: string;
-  businessName: string;
   role?: UserRole;
+  department?: string;
 }

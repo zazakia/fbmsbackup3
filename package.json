@@ -18,12 +18,20 @@
     "git:deploy": "./scripts/git-workflow.sh --deploy",
     "deploy": "npm run build && netlify deploy --prod --dir=dist",
     "deploy:build": "npm run build",
-    "deploy:netlify": "netlify deploy --prod --dir=dist"
+    "deploy:all": "./scripts/deploy.sh",
+    "deploy:quick": "./scripts/deploy.sh",
+    "deploy:netlify": "netlify deploy --prod --dir=dist",
+    "deploy:staging": "./scripts/deploy-staging.sh",
+    "deploy:production": "./scripts/deploy-production.sh",
+    "deploy:staging:msg": "./scripts/deploy-staging.sh",
+    "deploy:production:msg": "./scripts/deploy-production.sh"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.50.2",
     "@types/recharts": "^2.0.1",
     "date-fns": "^2.30.0",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^3.0.1",
     "lucide-react": "^0.344.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",

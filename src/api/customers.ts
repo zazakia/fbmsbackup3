@@ -304,7 +304,7 @@ export async function deleteCustomer(id: string) {
 
 // Customer Contact Management
 
-export async function createCustomerContact(contact: Omit<CustomerContact, 'id' | 'createdAt'>) {
+export async function createCustomerContact(_contact: Omit<CustomerContact, 'id' | 'createdAt'>) {
   try {
     console.warn('Customer contacts functionality not implemented - table may not exist');
     return {
@@ -316,7 +316,7 @@ export async function createCustomerContact(contact: Omit<CustomerContact, 'id' 
   }
 }
 
-export async function getCustomerContacts(customerId: string) {
+export async function getCustomerContacts(_customerId: string) {
   try {
     console.warn('Customer contacts functionality not implemented - table may not exist');
     return {
@@ -433,7 +433,7 @@ function transformCustomerFromDB(data: Record<string, unknown>): Customer {
   };
 }
 
-function transformContactFromDB(data: Record<string, unknown>): CustomerContact {
+function _transformContactFromDB(data: Record<string, unknown>): CustomerContact {
   return {
     id: data.id as string,
     customerId: data.customer_id as string,
@@ -447,7 +447,7 @@ function transformContactFromDB(data: Record<string, unknown>): CustomerContact 
   };
 }
 
-function getLoyaltyTier(points: number): string {
+function _getLoyaltyTier(points: number): string {
   if (points >= 10000) return 'Platinum';
   if (points >= 5000) return 'Gold';
   if (points >= 1000) return 'Silver';

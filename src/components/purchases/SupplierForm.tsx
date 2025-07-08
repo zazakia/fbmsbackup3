@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Save, Building } from 'lucide-react';
 import { useBusinessStore } from '../../store/businessStore';
+import { createSupplier, updateSupplier as updateSupplierAPI, getSupplier as getSupplierAPI } from '../../api/purchases';
 
 interface SupplierFormProps {
   supplierId?: string | null;
@@ -8,7 +9,7 @@ interface SupplierFormProps {
 }
 
 const SupplierForm: React.FC<SupplierFormProps> = ({ supplierId, onClose }) => {
-  const { suppliers, addSupplier, updateSupplier, getSupplier } = useBusinessStore();
+  const { suppliers, addSupplier, updateSupplier } = useBusinessStore();
   
   const [formData, setFormData] = useState({
     name: '',
@@ -22,24 +23,39 @@ const SupplierForm: React.FC<SupplierFormProps> = ({ supplierId, onClose }) => {
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (supplierId) {
-      const supplier = getSupplier(supplierId);
-      if (supplier) {
-        setFormData({
-          name: supplier.name,
-          contactPerson: supplier.contactPerson || '',
-          email: supplier.email || '',
-          phone: supplier.phone || '',
-          address: supplier.address || '',
-          city: supplier.city || '',
-          province: supplier.province || '',
-          zipCode: supplier.zipCode || ''
-        });
+    const loadSupplier = async () => {
+      if (supplierId) {
+        setLoading(true);
+        try {
+          const { data: supplier, error } = await getSupplierAPI(supplierId);
+          if (supplier && !error) {
+            setFormData({
+              name: supplier.name,
+              contactPerson: supplier.contactPerson || '',
+              email: supplier.email || '',
+              phone: supplier.phone || '',
+              address: supplier.address || '',
+              city: supplier.city || '',
+              province: supplier.province || '',
+              zipCode: supplier.zipCode || ''
+            });
+          } else {
+            console.error('Failed to load supplier:', error);
+          }
+        } catch (error) {
+          console.error('Error loading supplier:', error);
+        } finally {
+          setLoading(false);
+        }
       }
-    }
-  }, [supplierId, getSupplier]);
+    };
+
+    loadSupplier();
+  }, [supplierId]);
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -68,32 +84,59 @@ const SupplierForm: React.FC<SupplierFormProps> = ({ supplierId, onClose }) => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!validateForm()) {
       return;
     }
 
-    const supplierData = {
-      name: formData.name.trim(),
-      contactPerson: formData.contactPerson.trim() || undefined,
-      email: formData.email.trim() || undefined,
-      phone: formData.phone.trim() || undefined,
-      address: formData.address.trim() || undefined,
-      city: formData.city.trim() || undefined,
-      province: formData.province.trim() || undefined,
-      zipCode: formData.zipCode.trim() || undefined,
-      isActive: true
-    };
+    setSaving(true);
+    
+    try {
+      const supplierData = {
+        name: formData.name.trim(),
+        contactPerson: formData.contactPerson.trim() || undefined,
+        email: formData.email.trim() || undefined,
+        phone: formData.phone.trim() || undefined,
+        address: formData.address.trim() || undefined,
+        city: formData.city.trim() || undefined,
+        province: formData.province.trim() || undefined,
+        zipCode: formData.zipCode.trim() || undefined,
+        isActive: true
+      };
 
-    if (supplierId) {
-      updateSupplier(supplierId, supplierData);
-    } else {
-      addSupplier(supplierData);
+      if (supplierId) {
+        // Update existing supplier
+        const { error } = await updateSupplierAPI(supplierId, supplierData);
+        if (error) {
+          console.error('Failed to update supplier:', error);
+          setErrors({ submit: 'Failed to update supplier' });
+          return;
+        }
+        
+        // Also update local store
+        updateSupplier(supplierId, supplierData);
+      } else {
+        // Create new supplier
+        const { error } = await createSupplier(supplierData);
+        if (error) {
+          console.error('Failed to create supplier:', error);
+          setErrors({ submit: 'Failed to create supplier' });
+          return;
+        }
+        
+        // Also add to local store
+        addSupplier(supplierData);
+      }
+
+      onClose();
+    } catch (error) {
+      console.error('Error saving supplier:', error);
+      setErrors({ submit: 'An error occurred while saving' });
+    } finally {
+      setSaving(false);
     }
-
-    onClose();
   };
 
   const handleInputChange = (field: string, value: string) => {
@@ -114,7 +157,7 @@ const SupplierForm: React.FC<SupplierFormProps> = ({ supplierId, onClose }) => {
             <div className="flex items-center">
               <Building className="h-6 w-6 text-blue-600 mr-3" />
               <h2 className="text-xl font-semibold text-gray-900">
-                {supplierId ? 'Edit Supplier' : 'Add New Supplier'}
+                {loading ? 'Loading...' : supplierId ? 'Edit Supplier' : 'Add New Supplier'}
               </h2>
             </div>
             <button
@@ -195,6 +238,9 @@ const SupplierForm: React.FC<SupplierFormProps> = ({ supplierId, onClose }) => {
               {errors.email && (
                 <p className="mt-1 text-sm text-red-600">{errors.email}</p>
               )}
+              {errors.submit && (
+                <p className="mt-1 text-sm text-red-600">{errors.submit}</p>
+              )}
             </div>
 
             <div className="md:col-span-2">
@@ -261,10 +307,11 @@ const SupplierForm: React.FC<SupplierFormProps> = ({ supplierId, onClose }) => {
             </button>
             <button
               type="submit"
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center"
+              disabled={saving || loading}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Save className="h-4 w-4 mr-2" />
-              {supplierId ? 'Update' : 'Add'} Supplier
+              {saving ? 'Saving...' : supplierId ? 'Update' : 'Add'} Supplier
             </button>
           </div>
         </form>

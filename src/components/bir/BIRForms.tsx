@@ -1,7 +1,11 @@
 import React, { useState } from 'react';
 import { useBusinessStore } from '../../store/businessStore';
+import { BIRPDFGenerator, BIRFormData } from '../../utils/pdfGenerator';
+import { formatCurrency } from '../../utils/formatters';
+import { useSecurity } from '../../hooks/useSecurity';
+import { FileDown, Loader2 } from 'lucide-react';
 
-interface BIRFormData {
+interface LocalBIRFormData {
   formType: string;
   period: string;
   businessName: string;
@@ -14,9 +18,11 @@ interface BIRFormData {
 
 const BIRForms: React.FC = () => {
   const { sales, journalEntries, products, customers } = useBusinessStore();
+  const { rateLimits } = useSecurity();
   const [selectedForm, setSelectedForm] = useState<string>('vat');
   const [formPeriod, setFormPeriod] = useState<string>('monthly');
   const [reportingPeriod, setReportingPeriod] = useState<string>('current');
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState<boolean>(false);
 
   // Business information (should come from settings/store)
   const businessInfo = {
@@ -49,13 +55,13 @@ const BIRForms: React.FC = () => {
     const vatInput = totalSales * 0.08; // Estimated VAT input
     
     return {
-      grossSales: totalSales,
-      vatOutput,
-      vatInput,
-      vatPayable: vatOutput - vatInput,
+      grossSales: totalSales || 0,
+      vatOutput: vatOutput || 0,
+      vatInput: vatInput || 0,
+      vatPayable: (vatOutput || 0) - (vatInput || 0),
       zeroRatedSales: 0,
       exemptSales: 0,
-      totalSales: totalSales
+      totalSales: totalSales || 0
     };
   };
 
@@ -73,9 +79,11 @@ const BIRForms: React.FC = () => {
              entry.account.includes('Withholding');
     });
 
+    const totalPayments = periodEntries.reduce((sum, entry) => sum + (entry.amount || 0), 0);
+    
     return {
-      totalPayments: periodEntries.reduce((sum, entry) => sum + entry.amount, 0),
-      withholdingTax: periodEntries.reduce((sum, entry) => sum + entry.amount, 0) * 0.02, // 2% rate
+      totalPayments: totalPayments || 0,
+      withholdingTax: (totalPayments || 0) * 0.02, // 2% rate
       entries: periodEntries
     };
   };
@@ -99,23 +107,23 @@ const BIRForms: React.FC = () => {
 
     const revenue = quarterEntries
       .filter(entry => entry.account.includes('Revenue'))
-      .reduce((sum, entry) => sum + entry.amount, 0);
+      .reduce((sum, entry) => sum + (entry.amount || 0), 0);
     
     const expenses = quarterEntries
       .filter(entry => entry.account.includes('Expense'))
-      .reduce((sum, entry) => sum + entry.amount, 0);
+      .reduce((sum, entry) => sum + (entry.amount || 0), 0);
 
-    const netIncome = revenue - expenses;
+    const netIncome = (revenue || 0) - (expenses || 0);
     const estimatedTax = Math.max(0, netIncome * 0.25); // 25% corporate tax rate
 
     return {
       quarter: currentQuarter,
-      grossIncome: revenue,
-      deductions: expenses,
-      netIncome,
-      estimatedTax,
+      grossIncome: revenue || 0,
+      deductions: expenses || 0,
+      netIncome: netIncome || 0,
+      estimatedTax: estimatedTax || 0,
       previousQuarterTax: 0,
-      taxDue: estimatedTax
+      taxDue: estimatedTax || 0
     };
   };
 
@@ -128,20 +136,20 @@ const BIRForms: React.FC = () => {
         lastName: 'Santos',
         firstName: 'Juan',
         middleName: 'Dela Cruz',
-        grossCompensation: 25000,
+        grossCompensation: 25000 || 0,
         nonTaxableCompensation: 0,
-        taxableCompensation: 25000,
-        withholdingTax: 2500
+        taxableCompensation: 25000 || 0,
+        withholdingTax: 2500 || 0
       },
       {
         tin: '123-456-789-002',
         lastName: 'Garcia',
         firstName: 'Maria',
         middleName: 'Santos',
-        grossCompensation: 30000,
+        grossCompensation: 30000 || 0,
         nonTaxableCompensation: 0,
-        taxableCompensation: 30000,
-        withholdingTax: 3000
+        taxableCompensation: 30000 || 0,
+        withholdingTax: 3000 || 0
       }
     ];
   };
@@ -151,10 +159,74 @@ const BIRForms: React.FC = () => {
   const incomeTaxData = generateIncomeTaxData();
   const alphalistData = generateAlphalistData();
 
-  const exportToPDF = (formType: string, data: any) => {
-    // This would integrate with a PDF library like jsPDF
-    console.log(`Exporting ${formType} to PDF:`, data);
-    alert(`${formType} form exported successfully!`);
+  const exportToPDF = async (formType: string, data: any) => {
+    setIsGeneratingPDF(true);
+    try {
+      // Check PDF generation rate limit
+      rateLimits.pdf.enforceLimit();
+      const currentDate = new Date();
+      const formData: BIRFormData = {
+        businessName: businessInfo.name,
+        businessAddress: businessInfo.address,
+        tin: businessInfo.tin,
+        rdoCode: '001', // Should come from business settings
+        taxPeriod: currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+      };
+
+      let pdfBlob: Blob;
+      let filename: string;
+
+      switch (formType.toLowerCase()) {
+        case 'vat':
+          formData.grossSales = data.grossSales;
+          formData.exemptSales = data.exemptSales;
+          formData.zeroRatedSales = data.zeroRatedSales;
+          formData.taxableSales = data.totalSales;
+          formData.outputTax = data.vatOutput;
+          formData.inputTax = data.vatInput;
+          formData.netVAT = data.vatPayable;
+          
+          pdfBlob = await BIRPDFGenerator.generateForm2550M(formData);
+          filename = `BIR-2550M-${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}.pdf`;
+          break;
+
+        case 'withholding tax':
+          formData.payeeName = 'Sample Payee'; // Should come from actual data
+          formData.payeeAddress = 'Sample Address';
+          formData.payeeTIN = '123-456-789-001';
+          formData.incomePayment = data.totalPayments;
+          formData.taxWithheld = data.withholdingTax;
+          
+          pdfBlob = await BIRPDFGenerator.generateForm2307(formData);
+          filename = `BIR-2307-${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}.pdf`;
+          break;
+
+        case 'income tax':
+          formData.grossIncome = data.grossIncome;
+          formData.deductions = data.deductions;
+          formData.netIncome = data.netIncome;
+          formData.incomeTax = data.estimatedTax;
+          formData.creditsPayments = data.previousQuarterTax;
+          formData.taxDue = data.taxDue;
+          
+          pdfBlob = await BIRPDFGenerator.generateForm1701Q(formData);
+          filename = `BIR-1701Q-${currentDate.getFullYear()}-Q${Math.floor(currentDate.getMonth() / 3) + 1}.pdf`;
+          break;
+
+        default:
+          throw new Error('Unsupported form type');
+      }
+
+      BIRPDFGenerator.downloadPDF(pdfBlob, filename);
+      
+      // Show success message
+      alert(`${formType} form exported successfully!`);
+    } catch (error) {
+      console.error('PDF generation failed:', error);
+      alert('Failed to generate PDF. Please try again.');
+    } finally {
+      setIsGeneratingPDF(false);
+    }
   };
 
   const renderVATForm = () => (
@@ -164,9 +236,20 @@ const BIRForms: React.FC = () => {
           <h3 className="text-xl font-semibold">BIR Form 2550M - Monthly VAT Declaration</h3>
           <button
             onClick={() => exportToPDF('VAT', vatData)}
-            className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+            disabled={isGeneratingPDF}
+            className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
-            Export PDF
+            {isGeneratingPDF ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Generating...
+              </>
+            ) : (
+              <>
+                <FileDown className="h-4 w-4" />
+                Export PDF
+              </>
+            )}
           </button>
         </div>
         
@@ -202,31 +285,31 @@ const BIRForms: React.FC = () => {
             <tbody>
               <tr>
                 <td className="border border-gray-300 px-4 py-2">Gross Sales/Receipts</td>
-                <td className="border border-gray-300 px-4 py-2 text-right">₱{vatData.grossSales.toLocaleString()}</td>
+                <td className="border border-gray-300 px-4 py-2 text-right">{formatCurrency(vatData.grossSales)}</td>
               </tr>
               <tr>
                 <td className="border border-gray-300 px-4 py-2">Zero-Rated Sales</td>
-                <td className="border border-gray-300 px-4 py-2 text-right">₱{vatData.zeroRatedSales.toLocaleString()}</td>
+                <td className="border border-gray-300 px-4 py-2 text-right">{formatCurrency(vatData.zeroRatedSales)}</td>
               </tr>
               <tr>
                 <td className="border border-gray-300 px-4 py-2">Exempt Sales</td>
-                <td className="border border-gray-300 px-4 py-2 text-right">₱{vatData.exemptSales.toLocaleString()}</td>
+                <td className="border border-gray-300 px-4 py-2 text-right">{formatCurrency(vatData.exemptSales)}</td>
               </tr>
               <tr className="bg-gray-50">
                 <td className="border border-gray-300 px-4 py-2 font-semibold">Total Sales</td>
-                <td className="border border-gray-300 px-4 py-2 text-right font-semibold">₱{vatData.totalSales.toLocaleString()}</td>
+                <td className="border border-gray-300 px-4 py-2 text-right font-semibold">{formatCurrency(vatData.totalSales)}</td>
               </tr>
               <tr>
                 <td className="border border-gray-300 px-4 py-2">Output VAT (12%)</td>
-                <td className="border border-gray-300 px-4 py-2 text-right">₱{vatData.vatOutput.toLocaleString()}</td>
+                <td className="border border-gray-300 px-4 py-2 text-right">{formatCurrency(vatData.vatOutput)}</td>
               </tr>
               <tr>
                 <td className="border border-gray-300 px-4 py-2">Input VAT</td>
-                <td className="border border-gray-300 px-4 py-2 text-right">₱{vatData.vatInput.toLocaleString()}</td>
+                <td className="border border-gray-300 px-4 py-2 text-right">{formatCurrency(vatData.vatInput)}</td>
               </tr>
               <tr className="bg-red-50">
                 <td className="border border-gray-300 px-4 py-2 font-semibold text-red-700">VAT Payable</td>
-                <td className="border border-gray-300 px-4 py-2 text-right font-semibold text-red-700">₱{vatData.vatPayable.toLocaleString()}</td>
+                <td className="border border-gray-300 px-4 py-2 text-right font-semibold text-red-700">{formatCurrency(vatData.vatPayable)}</td>
               </tr>
             </tbody>
           </table>
@@ -242,9 +325,20 @@ const BIRForms: React.FC = () => {
           <h3 className="text-xl font-semibold">BIR Form 2307 - Certificate of Creditable Tax</h3>
           <button
             onClick={() => exportToPDF('Withholding Tax', withholdingTaxData)}
-            className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+            disabled={isGeneratingPDF}
+            className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
-            Export PDF
+            {isGeneratingPDF ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Generating...
+              </>
+            ) : (
+              <>
+                <FileDown className="h-4 w-4" />
+                Export PDF
+              </>
+            )}
           </button>
         </div>
         
@@ -281,15 +375,15 @@ const BIRForms: React.FC = () => {
             <tbody>
               <tr>
                 <td className="border border-gray-300 px-4 py-2">Professional Services</td>
-                <td className="border border-gray-300 px-4 py-2 text-right">₱{withholdingTaxData.totalPayments.toLocaleString()}</td>
+                <td className="border border-gray-300 px-4 py-2 text-right">{formatCurrency(withholdingTaxData.totalPayments)}</td>
                 <td className="border border-gray-300 px-4 py-2 text-right">2%</td>
-                <td className="border border-gray-300 px-4 py-2 text-right">₱{withholdingTaxData.withholdingTax.toLocaleString()}</td>
+                <td className="border border-gray-300 px-4 py-2 text-right">{formatCurrency(withholdingTaxData.withholdingTax)}</td>
               </tr>
               <tr className="bg-gray-50">
                 <td className="border border-gray-300 px-4 py-2 font-semibold">Total</td>
-                <td className="border border-gray-300 px-4 py-2 text-right font-semibold">₱{withholdingTaxData.totalPayments.toLocaleString()}</td>
+                <td className="border border-gray-300 px-4 py-2 text-right font-semibold">{formatCurrency(withholdingTaxData.totalPayments)}</td>
                 <td className="border border-gray-300 px-4 py-2 text-right font-semibold">-</td>
-                <td className="border border-gray-300 px-4 py-2 text-right font-semibold">₱{withholdingTaxData.withholdingTax.toLocaleString()}</td>
+                <td className="border border-gray-300 px-4 py-2 text-right font-semibold">{formatCurrency(withholdingTaxData.withholdingTax)}</td>
               </tr>
             </tbody>
           </table>
@@ -305,9 +399,20 @@ const BIRForms: React.FC = () => {
           <h3 className="text-xl font-semibold">BIR Form 1701Q - Quarterly Income Tax Return</h3>
           <button
             onClick={() => exportToPDF('Income Tax', incomeTaxData)}
-            className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+            disabled={isGeneratingPDF}
+            className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
-            Export PDF
+            {isGeneratingPDF ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Generating...
+              </>
+            ) : (
+              <>
+                <FileDown className="h-4 w-4" />
+                Export PDF
+              </>
+            )}
           </button>
         </div>
         
@@ -342,27 +447,27 @@ const BIRForms: React.FC = () => {
             <tbody>
               <tr>
                 <td className="border border-gray-300 px-4 py-2">Gross Income</td>
-                <td className="border border-gray-300 px-4 py-2 text-right">₱{incomeTaxData.grossIncome.toLocaleString()}</td>
+                <td className="border border-gray-300 px-4 py-2 text-right">{formatCurrency(incomeTaxData.grossIncome)}</td>
               </tr>
               <tr>
                 <td className="border border-gray-300 px-4 py-2">Less: Deductions</td>
-                <td className="border border-gray-300 px-4 py-2 text-right">₱{incomeTaxData.deductions.toLocaleString()}</td>
+                <td className="border border-gray-300 px-4 py-2 text-right">{formatCurrency(incomeTaxData.deductions)}</td>
               </tr>
               <tr className="bg-gray-50">
                 <td className="border border-gray-300 px-4 py-2 font-semibold">Net Income</td>
-                <td className="border border-gray-300 px-4 py-2 text-right font-semibold">₱{incomeTaxData.netIncome.toLocaleString()}</td>
+                <td className="border border-gray-300 px-4 py-2 text-right font-semibold">{formatCurrency(incomeTaxData.netIncome)}</td>
               </tr>
               <tr>
                 <td className="border border-gray-300 px-4 py-2">Estimated Tax (25%)</td>
-                <td className="border border-gray-300 px-4 py-2 text-right">₱{incomeTaxData.estimatedTax.toLocaleString()}</td>
+                <td className="border border-gray-300 px-4 py-2 text-right">{formatCurrency(incomeTaxData.estimatedTax)}</td>
               </tr>
               <tr>
                 <td className="border border-gray-300 px-4 py-2">Less: Previous Quarter Tax</td>
-                <td className="border border-gray-300 px-4 py-2 text-right">₱{incomeTaxData.previousQuarterTax.toLocaleString()}</td>
+                <td className="border border-gray-300 px-4 py-2 text-right">{formatCurrency(incomeTaxData.previousQuarterTax)}</td>
               </tr>
               <tr className="bg-red-50">
                 <td className="border border-gray-300 px-4 py-2 font-semibold text-red-700">Tax Due</td>
-                <td className="border border-gray-300 px-4 py-2 text-right font-semibold text-red-700">₱{incomeTaxData.taxDue.toLocaleString()}</td>
+                <td className="border border-gray-300 px-4 py-2 text-right font-semibold text-red-700">{formatCurrency(incomeTaxData.taxDue)}</td>
               </tr>
             </tbody>
           </table>
@@ -425,10 +530,10 @@ const BIRForms: React.FC = () => {
                   <td className="border border-gray-300 px-4 py-2">{employee.lastName}</td>
                   <td className="border border-gray-300 px-4 py-2">{employee.firstName}</td>
                   <td className="border border-gray-300 px-4 py-2">{employee.middleName}</td>
-                  <td className="border border-gray-300 px-4 py-2 text-right">₱{employee.grossCompensation.toLocaleString()}</td>
-                  <td className="border border-gray-300 px-4 py-2 text-right">₱{employee.nonTaxableCompensation.toLocaleString()}</td>
-                  <td className="border border-gray-300 px-4 py-2 text-right">₱{employee.taxableCompensation.toLocaleString()}</td>
-                  <td className="border border-gray-300 px-4 py-2 text-right">₱{employee.withholdingTax.toLocaleString()}</td>
+                  <td className="border border-gray-300 px-4 py-2 text-right">{formatCurrency(employee.grossCompensation)}</td>
+                  <td className="border border-gray-300 px-4 py-2 text-right">{formatCurrency(employee.nonTaxableCompensation)}</td>
+                  <td className="border border-gray-300 px-4 py-2 text-right">{formatCurrency(employee.taxableCompensation)}</td>
+                  <td className="border border-gray-300 px-4 py-2 text-right">{formatCurrency(employee.withholdingTax)}</td>
                 </tr>
               ))}
             </tbody>

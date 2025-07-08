@@ -28,6 +28,8 @@ import { useBusinessStore } from '../../store/businessStore';
 import { useToastStore } from '../../store/toastStore';
 import { Product, StockMovement, InventoryBatch } from '../../types/business';
 import { formatCurrency, formatDate } from '../../utils/formatters';
+import { getStockMovements } from '../../api/products';
+import { StockMovementLedger } from '../../types/business';
 
 interface EnhancedInventoryStats {
   totalProducts: number;
@@ -65,6 +67,10 @@ const EnhancedInventoryManagement: React.FC = () => {
   const [stats, setStats] = useState<EnhancedInventoryStats | null>(null);
   const [stockAlerts, setStockAlerts] = useState<StockAlert[]>([]);
   const [inventoryBatches, setInventoryBatches] = useState<InventoryBatch[]>([]);
+  const [ledgerFilters, setLedgerFilters] = useState<{ startDate?: string; endDate?: string; type?: string; userId?: string }>({});
+  const [stockMovements, setStockMovements] = useState<StockMovementLedger[]>([]);
+  const [loadingLedger, setLoadingLedger] = useState(false);
+  const [ledgerError, setLedgerError] = useState<string | null>(null);
 
   const { 
     products, 
@@ -192,6 +198,24 @@ const EnhancedInventoryManagement: React.FC = () => {
 
     generateAlerts();
   }, [products]);
+
+  // Fetch stock movements when selectedProduct or filters change
+  useEffect(() => {
+    if (!selectedProduct || activeTab !== 'movements') return;
+    setLoadingLedger(true);
+    setLedgerError(null);
+    getStockMovements(selectedProduct.id, {
+      startDate: ledgerFilters.startDate ? new Date(ledgerFilters.startDate) : undefined,
+      endDate: ledgerFilters.endDate ? new Date(ledgerFilters.endDate) : undefined,
+      type: ledgerFilters.type,
+      userId: ledgerFilters.userId
+    })
+      .then(({ data, error }) => {
+        if (error) setLedgerError('Failed to load stock movements');
+        setStockMovements(data || []);
+      })
+      .finally(() => setLoadingLedger(false));
+  }, [selectedProduct, ledgerFilters, activeTab]);
 
   const filteredProducts = products.filter(product => {
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -401,27 +425,28 @@ const EnhancedInventoryManagement: React.FC = () => {
       {/* Navigation Tabs */}
       <div className="bg-white dark:bg-dark-800 rounded-xl shadow-sm border border-gray-200 dark:border-dark-700">
         <div className="border-b border-gray-200 dark:border-dark-700">
-          <nav className="flex space-x-8 px-6">
+          <nav className="flex overflow-x-auto px-4 sm:px-6">
             {[
-              { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
-              { id: 'products', label: 'Products', icon: Package },
-              { id: 'batches', label: 'Batches', icon: Archive },
-              { id: 'movements', label: 'Stock Movements', icon: History },
-              { id: 'alerts', label: 'Alerts', icon: AlertTriangle, badge: stockAlerts.length }
+              { id: 'dashboard', label: 'Dashboard', icon: BarChart3, shortLabel: 'Dashboard' },
+              { id: 'products', label: 'Products', icon: Package, shortLabel: 'Products' },
+              { id: 'batches', label: 'Batches', icon: Archive, shortLabel: 'Batches' },
+              { id: 'movements', label: 'Stock Movements', icon: History, shortLabel: 'Movements' },
+              { id: 'alerts', label: 'Alerts', icon: AlertTriangle, shortLabel: 'Alerts', badge: stockAlerts.length }
             ].map(tab => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as any)}
-                className={`py-4 px-1 border-b-2 font-medium text-sm flex items-center ${
+                className={`py-3 sm:py-4 px-2 sm:px-4 border-b-2 font-medium text-xs sm:text-sm flex items-center whitespace-nowrap ${
                   activeTab === tab.id
                     ? 'border-blue-500 text-blue-600 dark:text-blue-400'
                     : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
                 }`}
               >
-                <tab.icon className="h-4 w-4 mr-2" />
-                {tab.label}
+                <tab.icon className="h-4 w-4 mr-1 sm:mr-2" />
+                <span className="hidden sm:inline">{tab.label}</span>
+                <span className="sm:hidden">{tab.shortLabel}</span>
                 {tab.badge && tab.badge > 0 && (
-                  <span className="ml-2 bg-red-500 text-white text-xs rounded-full px-2 py-1">
+                  <span className="ml-1 sm:ml-2 bg-red-500 text-white text-xs rounded-full px-1.5 sm:px-2 py-0.5 sm:py-1">
                     {tab.badge}
                   </span>
                 )}
@@ -430,42 +455,42 @@ const EnhancedInventoryManagement: React.FC = () => {
           </nav>
         </div>
 
-        <div className="p-6">
+        <div className="p-3 sm:p-6">
           {/* Dashboard Tab */}
           {activeTab === 'dashboard' && stats && (
             <div className="space-y-6">
               {/* Key Metrics */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
                 <div className="space-y-4">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Stock Status Overview</h3>
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
-                      <span className="text-red-700 dark:text-red-300 font-medium">Out of Stock</span>
-                      <span className="text-red-900 dark:text-red-100 font-bold">{stats.outOfStockItems}</span>
+                  <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100">Stock Status Overview</h3>
+                  <div className="space-y-2 sm:space-y-3">
+                    <div className="flex items-center justify-between p-2 sm:p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
+                      <span className="text-red-700 dark:text-red-300 font-medium text-sm sm:text-base">Out of Stock</span>
+                      <span className="text-red-900 dark:text-red-100 font-bold text-sm sm:text-base">{stats.outOfStockItems}</span>
                     </div>
-                    <div className="flex items-center justify-between p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
-                      <span className="text-yellow-700 dark:text-yellow-300 font-medium">Low Stock</span>
-                      <span className="text-yellow-900 dark:text-yellow-100 font-bold">{stats.lowStockItems}</span>
+                    <div className="flex items-center justify-between p-2 sm:p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
+                      <span className="text-yellow-700 dark:text-yellow-300 font-medium text-sm sm:text-base">Low Stock</span>
+                      <span className="text-yellow-900 dark:text-yellow-100 font-bold text-sm sm:text-base">{stats.lowStockItems}</span>
                     </div>
-                    <div className="flex items-center justify-between p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
-                      <span className="text-orange-700 dark:text-orange-300 font-medium">Expiring Soon</span>
-                      <span className="text-orange-900 dark:text-orange-100 font-bold">{stats.expiringSoonItems}</span>
+                    <div className="flex items-center justify-between p-2 sm:p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
+                      <span className="text-orange-700 dark:text-orange-300 font-medium text-sm sm:text-base">Expiring Soon</span>
+                      <span className="text-orange-900 dark:text-orange-100 font-bold text-sm sm:text-base">{stats.expiringSoonItems}</span>
                     </div>
                   </div>
                 </div>
 
                 <div className="space-y-4">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Top Selling Products</h3>
+                  <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100">Top Selling Products</h3>
                   <div className="space-y-2">
                     {stats.topSellingProducts.map((product, index) => (
-                      <div key={product.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-dark-700 rounded-lg">
-                        <div className="flex items-center">
-                          <span className="w-6 h-6 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-full flex items-center justify-center text-xs font-bold mr-3">
+                      <div key={product.id} className="flex items-center justify-between p-2 sm:p-3 bg-gray-50 dark:bg-dark-700 rounded-lg">
+                        <div className="flex items-center min-w-0 flex-1">
+                          <span className="w-5 h-5 sm:w-6 sm:h-6 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-full flex items-center justify-center text-xs font-bold mr-2 sm:mr-3 flex-shrink-0">
                             {index + 1}
                           </span>
-                          <span className="font-medium text-gray-900 dark:text-gray-100">{product.name}</span>
+                          <span className="font-medium text-gray-900 dark:text-gray-100 text-sm sm:text-base truncate">{product.name}</span>
                         </div>
-                        <span className="text-gray-600 dark:text-gray-400">{product.soldQuantity || 0} sold</span>
+                        <span className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm ml-2">{product.soldQuantity || 0} sold</span>
                       </div>
                     ))}
                   </div>
@@ -500,43 +525,45 @@ const EnhancedInventoryManagement: React.FC = () => {
           {activeTab === 'products' && (
             <div className="space-y-6">
               {/* Filters */}
-              <div className="flex flex-col sm:flex-row gap-4">
+              <div className="space-y-3 sm:space-y-0 sm:flex sm:gap-4">
                 <div className="flex-1 relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <input
                     type="text"
-                    placeholder="Search products by name, SKU, or barcode..."
+                    placeholder="Search products..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-dark-600 rounded-lg bg-white dark:bg-dark-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
-                <select
-                  value={selectedCategory}
-                  onChange={(e) => setSelectedCategory(e.target.value)}
-                  className="px-4 py-2 border border-gray-300 dark:border-dark-600 rounded-lg bg-white dark:bg-dark-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  <option value="all">All Categories</option>
-                  {categories.map(category => (
-                    <option key={category.id} value={category.id}>
-                      {category.name}
-                    </option>
-                  ))}
-                </select>
-                <select
-                  value={stockFilter}
-                  onChange={(e) => setStockFilter(e.target.value as any)}
-                  className="px-4 py-2 border border-gray-300 dark:border-dark-600 rounded-lg bg-white dark:bg-dark-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  <option value="all">All Stock Levels</option>
-                  <option value="low">Low Stock</option>
-                  <option value="out">Out of Stock</option>
-                  <option value="expiring">Expiring Soon</option>
-                </select>
+                <div className="flex gap-2 sm:gap-4">
+                  <select
+                    value={selectedCategory}
+                    onChange={(e) => setSelectedCategory(e.target.value)}
+                    className="flex-1 sm:flex-none px-3 sm:px-4 py-2 border border-gray-300 dark:border-dark-600 rounded-lg bg-white dark:bg-dark-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
+                  >
+                    <option value="all">All Categories</option>
+                    {categories.map(category => (
+                      <option key={category.id} value={category.id}>
+                        {category.name}
+                      </option>
+                    ))}
+                  </select>
+                  <select
+                    value={stockFilter}
+                    onChange={(e) => setStockFilter(e.target.value as any)}
+                    className="flex-1 sm:flex-none px-3 sm:px-4 py-2 border border-gray-300 dark:border-dark-600 rounded-lg bg-white dark:bg-dark-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
+                  >
+                    <option value="all">All Stock</option>
+                    <option value="low">Low Stock</option>
+                    <option value="out">Out of Stock</option>
+                    <option value="expiring">Expiring</option>
+                  </select>
+                </div>
               </div>
 
-              {/* Products Table */}
-              <div className="overflow-x-auto">
+              {/* Products Table - Desktop */}
+              <div className="hidden lg:block overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-gray-200 dark:border-dark-700">
@@ -612,6 +639,71 @@ const EnhancedInventoryManagement: React.FC = () => {
                   </tbody>
                 </table>
               </div>
+              
+              {/* Products Cards - Mobile */}
+              <div className="lg:hidden space-y-3">
+                {filteredProducts.map(product => {
+                  const category = categories.find(c => c.id === product.categoryId);
+                  return (
+                    <div key={product.id} className="bg-white dark:bg-dark-700 border border-gray-200 dark:border-dark-600 rounded-lg p-4">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-medium text-gray-900 dark:text-gray-100 text-sm line-clamp-2">{product.name}</h3>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">SKU: {product.sku}</p>
+                          {product.barcode && (
+                            <p className="text-xs text-gray-500 dark:text-gray-400">Barcode: {product.barcode}</p>
+                          )}
+                        </div>
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStockStatusColor(product)}`}>
+                          {getStockStatusText(product)}
+                        </span>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-3 mb-3 text-xs">
+                        <div>
+                          <span className="text-gray-500 dark:text-gray-400">Category:</span>
+                          <p className="font-medium text-gray-900 dark:text-gray-100">{category?.name || 'Uncategorized'}</p>
+                        </div>
+                        <div>
+                          <span className="text-gray-500 dark:text-gray-400">Stock:</span>
+                          <p className="font-medium text-gray-900 dark:text-gray-100">{product.stock} / {product.minStock} min</p>
+                        </div>
+                        <div className="col-span-2">
+                          <span className="text-gray-500 dark:text-gray-400">Value:</span>
+                          <p className="font-medium text-gray-900 dark:text-gray-100">{formatCurrency(product.stock * product.cost)}</p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center space-x-2 pt-2 border-t border-gray-200 dark:border-dark-600">
+                        <button
+                          onClick={() => setSelectedProduct(product)}
+                          className="flex-1 flex items-center justify-center px-3 py-2 text-xs font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
+                        >
+                          <Eye className="h-3 w-3 mr-1" />
+                          View
+                        </button>
+                        <button
+                          onClick={() => {
+                            setEditingProduct(product.id);
+                            setShowProductForm(true);
+                          }}
+                          className="flex-1 flex items-center justify-center px-3 py-2 text-xs font-medium text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-dark-600 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-500 transition-colors"
+                        >
+                          <Edit className="h-3 w-3 mr-1" />
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => setShowStockMovement(true)}
+                          className="flex-1 flex items-center justify-center px-3 py-2 text-xs font-medium text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors"
+                        >
+                          <ShoppingCart className="h-3 w-3 mr-1" />
+                          Stock
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           )}
 
@@ -632,22 +724,24 @@ const EnhancedInventoryManagement: React.FC = () => {
               ) : (
                 <div className="space-y-3">
                   {stockAlerts.map(alert => (
-                    <div key={alert.id} className={`p-4 rounded-lg border ${getSeverityColor(alert.severity)}`}>
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center">
-                            <AlertCircle className="h-5 w-5 mr-2" />
-                            <h4 className="font-medium">{alert.productName}</h4>
-                            <span className="ml-2 px-2 py-1 text-xs font-medium rounded-full bg-white dark:bg-dark-800">
+                    <div key={alert.id} className={`p-3 sm:p-4 rounded-lg border ${getSeverityColor(alert.severity)}`}>
+                      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between space-y-2 sm:space-y-0">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex flex-col sm:flex-row sm:items-center space-y-1 sm:space-y-0">
+                            <div className="flex items-center">
+                              <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 mr-2 flex-shrink-0" />
+                              <h4 className="font-medium text-sm sm:text-base truncate">{alert.productName}</h4>
+                            </div>
+                            <span className="ml-0 sm:ml-2 px-2 py-1 text-xs font-medium rounded-full bg-white dark:bg-dark-800 self-start">
                               {alert.type.replace('_', ' ').toUpperCase()}
                             </span>
                           </div>
-                          <p className="text-sm mt-1">{alert.message}</p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                          <p className="text-xs sm:text-sm mt-1">{alert.message}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 sm:mt-2">
                             {formatDate(alert.createdAt)}
                           </p>
                         </div>
-                        <button className="ml-4 text-sm px-3 py-1 bg-white dark:bg-dark-800 border border-gray-300 dark:border-dark-600 rounded hover:bg-gray-50 dark:hover:bg-dark-700 transition-colors">
+                        <button className="self-start sm:ml-4 text-xs sm:text-sm px-3 py-1.5 sm:py-1 bg-white dark:bg-dark-800 border border-gray-300 dark:border-dark-600 rounded hover:bg-gray-50 dark:hover:bg-dark-700 transition-colors whitespace-nowrap">
                           View Product
                         </button>
                       </div>
@@ -658,20 +752,104 @@ const EnhancedInventoryManagement: React.FC = () => {
             </div>
           )}
 
+          {/* Stock Movements Tab */}
+          {activeTab === 'movements' && (
+            <div>
+              {selectedProduct ? (
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Stock Movements for {selectedProduct.name}</h3>
+                  {/* Filters */}
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    <input
+                      type="date"
+                      value={ledgerFilters.startDate || ''}
+                      onChange={e => setLedgerFilters(f => ({ ...f, startDate: e.target.value }))}
+                      className="border rounded px-2 py-1 text-sm"
+                      placeholder="Start date"
+                    />
+                    <input
+                      type="date"
+                      value={ledgerFilters.endDate || ''}
+                      onChange={e => setLedgerFilters(f => ({ ...f, endDate: e.target.value }))}
+                      className="border rounded px-2 py-1 text-sm"
+                      placeholder="End date"
+                    />
+                    <select
+                      value={ledgerFilters.type || ''}
+                      onChange={e => setLedgerFilters(f => ({ ...f, type: e.target.value || undefined }))}
+                      className="border rounded px-2 py-1 text-sm"
+                    >
+                      <option value="">All Types</option>
+                      <option value="in">Stock In</option>
+                      <option value="out">Stock Out</option>
+                      <option value="adjustment">Adjustment</option>
+                    </select>
+                    <input
+                      type="text"
+                      value={ledgerFilters.userId || ''}
+                      onChange={e => setLedgerFilters(f => ({ ...f, userId: e.target.value || undefined }))}
+                      className="border rounded px-2 py-1 text-sm"
+                      placeholder="User ID"
+                    />
+                  </div>
+                  {/* Table */}
+                  {loadingLedger ? (
+                    <div className="text-center py-8 text-gray-500">Loading stock movements...</div>
+                  ) : ledgerError ? (
+                    <div className="text-center py-8 text-red-500">{ledgerError}</div>
+                  ) : stockMovements.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500">No stock movements found for this product.</div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full text-sm border">
+                        <thead>
+                          <tr className="bg-gray-50 dark:bg-dark-800">
+                            <th className="px-3 py-2 text-left">Date</th>
+                            <th className="px-3 py-2 text-left">Type</th>
+                            <th className="px-3 py-2 text-right">Change</th>
+                            <th className="px-3 py-2 text-right">Resulting Stock</th>
+                            <th className="px-3 py-2 text-left">User</th>
+                            <th className="px-3 py-2 text-left">Reference</th>
+                            <th className="px-3 py-2 text-left">Reason</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {stockMovements.map(movement => (
+                            <tr key={movement.id} className="border-b">
+                              <td className="px-3 py-2">{movement.created_at.toLocaleString()}</td>
+                              <td className="px-3 py-2 capitalize">{movement.type}</td>
+                              <td className="px-3 py-2 text-right">{movement.change > 0 ? '+' : ''}{movement.change}</td>
+                              <td className="px-3 py-2 text-right">{movement.resulting_stock}</td>
+                              <td className="px-3 py-2">{movement.user_id || '-'}</td>
+                              <td className="px-3 py-2">{movement.reference_id || '-'}</td>
+                              <td className="px-3 py-2">{movement.reason || '-'}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500">Select a product to view its stock movement ledger.</div>
+              )}
+            </div>
+          )}
+
           {/* Other tabs (batches, movements) would be implemented similarly */}
           {activeTab === 'batches' && (
-            <div className="text-center py-12">
-              <Archive className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">Batch Management</h3>
-              <p className="text-gray-500 dark:text-gray-400">Track inventory batches, expiry dates, and lot numbers.</p>
+            <div className="text-center py-8 sm:py-12">
+              <Archive className="h-10 w-10 sm:h-12 sm:w-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-base sm:text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">Batch Management</h3>
+              <p className="text-sm sm:text-base text-gray-500 dark:text-gray-400 px-4">Track inventory batches, expiry dates, and lot numbers.</p>
             </div>
           )}
 
           {activeTab === 'movements' && (
-            <div className="text-center py-12">
-              <History className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">Stock Movements</h3>
-              <p className="text-gray-500 dark:text-gray-400">View all stock adjustments, receipts, and transfers.</p>
+            <div className="text-center py-8 sm:py-12">
+              <History className="h-10 w-10 sm:h-12 sm:w-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-base sm:text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">Stock Movements</h3>
+              <p className="text-sm sm:text-base text-gray-500 dark:text-gray-400 px-4">View all stock adjustments, receipts, and transfers.</p>
             </div>
           )}
         </div>

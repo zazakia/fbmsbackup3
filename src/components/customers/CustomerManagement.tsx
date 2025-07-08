@@ -284,7 +284,9 @@ const CustomerManagement: React.FC<CustomerManagementProps> = () => {
             )}
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <>
+          {/* Desktop Table */}
+          <div className="hidden lg:block overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
@@ -439,6 +441,125 @@ const CustomerManagement: React.FC<CustomerManagementProps> = () => {
               </tbody>
             </table>
           </div>
+          
+          {/* Mobile Cards */}
+          <div className="lg:hidden p-3 space-y-3">
+            {filteredCustomers.map((customer) => {
+              const loyaltyTier = getLoyaltyTier(customer.loyaltyPoints);
+              return (
+                <div key={customer.id} className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                  {/* Customer Header */}
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center">
+                      <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                        <span className="text-sm font-medium text-blue-600">
+                          {customer.firstName[0]}{customer.lastName[0]}
+                        </span>
+                      </div>
+                      <div className="ml-3 min-w-0">
+                        <div className="text-sm font-medium text-gray-900 truncate">
+                          {customer.firstName} {customer.lastName}
+                        </div>
+                        {customer.businessName && (
+                          <div className="text-xs text-gray-500 truncate">{customer.businessName}</div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-1">
+                      <button
+                        onClick={() => handleViewCustomer(customer)}
+                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => handleEditCustomer(customer)}
+                        className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                  
+                  {/* Contact Info */}
+                  <div className="space-y-1 mb-3">
+                    {customer.email && (
+                      <div className="flex items-center text-xs text-gray-600">
+                        <Mail className="h-3 w-3 mr-2 flex-shrink-0" />
+                        <span className="truncate">{customer.email}</span>
+                      </div>
+                    )}
+                    {customer.phone && (
+                      <div className="flex items-center text-xs text-gray-600">
+                        <Phone className="h-3 w-3 mr-2 flex-shrink-0" />
+                        <span>{customer.phone}</span>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Customer Details */}
+                  <div className="grid grid-cols-2 gap-3 text-xs">
+                    <div>
+                      <span className="text-gray-500">Type:</span>
+                      <div className="flex items-center mt-1">
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          getCustomerTypeColor(customer.customerType)
+                        }`}>
+                          {customer.customerType}
+                        </span>
+                      </div>
+                    </div>
+                    <div>
+                      <span className="text-gray-500">Status:</span>
+                      <div className="flex items-center mt-1">
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          customer.isActive
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-red-100 text-red-800'
+                        }`}>
+                          {customer.isActive ? 'Active' : 'Inactive'}
+                        </span>
+                      </div>
+                    </div>
+                    <div>
+                      <span className="text-gray-500">Loyalty:</span>
+                      <div className="flex items-center mt-1">
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${loyaltyTier.color}`}>
+                          {loyaltyTier.name}
+                        </span>
+                      </div>
+                    </div>
+                    <div>
+                      <span className="text-gray-500">Points:</span>
+                      <div className="font-medium text-gray-900 mt-1">
+                        {customer.loyaltyPoints.toLocaleString()}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Purchase Info */}
+                  <div className="grid grid-cols-2 gap-3 mt-3 pt-3 border-t border-gray-200 text-xs">
+                    <div>
+                      <span className="text-gray-500">Total Purchases:</span>
+                      <div className="font-medium text-gray-900 mt-1">
+                        ₱{(customer.totalSpent || 0).toLocaleString()}
+                      </div>
+                    </div>
+                    <div>
+                      <span className="text-gray-500">Last Activity:</span>
+                      <div className="text-gray-600 mt-1">
+                        {customer.lastPurchaseDate 
+                          ? new Date(customer.lastPurchaseDate).toLocaleDateString()
+                          : 'Never'
+                        }
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          </>
         )}
       </div>
         </>

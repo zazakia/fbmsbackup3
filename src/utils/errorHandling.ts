@@ -1,9 +1,10 @@
 // Comprehensive error handling utilities for FBMS
+import React from 'react';
 
 export interface AppError {
   code: string;
   message: string;
-  details?: any;
+  details?: Record<string, unknown>;
   timestamp: Date;
   context?: string;
 }
@@ -97,7 +98,7 @@ export const ERROR_MESSAGES: Record<string, string> = {
 export const createError = (
   code: keyof typeof ERROR_CODES,
   message?: string,
-  details?: any,
+  details?: Record<string, unknown>,
   context?: string
 ): AppError => {
   return {
@@ -110,7 +111,7 @@ export const createError = (
 };
 
 // Handle Supabase errors
-export const handleSupabaseError = (error: any, context?: string): AppError => {
+export const handleSupabaseError = (error: unknown, context?: string): AppError => {
   if (!error) {
     return createError(ERROR_CODES.UNKNOWN_ERROR, undefined, undefined, context);
   }
@@ -147,7 +148,7 @@ export const handleSupabaseError = (error: any, context?: string): AppError => {
 };
 
 // Handle network errors
-export const handleNetworkError = (error: any, context?: string): AppError => {
+export const handleNetworkError = (error: unknown, context?: string): AppError => {
   if (error.name === 'AbortError') {
     return createError(ERROR_CODES.API_TIMEOUT, 'Request was cancelled.', error, context);
   }
@@ -187,7 +188,7 @@ export const getErrorSeverity = (error: AppError): ErrorSeverity => {
 };
 
 // Error logging utility
-export const logError = (error: AppError, context?: any): void => {
+export const logError = (error: AppError, context?: Record<string, unknown>): void => {
   const errorLog: ErrorLog = {
     error,
     severity: getErrorSeverity(error),
@@ -196,8 +197,8 @@ export const logError = (error: AppError, context?: any): void => {
     userId: context?.userId
   };
 
-  // Log to console in development
-  if (import.meta.env.DEV) {
+  // Log to console in development (but not during tests)
+  if (import.meta.env.DEV && !import.meta.env.TEST) {
     console.group(`🚨 ${errorLog.severity.toUpperCase()} ERROR`);
     console.error('Error:', error);
     console.log('Context:', context);
@@ -235,7 +236,7 @@ export const retryOperation = async <T>(
   maxRetries: number = 3,
   delay: number = 1000
 ): Promise<T> => {
-  let lastError: any;
+  let lastError: unknown;
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
@@ -276,7 +277,7 @@ export const safeAsync = async <T>(
 
 // React hook for error boundary
 export const useErrorHandler = () => {
-  const handleError = (error: any, context?: string) => {
+  const handleError = (error: unknown, context?: string) => {
     const appError = error instanceof Error 
       ? createError(ERROR_CODES.UNKNOWN_ERROR, error.message, error, context)
       : createError(ERROR_CODES.UNKNOWN_ERROR, 'Unknown error', error, context);
@@ -302,5 +303,144 @@ export const isRecoverableError = (error: AppError): boolean => {
     ERROR_CODES.DB_QUERY_FAILED
   ];
   
-  return recoverableErrors.includes(error.code as any);
+  return recoverableErrors.includes(error.code as string);
+};
+
+// Enhanced error boundary component for better error handling
+export class EnhancedErrorBoundary extends React.Component<
+  { children: React.ReactNode; fallback?: (error: AppError) => React.ReactNode },
+  { hasError: boolean; error?: AppError }
+> {
+  constructor(props: Record<string, unknown>) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    const appError = createError(
+      ERROR_CODES.UNKNOWN_ERROR,
+      error.message,
+      error,
+      'ErrorBoundary'
+    );
+    return { hasError: true, error: appError };
+  }
+
+  componentDidCatch(error: Error, errorInfo: Record<string, unknown>) {
+    const appError = createError(
+      ERROR_CODES.UNKNOWN_ERROR,
+      error.message,
+      { ...error, errorInfo },
+      'ErrorBoundary'
+    );
+    logError(appError, { errorInfo });
+  }
+
+  render() {
+    if (this.state.hasError && this.state.error) {
+      if (this.props.fallback) {
+        return this.props.fallback(this.state.error);
+      }
+
+      return React.createElement(
+        'div',
+        { className: 'error-boundary-fallback p-6 bg-red-50 border border-red-200 rounded-lg' },
+        React.createElement('h2', { className: 'text-lg font-semibold text-red-800 mb-2' }, 'Something went wrong'),
+        React.createElement('p', { className: 'text-red-600 mb-4' }, formatErrorForUI(this.state.error)),
+        React.createElement(
+          'button',
+          {
+            onClick: () => this.setState({ hasError: false, error: undefined }),
+            className: 'px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700'
+          },
+          'Try Again'
+        )
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
+// Enhanced async error handler with automatic retry for recoverable errors
+export const enhancedAsyncHandler = async <T>(
+  operation: () => Promise<T>,
+  context?: string,
+  options: { maxRetries?: number; retryDelay?: number } = {}
+): Promise<{ data: T | null; error: AppError | null }> => {
+  const { maxRetries = 3, retryDelay = 1000 } = options;
+  
+  try {
+    const result = await retryOperation(operation, maxRetries, retryDelay);
+    return { data: result, error: null };
+  } catch (err) {
+    let appError: AppError;
+    
+    if (err && typeof err === 'object' && 'code' in err) {
+      appError = err as AppError;
+    } else if (err instanceof Error) {
+      appError = handleNetworkError(err, context);
+    } else {
+      appError = createError(ERROR_CODES.UNKNOWN_ERROR, 'Unknown error occurred', err, context);
+    }
+    
+    logError(appError, { context, maxRetries, retryDelay });
+    return { data: null, error: appError };
+  }
+};
+
+// Global error event emitter for cross-component error handling
+class ErrorEventEmitter {
+  private listeners: Array<(error: AppError) => void> = [];
+
+  subscribe(listener: (error: AppError) => void): () => void {
+    this.listeners.push(listener);
+    return () => {
+      const index = this.listeners.indexOf(listener);
+      if (index > -1) {
+        this.listeners.splice(index, 1);
+      }
+    };
+  }
+
+  emit(error: AppError): void {
+    this.listeners.forEach(listener => {
+      try {
+        listener(error);
+      } catch (e) {
+        console.error('Error in error listener:', e);
+      }
+    });
+  }
+}
+
+export const errorEventEmitter = new ErrorEventEmitter();
+
+// React hook for global error handling
+export const useGlobalErrorHandler = () => {
+  const [errors, setErrors] = React.useState<AppError[]>([]);
+
+  React.useEffect(() => {
+    const unsubscribe = errorEventEmitter.subscribe((error) => {
+      setErrors(prev => [...prev, error].slice(-5)); // Keep only last 5 errors
+    });
+
+    return unsubscribe;
+  }, []);
+
+  const clearErrors = React.useCallback(() => {
+    setErrors([]);
+  }, []);
+
+  const handleError = React.useCallback((error: unknown, context?: string) => {
+    const appError = error instanceof Error 
+      ? createError(ERROR_CODES.UNKNOWN_ERROR, error.message, error, context)
+      : createError(ERROR_CODES.UNKNOWN_ERROR, 'Unknown error', error, context);
+    
+    logError(appError, { context });
+    errorEventEmitter.emit(appError);
+    return appError;
+  }, []);
+
+  return { errors, clearErrors, handleError };
 };

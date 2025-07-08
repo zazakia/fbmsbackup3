@@ -1,0 +1,118 @@
+/* Mobile Navigation Styles */
+
+/* Ensure bottom navigation doesn't interfere with scrolling */
+.mobile-content {
+  padding-bottom: 80px;
+}
+
+/* Smooth scrolling for mobile sidebar */
+.mobile-sidebar-nav {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
+}
+
+.mobile-sidebar-nav::-webkit-scrollbar {
+  width: 4px;
+}
+
+.mobile-sidebar-nav::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.mobile-sidebar-nav::-webkit-scrollbar-thumb {
+  background-color: rgba(156, 163, 175, 0.5);
+  border-radius: 2px;
+}
+
+.mobile-sidebar-nav::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(156, 163, 175, 0.7);
+}
+
+/* Bottom navigation animations */
+.bottom-nav-item {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.bottom-nav-item:active {
+  transform: scale(0.95);
+}
+
+/* Floating action button animations */
+.fab {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.fab:hover {
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+  transform: translateY(-1px);
+}
+
+.fab:active {
+  transform: translateY(0) scale(0.95);
+}
+
+/* Floating menu animations */
+.floating-menu {
+  animation: slideUpFade 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.floating-menu-item {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.floating-menu-item:hover {
+  transform: translateY(-2px);
+}
+
+.floating-menu-item:active {
+  transform: translateY(0) scale(0.95);
+}
+
+@keyframes slideUpFade {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Mobile-specific optimizations */
+@media (max-width: 1023px) {
+  /* Ensure content doesn't get hidden behind bottom nav */
+  body {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  
+  /* Optimize touch targets */
+  .mobile-nav-button {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Improve text legibility on mobile */
+  .mobile-nav-label {
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  }
+}
+
+/* iOS safe area support */
+@supports (padding: max(0px)) {
+  .bottom-navigation {
+    padding-bottom: max(8px, env(safe-area-inset-bottom));
+  }
+}
+
+/* Dark mode optimizations for mobile */
+@media (prefers-color-scheme: dark) {
+  .floating-menu {
+    backdrop-filter: blur(10px);
+  }
+  
+  .bottom-navigation {
+    backdrop-filter: blur(10px);
+  }
+}

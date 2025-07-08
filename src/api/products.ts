@@ -379,10 +379,59 @@ export async function getLowStockProducts() {
   return { data: null, error };
 }
 
+// Log stock movement to inventory ledger
+async function logStockMovement({
+  productId,
+  change,
+  type,
+  resultingStock,
+  referenceId,
+  userId,
+  reason
+}: {
+  productId: string;
+  change: number;
+  type: string;
+  resultingStock: number;
+  referenceId?: string;
+  userId?: string;
+  reason?: string;
+}) {
+  return supabase.from('stock_movements').insert([
+    {
+      product_id: productId,
+      change,
+      type,
+      resulting_stock: resultingStock,
+      reference_id: referenceId,
+      user_id: userId,
+      reason
+    }
+  ]);
+}
+
 // Update stock
-export async function updateStock(id: string, quantity: number, operation: 'add' | 'subtract' | 'set') {
+export async function updateStock(id: string, quantity: number, operation: 'add' | 'subtract' | 'set', options?: { referenceId?: string; userId?: string; reason?: string; }) {
   if (operation === 'set') {
-    return updateProduct(id, { stock: quantity });
+    // For direct set, log the difference as an adjustment
+    const { data: product, error: getError } = await getProduct(id);
+    if (getError || !product) {
+      return { data: null, error: getError || new Error('Product not found') };
+    }
+    const change = quantity - product.stock;
+    const result = await updateProduct(id, { stock: quantity });
+    if (!result.error && change !== 0) {
+      await logStockMovement({
+        productId: id,
+        change,
+        type: 'adjustment',
+        resultingStock: quantity,
+        referenceId: options?.referenceId,
+        userId: options?.userId,
+        reason: options?.reason || 'Manual stock set'
+      });
+    }
+    return result;
   }
 
   // For add/subtract operations, we need to get current stock first
@@ -392,10 +441,16 @@ export async function updateStock(id: string, quantity: number, operation: 'add'
   }
 
   let newStock: number;
+  let change: number;
+  let type: string;
   if (operation === 'add') {
     newStock = product.stock + quantity;
+    change = quantity;
+    type = 'in';
   } else {
     newStock = product.stock - quantity;
+    change = -quantity;
+    type = 'out';
   }
 
   // Prevent negative stock
@@ -403,7 +458,19 @@ export async function updateStock(id: string, quantity: number, operation: 'add'
     return { data: null, error: new Error('Insufficient stock') };
   }
 
-  return updateProduct(id, { stock: newStock });
+  const result = await updateProduct(id, { stock: newStock });
+  if (!result.error && change !== 0) {
+    await logStockMovement({
+      productId: id,
+      change,
+      type: options?.reason ? 'adjustment' : type,
+      resultingStock: newStock,
+      referenceId: options?.referenceId,
+      userId: options?.userId,
+      reason: options?.reason
+    });
+  }
+  return result;
 }
 
 // CATEGORY CRUD OPERATIONS
@@ -572,4 +639,63 @@ export async function getActiveCategories() {
   }
 
   return { data: null, error };
+}
+
+// Fetch stock movements for a product with optional filters
+// CREATE stock movement
+export async function createStockMovement(movement: {
+  productId: string;
+  type: 'sale' | 'purchase' | 'adjustment' | 'transfer' | 'return';
+  quantity: number;
+  previousStock: number;
+  newStock: number;
+  userId: string;
+  reference?: string;
+  notes?: string;
+}) {
+  const { data, error } = await supabase
+    .from('stock_movements')
+    .insert([{
+      product_id: movement.productId,
+      type: movement.type,
+      quantity: movement.quantity,
+      previous_stock: movement.previousStock,
+      new_stock: movement.newStock,
+      user_id: movement.userId,
+      reference: movement.reference,
+      notes: movement.notes
+    }])
+    .select()
+    .single();
+
+  if (error) return { data: null, error };
+  return { data, error: null };
+}
+
+export async function getStockMovements(productId: string, filters?: { startDate?: Date; endDate?: Date; type?: string; userId?: string; }) {
+  let query = supabase
+    .from('stock_movements')
+    .select('*')
+    .eq('product_id', productId)
+    .order('created_at', { ascending: false });
+
+  if (filters?.type) {
+    query = query.eq('type', filters.type);
+  }
+  if (filters?.userId) {
+    query = query.eq('user_id', filters.userId);
+  }
+  if (filters?.startDate) {
+    query = query.gte('created_at', filters.startDate.toISOString());
+  }
+  if (filters?.endDate) {
+    query = query.lte('created_at', filters.endDate.toISOString());
+  }
+
+  const { data, error } = await query;
+  if (error) return { data: null, error };
+  return {
+    data: (data || []).map((m: Record<string, unknown>) => ({ ...m, created_at: new Date(m.created_at as string) })),
+    error: null
+  };
 }

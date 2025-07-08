@@ -1,12 +1,15 @@
 import { createClient } from '@supabase/supabase-js';
+// import { createAdminAccountIfNeeded } from './setupAdmin'; // Disabled for security
 
 const supabaseUrl = import.meta.env.VITE_PUBLIC_SUPABASE_URL as string;
 const supabaseAnonKey = import.meta.env.VITE_PUBLIC_SUPABASE_ANON_KEY as string;
 // Note: Service role key is not exposed to browser for security reasons
 // We'll use the anon key and rely on RLS policies
 
-console.log('Supabase URL:', supabaseUrl);
-console.log('Environment:', import.meta.env.MODE);
+// Supabase client configuration
+if (import.meta.env.DEV) {
+  console.log('Environment:', import.meta.env.MODE);
+}
 
 // Create the main Supabase client
 export const supabase = createClient(
@@ -21,55 +24,23 @@ export const supabase = createClient(
   }
 );
 
-// Export anon client for auth operations
-export const supabaseAnon = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: true
-  }
-});
+// Export the same client for auth operations to avoid multiple instances
+export const supabaseAnon = supabase;
 
-// Function to setup development authentication
+// Function to setup development authentication - SECURITY: Admin auto-setup disabled
 export async function setupDevAuth() {
   if (import.meta.env.DEV) {
     try {
+      // SECURITY: No longer auto-creates admin accounts
+      console.log('🔒 Secure authentication mode enabled');
+      
       // Check if we already have a session
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session) {
-        console.log('Setting up development authentication...');
-        
-        // Try to sign in with a test user
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email: 'admin@example.com',
-          password: 'admin123'
-        });
-        
-        if (error) {
-          console.log('Test user login failed, trying to create one...');
-          
-          // Try to create a test user
-          const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-            email: 'admin@example.com',
-            password: 'admin123',
-            options: {
-              data: {
-                first_name: 'Admin',
-                last_name: 'User'
-              }
-            }
-          });
-          
-          if (signUpError) {
-            console.log('Failed to create test user:', signUpError.message);
-            console.log('Please create a user manually in Supabase or use the login form');
-          } else {
-            console.log('Test user created successfully');
-          }
-        } else {
-          console.log('Development authentication successful');
-        }
+        console.log('Development mode: Please register and login through the application');
+        console.log('💡 Use the registration form to create new accounts');
+        console.log('👤 Admin roles must be assigned through the database or admin panel');
       } else {
         console.log('Already authenticated with Supabase');
       }

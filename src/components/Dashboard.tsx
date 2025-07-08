@@ -74,18 +74,18 @@ const Dashboard: React.FC = () => {
   ];
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-1 sm:p-3 md:p-6 space-y-1 sm:space-y-2 md:space-y-4">
       {/* Welcome Header */}
-      <div className="bg-gradient-to-r from-primary-600 to-primary-700 dark:from-primary-500 dark:to-primary-600 rounded-xl p-6 text-white shadow-lg">
-        <div className="flex items-center justify-between">
+      <div className="bg-gradient-to-r from-primary-600 to-primary-700 dark:from-primary-500 dark:to-primary-600 rounded-xl p-0.5 sm:p-2 md:p-4 text-white shadow-lg">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold">Good morning, Juan! 👋</h1>
-            <p className="text-primary-100 mt-1">Here's what's happening with your business today</p>
+            <h1 className="text-xs sm:text-xl md:text-2xl font-bold">Good morning, Juan! 👋</h1>
+            <p className="text-primary-100 mt-1 text-xs sm:text-base">Here's what's happening with your business today</p>
           </div>
           <div className="hidden md:flex items-center space-x-4">
             <div className="text-right">
-              <p className="text-primary-100 text-sm">Today's Date</p>
-              <p className="font-semibold">{new Date().toLocaleDateString('en-PH', { 
+              <p className="text-primary-100 text-xs sm:text-sm">Today's Date</p>
+              <p className="font-semibold text-xs sm:text-base">{new Date().toLocaleDateString('en-PH', { 
                 weekday: 'long', 
                 year: 'numeric', 
                 month: 'long', 
@@ -97,21 +97,21 @@ const Dashboard: React.FC = () => {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-1 sm:gap-2 md:gap-4">
         {statsData.map((stat, index) => (
-          <StatsCard key={index} {...stat} />
+          <div key={index} className="p-0.5 sm:p-2 md:p-4"><StatsCard {...stat} /></div>
         ))}
       </div>
 
       {/* Alerts */}
-      <div className="bg-white dark:bg-dark-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-dark-700 transition-colors duration-300">
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center">
+      <div className="bg-white dark:bg-dark-800 rounded-xl p-0.5 sm:p-2 md:p-4 shadow-sm border border-gray-200 dark:border-dark-700 transition-colors duration-300">
+        <h2 className="text-xs sm:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1 sm:mb-4 flex items-center">
           <AlertTriangle className="h-5 w-5 text-orange-500 mr-2" />
           Important Alerts
         </h2>
-        <div className="space-y-3">
+        <div className="space-y-1 sm:space-y-3">
           {alerts.map((alert, index) => (
-            <div key={index} className={`flex items-center p-3 rounded-lg transition-colors duration-200 ${
+            <div key={index} className={`flex items-center p-0.5 sm:p-2 rounded-lg transition-colors duration-200 ${
               alert.type === 'warning' ? 'bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800' :
               alert.type === 'info' ? 'bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800' :
               'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800'
@@ -121,14 +121,14 @@ const Dashboard: React.FC = () => {
                 alert.type === 'info' ? 'text-blue-500' :
                 'text-green-500'
               }`} />
-              <span className="text-gray-700 dark:text-gray-200">{alert.message}</span>
+              <span className="text-xs sm:text-base text-gray-700 dark:text-gray-200">{alert.message}</span>
             </div>
           ))}
         </div>
       </div>
 
       {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-1 sm:gap-2 md:gap-4">
         {/* Sales Chart */}
         <div className="lg:col-span-2">
           <SalesChart />
@@ -141,13 +141,13 @@ const Dashboard: React.FC = () => {
       </div>
 
       {/* Business Analytics */}
-      <div className="bg-white dark:bg-dark-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-dark-700 transition-colors duration-300">
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-6">Business Analytics</h2>
+      <div className="bg-white dark:bg-dark-800 rounded-xl p-0.5 sm:p-2 md:p-4 shadow-sm border border-gray-200 dark:border-dark-700 transition-colors duration-300">
+        <h2 className="text-xs sm:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2 md:mb-6">Business Analytics</h2>
         <BusinessAnalytics />
       </div>
 
       {/* Bottom Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-1 sm:gap-2 md:gap-4">
         {/* Recent Transactions */}
         <RecentTransactions />
         

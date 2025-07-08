@@ -1,6 +1,10 @@
 // Formatting utilities for FBMS
 
-export const formatCurrency = (amount: number, currency: string = 'PHP'): string => {
+export const formatCurrency = (amount: number | undefined | null, currency: string = 'PHP'): string => {
+  if (amount === undefined || amount === null || isNaN(amount)) {
+    return '₱0.00';
+  }
+  
   return new Intl.NumberFormat('en-PH', {
     style: 'currency',
     currency: currency,
@@ -8,7 +12,11 @@ export const formatCurrency = (amount: number, currency: string = 'PHP'): string
   }).format(amount);
 };
 
-export const formatNumber = (num: number, decimals: number = 2): string => {
+export const formatNumber = (num: number | undefined | null, decimals: number = 2): string => {
+  if (num === undefined || num === null || isNaN(num)) {
+    return '0';
+  }
+  
   return new Intl.NumberFormat('en-PH', {
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals
