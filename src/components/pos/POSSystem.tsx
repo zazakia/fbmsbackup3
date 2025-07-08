@@ -419,6 +419,7 @@ const POSSystem: React.FC = () => {
         />
       )}
     </div>
+    </div>
   );
 };
 
