@@ -35,25 +35,25 @@ const POSSystem: React.FC = () => {
   const { user } = useAuthStore();
 
   // Load real customers from API
-  useEffect(() => {
-    const loadCustomers = async () => {
-      setLoadingCustomers(true);
-      try {
-        const { data, error } = await getCustomers();
-        if (data && !error) {
-          setRealCustomers(data);
-        } else {
-          console.warn('Failed to load customers:', error);
-        }
-      } catch (error) {
-        console.error('Error loading customers:', error);
-      } finally {
-        setLoadingCustomers(false);
+  const loadCustomers = useCallback(async () => {
+    setLoadingCustomers(true);
+    try {
+      const { data, error } = await getCustomers();
+      if (data && !error) {
+        setRealCustomers(data);
+      } else {
+        console.warn('Failed to load customers:', error);
       }
-    };
-
-    loadCustomers();
+    } catch (error) {
+      console.error('Error loading customers:', error);
+    } finally {
+      setLoadingCustomers(false);
+    }
   }, []);
+
+  useEffect(() => {
+    loadCustomers();
+  }, [loadCustomers]);
 
   const handleCustomerSelect = useCallback((customer: Customer | null) => {
     setSelectedCustomer(customer);
@@ -205,25 +205,41 @@ const POSSystem: React.FC = () => {
           </div>
 
           {/* Customer Selection */}
-          <div className="flex items-center space-x-2">
-            <button
-              onClick={() => setShowCustomerSelector(true)}
-              className="flex-1 flex items-center justify-center px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-lg hover:bg-gray-50 dark:hover:bg-dark-700 transition-colors text-gray-900 dark:text-gray-100"
-            >
-              <User className="h-4 w-4 mr-2" />
-              {selectedCustomer 
-                ? `${selectedCustomer.firstName} ${selectedCustomer.lastName}`
-                : 'Select Customer'
-              }
-            </button>
-            {selectedCustomer && (
+          <div className="space-y-3">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Customer</label>
+            <div className="flex items-center space-x-2">
               <button
-                onClick={() => setSelectedCustomer(null)}
-                className="px-3 py-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                onClick={() => setShowCustomerSelector(true)}
+                className="flex-1 flex items-center justify-between px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-lg hover:bg-gray-50 dark:hover:bg-dark-700 transition-colors text-gray-900 dark:text-gray-100"
               >
-                Clear
+                <div className="flex items-center">
+                  <div className="w-8 h-8 bg-gray-200 dark:bg-dark-600 rounded-full flex items-center justify-center mr-3">
+                    <User className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                  </div>
+                  <div className="text-left">
+                    <p className="text-sm font-medium">
+                      {selectedCustomer 
+                        ? `${selectedCustomer.firstName} ${selectedCustomer.lastName}`
+                        : 'Walk-in Customer'
+                      }
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      {selectedCustomer?.email || 'Click to select customer'}
+                    </p>
+                  </div>
+                </div>
+                <span className="text-xs text-blue-600 dark:text-blue-400">Change</span>
               </button>
-            )}
+              {selectedCustomer && (
+                <button
+                  onClick={() => setSelectedCustomer(null)}
+                  className="px-3 py-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                  title="Clear customer selection"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
@@ -294,23 +310,38 @@ const POSSystem: React.FC = () => {
           </div>
 
           {/* Mobile Customer Selection */}
-          <div className="flex items-center space-x-2">
-            <button
-              onClick={() => setShowCustomerSelector(true)}
-              className="flex-1 flex items-center justify-center px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-lg hover:bg-gray-50 dark:hover:bg-dark-700 transition-colors text-gray-900 dark:text-gray-100"
-            >
-              <User className="h-4 w-4 mr-2" />
-              {selectedCustomer 
-                ? `${selectedCustomer.firstName} ${selectedCustomer.lastName}`
-                : 'Select Customer'
-              }
-            </button>
-            {selectedCustomer && (
+          <div className="space-y-3">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Customer</label>
+            <div className="flex items-center space-x-2">
               <button
-                onClick={() => setSelectedCustomer(null)}
-                className="px-3 py-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                onClick={() => setShowCustomerSelector(true)}
+                className="flex-1 flex items-center justify-between px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-lg hover:bg-gray-50 dark:hover:bg-dark-700 transition-colors text-gray-900 dark:text-gray-100"
               >
-                Clear
+                <div className="flex items-center">
+                  <div className="w-8 h-8 bg-gray-200 dark:bg-dark-600 rounded-full flex items-center justify-center mr-3">
+                    <User className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                  </div>
+                  <div className="text-left">
+                    <p className="text-sm font-medium">
+                      {selectedCustomer 
+                        ? `${selectedCustomer.firstName} ${selectedCustomer.lastName}`
+                        : 'Walk-in Customer'
+                      }
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      {selectedCustomer?.email || 'Tap to select customer'}
+                    </p>
+                  </div>
+                </div>
+                <span className="text-xs text-blue-600 dark:text-blue-400">Change</span>
+              </button>
+              {selectedCustomer && (
+                <button
+                  onClick={() => setSelectedCustomer(null)}
+                  className="px-3 py-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                  title="Clear customer selection"
+                >
+                  <X className="h-4 w-4" />
               </button>
             )}
           </div>
@@ -374,6 +405,8 @@ const POSSystem: React.FC = () => {
           onCustomerSelect={handleCustomerSelect}
           showModal={true}
           onClose={handleCloseCustomerSelector}
+          loading={loadingCustomers}
+          onRefreshCustomers={loadCustomers}
         />
       )}
 
