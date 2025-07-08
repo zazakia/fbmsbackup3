@@ -41,6 +41,9 @@ export default defineConfig({
         '**/*.config.*',
         'dist/'
       ]
+    },
+    define: {
+      'import.meta.env.TEST': true
     }
   }
 });
