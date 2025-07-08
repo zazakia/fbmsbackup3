@@ -136,7 +136,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister }) => {
               />
             </div>
             {validationErrors.email && (
-              <p className="mt-1 text-sm text-red-600">{validationErrors.email}</p>
+              <p id="email-error" className="mt-1 text-sm text-red-600">{validationErrors.email}</p>
             )}
           </div>
 
@@ -162,12 +162,13 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister }) => {
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
                 disabled={isLoading}
+                tabIndex={-1}
               >
                 {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
               </button>
             </div>
             {validationErrors.password && (
-              <p className="mt-1 text-sm text-red-600">{validationErrors.password}</p>
+              <p id="password-error" className="mt-1 text-sm text-red-600">{validationErrors.password}</p>
             )}
           </div>
 

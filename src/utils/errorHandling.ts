@@ -197,8 +197,8 @@ export const logError = (error: AppError, context?: Record<string, unknown>): vo
     userId: context?.userId
   };
 
-  // Log to console in development
-  if (import.meta.env.DEV) {
+  // Log to console in development (but not during tests)
+  if (import.meta.env.DEV && !import.meta.env.TEST) {
     console.group(`🚨 ${errorLog.severity.toUpperCase()} ERROR`);
     console.error('Error:', error);
     console.log('Context:', context);

@@ -97,18 +97,32 @@ export function sanitizeFormData<T extends Record<string, any>>(formData: T): {
   const sanitized = sanitizeObject(formData);
   const errors: Record<string, string> = {};
   
-  // Validate email fields
+  // Validate required fields and formats
   Object.entries(sanitized).forEach(([key, value]) => {
-    if (key.toLowerCase().includes('email') && typeof value === 'string' && value) {
-      if (!isValidEmail(value)) {
+    const stringValue = typeof value === 'string' ? value.trim() : '';
+    
+    // Required field validation
+    if (!stringValue) {
+      if (key.toLowerCase().includes('email')) {
+        errors[key] = 'Email is required';
+      } else if (key.toLowerCase().includes('password')) {
+        errors[key] = 'Password is required';
+      } else if (key.toLowerCase().includes('name')) {
+        errors[key] = 'Name is required';
+      }
+      return; // Skip format validation if field is empty
+    }
+    
+    // Email format validation
+    if (key.toLowerCase().includes('email')) {
+      if (!isValidEmail(stringValue)) {
         errors[key] = 'Please enter a valid email address';
       }
     }
     
-    // Validate phone fields
-    if ((key.toLowerCase().includes('phone') || key.toLowerCase().includes('mobile')) && 
-        typeof value === 'string' && value) {
-      if (!isValidPhoneNumber(value)) {
+    // Phone format validation
+    if ((key.toLowerCase().includes('phone') || key.toLowerCase().includes('mobile'))) {
+      if (!isValidPhoneNumber(stringValue)) {
         errors[key] = 'Please enter a valid Philippine phone number';
       }
     }
