@@ -51,6 +51,8 @@ import AdminDashboard from './components/admin/AdminDashboard';
 import AuthCallback from './components/auth/AuthCallback';
 import PerformanceMonitor from './components/PerformanceMonitor';
 import UserDebugInfo from './components/auth/UserDebugInfo';
+import HelpMenu from './components/help/HelpMenu';
+import UserOnboardingTour from './components/help/UserOnboardingTour';
 import { 
   LazyUserRoleManagement, 
   LazySupplierManagement, 
@@ -85,6 +87,7 @@ import {
 const App: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeModule, setActiveModule] = useState('dashboard');
+  const [showOnboardingTour, setShowOnboardingTour] = useState(false);
   const { toasts, removeToast } = useToastStore();
   const { initializeTheme } = useThemeStore();
   const { user } = useSupabaseAuthStore();
@@ -104,6 +107,23 @@ const App: React.FC = () => {
       setupDevAuth(); // Setup development authentication
     }
   }, [initializeTheme, isOAuthCallback]);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'F1') {
+        e.preventDefault();
+        // Help menu is handled by HelpMenu component
+      }
+      if (e.ctrlKey && e.key === 'h') {
+        e.preventDefault();
+        setShowOnboardingTour(true);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   // Map menu IDs to visibility keys
   const menuIdToVisibilityKey: Record<string, keyof typeof menuVisibility> = {
@@ -416,6 +436,15 @@ const App: React.FC = () => {
         
         {/* User Debug Info (Development Only) */}
         {import.meta.env.DEV && <UserDebugInfo />}
+        
+        {/* Help Menu */}
+        <HelpMenu />
+        
+        {/* User Onboarding Tour */}
+        <UserOnboardingTour 
+          isOpen={showOnboardingTour} 
+          onClose={() => setShowOnboardingTour(false)} 
+        />
       </ProtectedRoute>
     </ErrorBoundary>
   );

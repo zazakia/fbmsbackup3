@@ -3,6 +3,7 @@ import { Search, User, X, Plus } from 'lucide-react';
 import { Customer } from '../../types/business';
 import { useBusinessStore } from '../../store/businessStore';
 import { useToastStore } from '../../store/toastStore';
+import QuickCustomerAdd from './QuickCustomerAdd';
 
 interface CustomerSelectorProps {
   customers: Customer[];
@@ -11,6 +12,8 @@ interface CustomerSelectorProps {
   showModal?: boolean;
   onClose?: () => void;
   onSelect?: (customerId: string) => void; // Legacy support
+  loading?: boolean;
+  onRefreshCustomers?: () => void;
 }
 
 const CustomerSelector: React.FC<CustomerSelectorProps> = ({ 
@@ -19,10 +22,13 @@ const CustomerSelector: React.FC<CustomerSelectorProps> = ({
   onCustomerSelect,
   showModal = false,
   onClose,
-  onSelect // Legacy support
+  onSelect, // Legacy support
+  loading = false,
+  onRefreshCustomers
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddForm, setShowAddForm] = useState(false);
+  const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [newCustomer, setNewCustomer] = useState({
     firstName: '',
     lastName: '',
@@ -50,6 +56,16 @@ const CustomerSelector: React.FC<CustomerSelectorProps> = ({
       onSelect(customer.id);
     }
     if (onClose) onClose();
+  };
+
+  const handleQuickCustomerAdded = (customer: Customer) => {
+    // Refresh customer list
+    if (onRefreshCustomers) {
+      onRefreshCustomers();
+    }
+    // Select the newly added customer
+    handleCustomerSelect(customer);
+    setShowQuickAdd(false);
   };
 
   const handleAddCustomer = async () => {
@@ -180,72 +196,135 @@ const CustomerSelector: React.FC<CustomerSelectorProps> = ({
 
         {/* Customer List */}
         <div className="flex-1 overflow-y-auto p-4">
-          {/* Walk-in Customer Option */}
-          <button
-            onClick={() => handleCustomerSelect(null)}
-            className="w-full p-3 text-left hover:bg-gray-50 rounded-lg transition-colors border-b border-gray-100 mb-2"
-          >
-            <div className="flex items-center">
-              <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center mr-3">
-                <User className="h-5 w-5 text-gray-500" />
-              </div>
-              <div>
-                <p className="font-medium text-gray-900">Walk-in Customer</p>
-                <p className="text-sm text-gray-500">No customer information</p>
-              </div>
-            </div>
-          </button>
-
-          {filteredCustomers.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              <User className="h-12 w-12 mx-auto mb-4" />
-              <p className="font-medium">No customers found</p>
-              <p className="text-sm">Try adjusting your search terms</p>
+          {loading ? (
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <p className="text-gray-500">Loading customers...</p>
             </div>
           ) : (
-            <div className="space-y-2">
-              {filteredCustomers.map((customer) => (
-                <button
-                  key={customer.id}
-                  onClick={() => handleCustomerSelect(customer)}
-                  className="w-full p-3 text-left hover:bg-gray-50 rounded-lg transition-colors"
-                >
-                  <div className="flex items-center">
-                    <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mr-3">
-                      <span className="text-blue-600 font-medium text-sm">
-                        {customer.firstName.charAt(0)}{customer.lastName.charAt(0)}
-                      </span>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-gray-900">
-                        {customer.firstName} {customer.lastName}
-                      </p>
-                      <p className="text-sm text-gray-500 truncate">
-                        {customer.email || customer.phone || 'No contact info'}
-                      </p>
-                      {customer.currentBalance > 0 && (
-                        <p className="text-xs text-red-600">
-                          Balance: ₱{customer.currentBalance.toFixed(2)}
-                        </p>
-                      )}
-                    </div>
+            <>
+              {/* Walk-in Customer Option */}
+              <button
+                onClick={() => handleCustomerSelect(null)}
+                className={`w-full p-3 text-left hover:bg-gray-50 rounded-lg transition-colors border-b border-gray-100 mb-3 ${
+                  !selectedCustomer ? 'bg-blue-50 border-blue-200' : ''
+                }`}
+              >
+                <div className="flex items-center">
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center mr-3 ${
+                    !selectedCustomer ? 'bg-blue-100' : 'bg-gray-200'
+                  }`}>
+                    <User className={`h-5 w-5 ${
+                      !selectedCustomer ? 'text-blue-600' : 'text-gray-500'
+                    }`} />
                   </div>
-                </button>
-              ))}
-            </div>
+                  <div>
+                    <p className={`font-medium ${
+                      !selectedCustomer ? 'text-blue-900' : 'text-gray-900'
+                    }`}>
+                      Walk-in Customer
+                    </p>
+                    <p className="text-sm text-gray-500">No customer information required</p>
+                  </div>
+                  {!selectedCustomer && (
+                    <div className="ml-auto">
+                      <div className="w-4 h-4 bg-blue-600 rounded-full flex items-center justify-center">
+                        <div className="w-2 h-2 bg-white rounded-full"></div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </button>
+
+              {/* Customer List Header */}
+              {customers.length > 0 && (
+                <div className="text-xs text-gray-500 uppercase tracking-wider font-medium mb-2 px-1">
+                  Registered Customers ({filteredCustomers.length})
+                </div>
+              )}
+
+              {filteredCustomers.length === 0 && searchTerm ? (
+                <div className="text-center py-8 text-gray-500">
+                  <User className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                  <p className="font-medium">No customers found</p>
+                  <p className="text-sm">Try adjusting your search terms or add a new customer</p>
+                </div>
+              ) : filteredCustomers.length === 0 && !searchTerm ? (
+                <div className="text-center py-8 text-gray-500">
+                  <User className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                  <p className="font-medium">No registered customers</p>
+                  <p className="text-sm">Add your first customer below</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {filteredCustomers.map((customer) => (
+                    <button
+                      key={customer.id}
+                      onClick={() => handleCustomerSelect(customer)}
+                      className={`w-full p-3 text-left hover:bg-gray-50 rounded-lg transition-colors ${
+                        selectedCustomer?.id === customer.id ? 'bg-blue-50 border border-blue-200' : 'border border-transparent'
+                      }`}
+                    >
+                      <div className="flex items-center">
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center mr-3 ${
+                          selectedCustomer?.id === customer.id ? 'bg-blue-100' : 'bg-gray-100'
+                        }`}>
+                          <span className={`font-medium text-sm ${
+                            selectedCustomer?.id === customer.id ? 'text-blue-600' : 'text-gray-600'
+                          }`}>
+                            {customer.firstName.charAt(0)}{customer.lastName.charAt(0)}
+                          </span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className={`font-medium ${
+                            selectedCustomer?.id === customer.id ? 'text-blue-900' : 'text-gray-900'
+                          }`}>
+                            {customer.firstName} {customer.lastName}
+                          </p>
+                          <p className="text-sm text-gray-500 truncate">
+                            {customer.email || customer.phone || 'No contact info'}
+                          </p>
+                          {customer.currentBalance > 0 && (
+                            <p className="text-xs text-red-600">
+                              Balance: ₱{customer.currentBalance.toFixed(2)}
+                            </p>
+                          )}
+                        </div>
+                        {selectedCustomer?.id === customer.id && (
+                          <div className="ml-auto">
+                            <div className="w-4 h-4 bg-blue-600 rounded-full flex items-center justify-center">
+                              <div className="w-2 h-2 bg-white rounded-full"></div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </>
           )}
         </div>
 
-        {/* Footer - Add Customer Form or Button */}
+        {/* Footer - Add Customer Options */}
         <div className="p-4 border-t border-gray-200">
           {!showAddForm ? (
-            <button 
-              onClick={() => setShowAddForm(true)}
-              className="w-full flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Add New Customer
-            </button>
+            <div className="space-y-2">
+              <button 
+                onClick={() => setShowQuickAdd(true)}
+                className="w-full flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Quick Add Customer
+              </button>
+              <button 
+                onClick={() => setShowAddForm(true)}
+                className="w-full flex items-center justify-center px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Detailed Form
+              </button>
+            </div>
           ) : (
             <div className="space-y-3">
               <div className="flex items-center justify-between">
@@ -317,6 +396,14 @@ const CustomerSelector: React.FC<CustomerSelectorProps> = ({
           )}
         </div>
       </div>
+
+      {/* Quick Add Customer Modal */}
+      {showQuickAdd && (
+        <QuickCustomerAdd
+          onCustomerAdded={handleQuickCustomerAdded}
+          onClose={() => setShowQuickAdd(false)}
+        />
+      )}
     </div>
   );
 };
