@@ -3,7 +3,7 @@ import { lazy, ComponentType } from 'react';
 /**
  * Enhanced lazy loading with preloading capabilities
  */
-export interface LazyLoadedComponent<T = {}> {
+export interface LazyLoadedComponent<T = Record<string, unknown>> {
   component: React.LazyExoticComponent<ComponentType<T>>;
   preload: () => Promise<{ default: ComponentType<T> }>;
 }
@@ -11,7 +11,7 @@ export interface LazyLoadedComponent<T = {}> {
 /**
  * Creates a lazy component with preloading capability
  */
-function createLazyComponent<T = {}>(
+function createLazyComponent<T = Record<string, unknown>>(
   importFunction: () => Promise<{ default: ComponentType<T> }>
 ): LazyLoadedComponent<T> {
   const component = lazy(importFunction);

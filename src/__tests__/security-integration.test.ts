@@ -12,7 +12,7 @@ describe('Security Integration Tests', () => {
       const email = 'user@example.com';
       
       // 1. Check rate limit (should allow first attempt)
-      let rateLimitResult = checkRateLimit(email);
+      const rateLimitResult = checkRateLimit(email);
       expect(rateLimitResult.allowed).toBe(true);
       expect(rateLimitResult.remainingAttempts).toBe(4);
       

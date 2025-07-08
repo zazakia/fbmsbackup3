@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { createAdminAccountIfNeeded } from './setupAdmin';
+// import { createAdminAccountIfNeeded } from './setupAdmin'; // Disabled for security
 
 const supabaseUrl = import.meta.env.VITE_PUBLIC_SUPABASE_URL as string;
 const supabaseAnonKey = import.meta.env.VITE_PUBLIC_SUPABASE_ANON_KEY as string;
@@ -27,19 +27,20 @@ export const supabase = createClient(
 // Export the same client for auth operations to avoid multiple instances
 export const supabaseAnon = supabase;
 
-// Function to setup development authentication
+// Function to setup development authentication - SECURITY: Admin auto-setup disabled
 export async function setupDevAuth() {
   if (import.meta.env.DEV) {
     try {
-      // First, setup admin account if needed
-      await createAdminAccountIfNeeded();
+      // SECURITY: No longer auto-creates admin accounts
+      console.log('🔒 Secure authentication mode enabled');
       
       // Check if we already have a session
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session) {
-        console.log('Development mode: Please use the login form to authenticate');
-        console.log('Create an account or use existing credentials to sign in');
+        console.log('Development mode: Please register and login through the application');
+        console.log('💡 Use the registration form to create new accounts');
+        console.log('👤 Admin roles must be assigned through the database or admin panel');
       } else {
         console.log('Already authenticated with Supabase');
       }

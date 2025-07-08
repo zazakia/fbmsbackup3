@@ -4,7 +4,7 @@ import React from 'react';
 export interface AppError {
   code: string;
   message: string;
-  details?: any;
+  details?: Record<string, unknown>;
   timestamp: Date;
   context?: string;
 }
@@ -98,7 +98,7 @@ export const ERROR_MESSAGES: Record<string, string> = {
 export const createError = (
   code: keyof typeof ERROR_CODES,
   message?: string,
-  details?: any,
+  details?: Record<string, unknown>,
   context?: string
 ): AppError => {
   return {
@@ -111,7 +111,7 @@ export const createError = (
 };
 
 // Handle Supabase errors
-export const handleSupabaseError = (error: any, context?: string): AppError => {
+export const handleSupabaseError = (error: unknown, context?: string): AppError => {
   if (!error) {
     return createError(ERROR_CODES.UNKNOWN_ERROR, undefined, undefined, context);
   }
@@ -148,7 +148,7 @@ export const handleSupabaseError = (error: any, context?: string): AppError => {
 };
 
 // Handle network errors
-export const handleNetworkError = (error: any, context?: string): AppError => {
+export const handleNetworkError = (error: unknown, context?: string): AppError => {
   if (error.name === 'AbortError') {
     return createError(ERROR_CODES.API_TIMEOUT, 'Request was cancelled.', error, context);
   }
@@ -188,7 +188,7 @@ export const getErrorSeverity = (error: AppError): ErrorSeverity => {
 };
 
 // Error logging utility
-export const logError = (error: AppError, context?: any): void => {
+export const logError = (error: AppError, context?: Record<string, unknown>): void => {
   const errorLog: ErrorLog = {
     error,
     severity: getErrorSeverity(error),
@@ -236,7 +236,7 @@ export const retryOperation = async <T>(
   maxRetries: number = 3,
   delay: number = 1000
 ): Promise<T> => {
-  let lastError: any;
+  let lastError: unknown;
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
@@ -277,7 +277,7 @@ export const safeAsync = async <T>(
 
 // React hook for error boundary
 export const useErrorHandler = () => {
-  const handleError = (error: any, context?: string) => {
+  const handleError = (error: unknown, context?: string) => {
     const appError = error instanceof Error 
       ? createError(ERROR_CODES.UNKNOWN_ERROR, error.message, error, context)
       : createError(ERROR_CODES.UNKNOWN_ERROR, 'Unknown error', error, context);
@@ -303,7 +303,7 @@ export const isRecoverableError = (error: AppError): boolean => {
     ERROR_CODES.DB_QUERY_FAILED
   ];
   
-  return recoverableErrors.includes(error.code as any);
+  return recoverableErrors.includes(error.code as string);
 };
 
 // Enhanced error boundary component for better error handling
@@ -311,7 +311,7 @@ export class EnhancedErrorBoundary extends React.Component<
   { children: React.ReactNode; fallback?: (error: AppError) => React.ReactNode },
   { hasError: boolean; error?: AppError }
 > {
-  constructor(props: any) {
+  constructor(props: Record<string, unknown>) {
     super(props);
     this.state = { hasError: false };
   }
@@ -326,7 +326,7 @@ export class EnhancedErrorBoundary extends React.Component<
     return { hasError: true, error: appError };
   }
 
-  componentDidCatch(error: Error, errorInfo: any) {
+  componentDidCatch(error: Error, errorInfo: Record<string, unknown>) {
     const appError = createError(
       ERROR_CODES.UNKNOWN_ERROR,
       error.message,
@@ -432,7 +432,7 @@ export const useGlobalErrorHandler = () => {
     setErrors([]);
   }, []);
 
-  const handleError = React.useCallback((error: any, context?: string) => {
+  const handleError = React.useCallback((error: unknown, context?: string) => {
     const appError = error instanceof Error 
       ? createError(ERROR_CODES.UNKNOWN_ERROR, error.message, error, context)
       : createError(ERROR_CODES.UNKNOWN_ERROR, 'Unknown error', error, context);
