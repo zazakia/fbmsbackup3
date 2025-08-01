@@ -12,7 +12,7 @@ import {
   Key
 } from 'lucide-react';
 import { useToastStore } from '../../store/toastStore';
-import { useAuthStore } from '../../store/authStore';
+import { useSupabaseAuthStore } from '../../store/supabaseAuthStore'; // UPDATED
 
 interface TestResult {
   name: string;
@@ -28,7 +28,12 @@ const AuthTest: React.FC = () => {
   const [authState, setAuthState] = useState<any>({});
   
   const { addToast } = useToastStore();
-  const { user, login, logout } = useAuthStore();
+  // const { user, login, logout } = useSupabaseAuthStore(); // UPDATED - user, login, logout from store are not actually used by the test logic below.
+  // The component uses its own `authState` for simulation.
+  // If we want this test component to *actually* test useSupabaseAuthStore, its internal test functions need a major rewrite.
+  // For now, just updating the import. The actual `user` from `useSupabaseAuthStore` could be used for display if needed.
+  const { user } = useSupabaseAuthStore();
+
 
   const mockUsers = [
     {

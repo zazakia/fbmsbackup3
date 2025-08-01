@@ -24,7 +24,7 @@ import {
 import { Customer, CustomerContact, CustomerTransaction } from '../../types/business';
 import { getCustomerAnalytics, getCustomerContacts, createCustomerContact } from '../../api/customers';
 import { useToastStore } from '../../store/toastStore';
-import { useAuthStore } from '../../store/authStore';
+import { useSupabaseAuthStore } from '../../store/supabaseAuthStore'; // UPDATED
 import LoadingSpinner from '../LoadingSpinner';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -59,7 +59,7 @@ const CustomerProfile: React.FC<CustomerProfileProps> = ({ customer, onClose, on
   });
 
   const { addToast } = useToastStore();
-  const { user } = useAuthStore();
+  const { user } = useSupabaseAuthStore(); // UPDATED
 
   useEffect(() => {
     fetchCustomerData();

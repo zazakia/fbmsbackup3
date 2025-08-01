@@ -1,6 +1,6 @@
 import React from 'react';
 import { Menu, Search, User, LogOut } from 'lucide-react';
-import { useAuthStore } from '../store/authStore';
+import { useSupabaseAuthStore } from '../store/supabaseAuthStore'; // UPDATED
 import SupabaseStatusIndicator from './SupabaseStatusIndicator';
 import DatabaseStatus from './DatabaseStatus';
 import NotificationBell from './NotificationBell';
@@ -12,10 +12,10 @@ interface HeaderProps {
 }
 
 const Header: React.FC<HeaderProps> = ({ onMenuToggle, activeModule }) => {
-  const { user, logout } = useAuthStore();
+  const { user, logout } = useSupabaseAuthStore(); // UPDATED
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => { // UPDATED to be async
+    await logout(); // UPDATED to await
   };
 
   return (

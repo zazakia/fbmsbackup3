@@ -53,13 +53,18 @@ export const useSupabaseAuthStore = create<SupabaseAuthStore>()(
                 createdAt: new Date(userProfile.created_at),
               };
             } else {
-              // Create basic user from auth data
+              // Profile not found or error fetching it. This should ideally not happen if the trigger works.
+              console.warn(
+                `User profile not found in public.users for email ${data.user.email} or error fetching:`,
+                profileError?.message
+              );
+              // Fallback to auth metadata, but this might indicate an issue with profile creation.
               user = {
                 id: data.user.id,
                 email: data.user.email || '',
                 firstName: data.user.user_metadata?.first_name || '',
                 lastName: data.user.user_metadata?.last_name || '',
-                role: 'user',
+                role: 'user', // Default role, actual role should come from public.users
                 isActive: true,
                 createdAt: new Date(),
               };
@@ -101,24 +106,16 @@ export const useSupabaseAuthStore = create<SupabaseAuthStore>()(
           }
 
           if (authData.user) {
-            // Create user profile in our users table
-            const { error: profileError } = await supabase
-              .from('users')
-              .insert({
-                id: authData.user.id,
-                email: authData.user.email,
-                first_name: data.firstName,
-                last_name: data.lastName,
-                role: data.role || 'user',
-                department: data.department,
-                is_active: true,
-              });
+            // The trigger 'on_auth_user_created' is now responsible for creating the user profile in public.users.
+            // We no longer insert directly from the client here.
+            // We'll immediately set the auth state with data from the signup,
+            // and subsequent profile fetches (e.g., in checkAuth or page loads) will get the full profile.
 
-            if (profileError) {
-              console.warn('Failed to create user profile:', profileError.message);
-            }
+            // if (profileError) { // This block is removed
+            //   console.warn('Failed to create user profile:', profileError.message);
+            // }
 
-            const user: User = {
+            const user: User = { // Construct user from signup data for immediate state update
               id: authData.user.id,
               email: authData.user.email || '',
               firstName: data.firstName,
@@ -195,12 +192,18 @@ export const useSupabaseAuthStore = create<SupabaseAuthStore>()(
                 createdAt: new Date(userProfile.created_at),
               };
             } else {
+              // Profile not found or error fetching it. This should ideally not happen if the trigger works.
+              console.warn(
+                `User profile not found in public.users for email ${session.user.email} or error fetching:`,
+                profileError?.message
+              );
+              // Fallback to auth metadata, but this might indicate an issue with profile creation.
               user = {
                 id: session.user.id,
                 email: session.user.email || '',
                 firstName: session.user.user_metadata?.first_name || '',
                 lastName: session.user.user_metadata?.last_name || '',
-                role: 'user',
+                role: 'user', // Default role, actual role should come from public.users
                 isActive: true,
                 createdAt: new Date(),
               };

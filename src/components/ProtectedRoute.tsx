@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { useAuthStore } from '../store/authStore';
+import { useSupabaseAuthStore } from '../store/supabaseAuthStore'; // UPDATED
 import AuthPage from './auth/AuthPage';
 
 interface ProtectedRouteProps {
@@ -7,10 +7,10 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
-  const { isAuthenticated, checkAuth } = useAuthStore();
+  const { isAuthenticated, checkAuth } = useSupabaseAuthStore(); // UPDATED
 
   useEffect(() => {
-    checkAuth();
+    checkAuth(); // checkAuth in useSupabaseAuthStore is async, useEffect handles this.
   }, [checkAuth]);
 
   // Temporarily bypass authentication for development
