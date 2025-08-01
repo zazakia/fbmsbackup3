@@ -150,13 +150,13 @@ const SupplierForm: React.FC<SupplierFormProps> = ({ supplierId, onClose }) => {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto border border-gray-200 dark:border-gray-600">
         {/* Header */}
-        <div className="p-6 border-b border-gray-200">
+        <div className="p-6 border-b border-gray-200 dark:border-gray-600">
           <div className="flex items-center justify-between">
             <div className="flex items-center">
               <Building className="h-6 w-6 text-blue-600 mr-3" />
-              <h2 className="text-xl font-semibold text-gray-900">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
                 {loading ? 'Loading...' : supplierId ? 'Edit Supplier' : 'Add New Supplier'}
               </h2>
             </div>
@@ -174,7 +174,7 @@ const SupplierForm: React.FC<SupplierFormProps> = ({ supplierId, onClose }) => {
           {/* Basic Information */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-white mb-2">
                 Supplier Name *
               </label>
               <input
@@ -192,20 +192,20 @@ const SupplierForm: React.FC<SupplierFormProps> = ({ supplierId, onClose }) => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-white mb-2">
                 Contact Person
               </label>
               <input
                 type="text"
                 value={formData.contactPerson}
                 onChange={(e) => handleInputChange('contactPerson', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                 placeholder="Enter contact person name"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-white mb-2">
                 Phone Number
               </label>
               <input
@@ -223,7 +223,7 @@ const SupplierForm: React.FC<SupplierFormProps> = ({ supplierId, onClose }) => {
             </div>
 
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-white mb-2">
                 Email Address
               </label>
               <input
@@ -244,60 +244,60 @@ const SupplierForm: React.FC<SupplierFormProps> = ({ supplierId, onClose }) => {
             </div>
 
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-white mb-2">
                 Address
               </label>
               <input
                 type="text"
                 value={formData.address}
                 onChange={(e) => handleInputChange('address', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                 placeholder="Enter street address"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-white mb-2">
                 City
               </label>
               <input
                 type="text"
                 value={formData.city}
                 onChange={(e) => handleInputChange('city', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                 placeholder="Enter city"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-white mb-2">
                 Province
               </label>
               <input
                 type="text"
                 value={formData.province}
                 onChange={(e) => handleInputChange('province', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                 placeholder="Enter province"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-white mb-2">
                 ZIP Code
               </label>
               <input
                 type="text"
                 value={formData.zipCode}
                 onChange={(e) => handleInputChange('zipCode', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                 placeholder="Enter ZIP code"
               />
             </div>
           </div>
 
           {/* Action Buttons */}
-          <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
+          <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200 dark:border-gray-600">
             <button
               type="button"
               onClick={onClose}
@@ -320,4 +320,4 @@ const SupplierForm: React.FC<SupplierFormProps> = ({ supplierId, onClose }) => {
   );
 };
 
-export default SupplierForm; 
+export default SupplierForm;          
