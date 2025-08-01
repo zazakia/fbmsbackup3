@@ -132,21 +132,21 @@ const ProductForm: React.FC<ProductFormProps> = ({ productId, onClose }) => {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="p-6 border-b border-gray-200">
+        <div className="p-6 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between">
             <div className="flex items-center">
-              <Package className="h-6 w-6 text-blue-600 mr-3" />
-              <h2 className="text-xl font-semibold text-gray-900">
+              <Package className="h-6 w-6 text-blue-600 dark:text-blue-400 mr-3" />
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
                 {productId ? 'Edit Product' : 'Add New Product'}
               </h2>
             </div>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
             >
-              <X className="h-5 w-5" />
+              <X className="h-5 w-5 text-gray-500 dark:text-gray-400" />
             </button>
           </div>
         </div>
@@ -156,15 +156,15 @@ const ProductForm: React.FC<ProductFormProps> = ({ productId, onClose }) => {
           {/* Basic Information */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Product Name *
               </label>
               <input
                 type="text"
                 value={formData.name}
                 onChange={(e) => handleInputChange('name', e.target.value)}
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                  errors.name ? 'border-red-300' : 'border-gray-300'
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 dark:text-white bg-white dark:bg-gray-700 ${
+                  errors.name ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-gray-600'
                 }`}
                 placeholder="Enter product name"
               />
@@ -174,28 +174,28 @@ const ProductForm: React.FC<ProductFormProps> = ({ productId, onClose }) => {
             </div>
 
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Description
               </label>
               <textarea
                 value={formData.description}
                 onChange={(e) => handleInputChange('description', e.target.value)}
                 rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 dark:text-white bg-white dark:bg-gray-700"
                 placeholder="Enter product description"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 SKU *
               </label>
               <input
                 type="text"
                 value={formData.sku}
                 onChange={(e) => handleInputChange('sku', e.target.value)}
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                  errors.sku ? 'border-red-300' : 'border-gray-300'
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 dark:text-white bg-white dark:bg-gray-700 ${
+                  errors.sku ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-gray-600'
                 }`}
                 placeholder="Enter SKU"
               />
@@ -205,27 +205,27 @@ const ProductForm: React.FC<ProductFormProps> = ({ productId, onClose }) => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Barcode
               </label>
               <input
                 type="text"
                 value={formData.barcode}
                 onChange={(e) => handleInputChange('barcode', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 dark:text-white bg-white dark:bg-gray-700"
                 placeholder="Enter barcode"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Category *
               </label>
               <select
                 value={formData.category}
                 onChange={(e) => handleInputChange('category', e.target.value)}
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                  errors.category ? 'border-red-300' : 'border-gray-300'
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 dark:text-white bg-white dark:bg-gray-700 ${
+                  errors.category ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-gray-600'
                 }`}
               >
                 <option value="">Select category</option>
@@ -241,13 +241,13 @@ const ProductForm: React.FC<ProductFormProps> = ({ productId, onClose }) => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Unit
               </label>
               <select
                 value={formData.unit}
                 onChange={(e) => handleInputChange('unit', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 dark:text-white bg-white dark:bg-gray-700"
               >
                 <option value="piece">Piece</option>
                 <option value="pack">Pack</option>
@@ -264,7 +264,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ productId, onClose }) => {
           {/* Pricing */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Cost Price *
               </label>
               <input
@@ -272,8 +272,8 @@ const ProductForm: React.FC<ProductFormProps> = ({ productId, onClose }) => {
                 step="0.01"
                 value={formData.cost}
                 onChange={(e) => handleInputChange('cost', e.target.value)}
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                  errors.cost ? 'border-red-300' : 'border-gray-300'
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 dark:text-white bg-white dark:bg-gray-700 ${
+                  errors.cost ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-gray-600'
                 }`}
                 placeholder="0.00"
               />
@@ -283,7 +283,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ productId, onClose }) => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Selling Price *
               </label>
               <input
@@ -291,8 +291,8 @@ const ProductForm: React.FC<ProductFormProps> = ({ productId, onClose }) => {
                 step="0.01"
                 value={formData.price}
                 onChange={(e) => handleInputChange('price', e.target.value)}
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                  errors.price ? 'border-red-300' : 'border-gray-300'
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 dark:text-white bg-white dark:bg-gray-700 ${
+                  errors.price ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-gray-600'
                 }`}
                 placeholder="0.00"
               />
@@ -305,15 +305,15 @@ const ProductForm: React.FC<ProductFormProps> = ({ productId, onClose }) => {
           {/* Stock */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Current Stock *
               </label>
               <input
                 type="number"
                 value={formData.stock}
                 onChange={(e) => handleInputChange('stock', e.target.value)}
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                  errors.stock ? 'border-red-300' : 'border-gray-300'
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 dark:text-white bg-white dark:bg-gray-700 ${
+                  errors.stock ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-gray-600'
                 }`}
                 placeholder="0"
               />
@@ -323,15 +323,15 @@ const ProductForm: React.FC<ProductFormProps> = ({ productId, onClose }) => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Minimum Stock *
               </label>
               <input
                 type="number"
                 value={formData.minStock}
                 onChange={(e) => handleInputChange('minStock', e.target.value)}
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                  errors.minStock ? 'border-red-300' : 'border-gray-300'
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 dark:text-white bg-white dark:bg-gray-700 ${
+                  errors.minStock ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-gray-600'
                 }`}
                 placeholder="0"
               />
@@ -343,10 +343,10 @@ const ProductForm: React.FC<ProductFormProps> = ({ productId, onClose }) => {
 
           {/* Profit Margin Display */}
           {formData.cost && formData.price && (
-            <div className="p-4 bg-blue-50 rounded-lg">
+            <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
               <div className="flex justify-between items-center">
-                <span className="text-sm font-medium text-gray-700">Profit Margin:</span>
-                <span className="text-lg font-bold text-blue-600">
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Profit Margin:</span>
+                <span className="text-lg font-bold text-blue-600 dark:text-blue-400">
                   ₱{(parseFloat(formData.price) - parseFloat(formData.cost)).toFixed(2)} 
                   ({(((parseFloat(formData.price) - parseFloat(formData.cost)) / parseFloat(formData.cost)) * 100).toFixed(1)}%)
                 </span>
@@ -355,17 +355,17 @@ const ProductForm: React.FC<ProductFormProps> = ({ productId, onClose }) => {
           )}
 
           {/* Actions */}
-          <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
+          <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200 dark:border-gray-700">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center"
+              className="px-4 py-2 bg-blue-600 dark:bg-blue-700 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-800 transition-colors flex items-center"
             >
               <Save className="h-4 w-4 mr-2" />
               {productId ? 'Update Product' : 'Add Product'}
