@@ -11,7 +11,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const { isAuthenticated, checkAuth, hasLoggedOut, user, pendingEmailVerification } = useSupabaseAuthStore();
 
   useEffect(() => {
-    checkAuth();
+    checkAuth(); // checkAuth in useSupabaseAuthStore is async, useEffect handles this.
   }, [checkAuth]);
 
   // Only allow development bypass if:

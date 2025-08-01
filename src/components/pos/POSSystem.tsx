@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Search, ShoppingCart, User, CreditCard, Calculator, Menu, X } from 'lucide-react';
 import { useBusinessStore } from '../../store/businessStore';
-import { useAuthStore } from '../../store/authStore';
+import { useSupabaseAuthStore } from '../../store/supabaseAuthStore'; // UPDATED
 import ProductGrid from './ProductGrid';
 import Cart from './Cart';
 import CustomerSelector from './CustomerSelector';
@@ -32,7 +32,7 @@ const POSSystem: React.FC = () => {
     clearCart
   } = useBusinessStore();
   
-  const { user } = useAuthStore();
+  const { user } = useSupabaseAuthStore(); // UPDATED
 
   // Load real customers from API
   const loadCustomers = useCallback(async () => {
