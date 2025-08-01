@@ -195,12 +195,15 @@ const initialProducts: Product[] = [
     sku: 'SMB-330',
     barcode: '4800016644443',
     category: '1',
+    categoryId: '1',
     price: 45,
     cost: 38,
     stock: 120,
     minStock: 20,
     unit: 'bottle',
     isActive: true,
+    tags: [],
+    images: [],
     createdAt: new Date(),
     updatedAt: new Date()
   },
@@ -211,12 +214,15 @@ const initialProducts: Product[] = [
     sku: 'LM-CHK-55',
     barcode: '4800016001234',
     category: '2',
+    categoryId: '2',
     price: 12,
     cost: 9,
     stock: 200,
     minStock: 50,
     unit: 'pack',
     isActive: true,
+    tags: [],
+    images: [],
     createdAt: new Date(),
     updatedAt: new Date()
   },
@@ -227,12 +233,15 @@ const initialProducts: Product[] = [
     sku: 'CC-355',
     barcode: '4902430123456',
     category: '1',
+    categoryId: '1',
     price: 25,
     cost: 20,
     stock: 150,
     minStock: 30,
     unit: 'can',
     isActive: true,
+    tags: [],
+    images: [],
     createdAt: new Date(),
     updatedAt: new Date()
   },
@@ -243,12 +252,15 @@ const initialProducts: Product[] = [
     sku: 'PAN-170',
     barcode: '8001090123456',
     category: '3',
+    categoryId: '3',
     price: 89,
     cost: 72,
     stock: 45,
     minStock: 10,
     unit: 'bottle',
     isActive: true,
+    tags: [],
+    images: [],
     createdAt: new Date(),
     updatedAt: new Date()
   }
@@ -267,8 +279,15 @@ const initialCustomers: Customer[] = [
     zipCode: '1100',
     creditLimit: 5000,
     currentBalance: 0,
+    totalPurchases: 0,
+    customerType: 'individual',
+    tags: [],
+    discountPercentage: 0,
+    loyaltyPoints: 0,
+    notes: '',
     isActive: true,
     createdAt: new Date(),
+    updatedAt: new Date(),
     lastPurchase: new Date()
   },
   {
@@ -283,8 +302,15 @@ const initialCustomers: Customer[] = [
     zipCode: '1000',
     creditLimit: 3000,
     currentBalance: 0,
+    totalPurchases: 0,
+    customerType: 'individual',
+    tags: [],
+    discountPercentage: 0,
+    loyaltyPoints: 0,
+    notes: '',
     isActive: true,
     createdAt: new Date(),
+    updatedAt: new Date(),
     lastPurchase: new Date()
   }
 ];
@@ -706,63 +732,63 @@ const initialJournalEntries: JournalEntry[] = [
     date: new Date('2024-12-01'),
     reference: 'JE20241201001',
     description: 'Initial business investment',
-    memo: 'Owner investment to start the business',
     lines: [
-      { accountId: '2', debit: 100000, credit: 0, description: 'Initial cash deposit' },
-      { accountId: '18', debit: 0, credit: 100000, description: 'Owner capital contribution' }
+      { id: '1', accountId: '2', accountName: 'Cash', debit: 100000, credit: 0, description: 'Initial cash deposit' },
+      { id: '2', accountId: '18', accountName: 'Owner Equity', debit: 0, credit: 100000, description: 'Owner capital contribution' }
     ],
-    createdAt: new Date('2024-12-01')
+    createdAt: new Date('2024-12-01'),
+    createdBy: 'admin'
   },
   {
     id: '2',
     date: new Date('2024-12-02'),
     reference: 'JE20241202001',
     description: 'Purchase of office equipment',
-    memo: 'Bought computer and printer for office use',
     lines: [
-      { accountId: '7', debit: 25000, credit: 0, description: 'Computer and printer' },
-      { accountId: '2', debit: 0, credit: 25000, description: 'Payment for equipment' }
+      { id: '3', accountId: '7', accountName: 'Equipment', debit: 25000, credit: 0, description: 'Computer and printer' },
+      { id: '4', accountId: '2', accountName: 'Cash', debit: 0, credit: 25000, description: 'Payment for equipment' }
     ],
-    createdAt: new Date('2024-12-02')
+    createdAt: new Date('2024-12-02'),
+    createdBy: 'admin'
   },
   {
     id: '3',
     date: new Date('2024-12-03'),
     reference: 'JE20241203001',
     description: 'Purchase of initial inventory',
-    memo: 'First batch of products for resale',
     lines: [
-      { accountId: '5', debit: 50000, credit: 0, description: 'Initial inventory purchase' },
-      { accountId: '2', debit: 0, credit: 50000, description: 'Payment for inventory' }
+      { id: '5', accountId: '5', accountName: 'Inventory', debit: 50000, credit: 0, description: 'Initial inventory purchase' },
+      { id: '6', accountId: '2', accountName: 'Cash', debit: 0, credit: 50000, description: 'Payment for inventory' }
     ],
-    createdAt: new Date('2024-12-03')
+    createdAt: new Date('2024-12-03'),
+    createdBy: 'admin'
   },
   {
     id: '4',
     date: new Date('2024-12-05'),
     reference: 'JE20241205001',
     description: 'Sales transaction',
-    memo: 'First sale of the day',
     lines: [
-      { accountId: '2', debit: 1200, credit: 0, description: 'Cash received from sale' },
-      { accountId: '21', debit: 0, credit: 1000, description: 'Sales revenue' },
-      { accountId: '13', debit: 0, credit: 120, description: 'VAT collected' },
-      { accountId: '5', debit: 0, credit: 600, description: 'Cost of goods sold' },
-      { accountId: '25', debit: 600, credit: 0, description: 'COGS expense' }
+      { id: '7', accountId: '2', accountName: 'Cash', debit: 1200, credit: 0, description: 'Cash received from sale' },
+      { id: '8', accountId: '21', accountName: 'Sales Revenue', debit: 0, credit: 1000, description: 'Sales revenue' },
+      { id: '9', accountId: '13', accountName: 'VAT Payable', debit: 0, credit: 120, description: 'VAT collected' },
+      { id: '10', accountId: '5', accountName: 'Inventory', debit: 0, credit: 600, description: 'Cost of goods sold' },
+      { id: '11', accountId: '25', accountName: 'Cost of Goods Sold', debit: 600, credit: 0, description: 'COGS expense' }
     ],
-    createdAt: new Date('2024-12-05')
+    createdAt: new Date('2024-12-05'),
+    createdBy: 'admin'
   },
   {
     id: '5',
     date: new Date('2024-12-06'),
     reference: 'JE20241206001',
     description: 'Payment of utilities',
-    memo: 'Electricity and water bills',
     lines: [
-      { accountId: '28', debit: 2500, credit: 0, description: 'Utilities expense' },
-      { accountId: '2', debit: 0, credit: 2500, description: 'Payment for utilities' }
+      { id: '12', accountId: '28', accountName: 'Utilities Expense', debit: 2500, credit: 0, description: 'Utilities expense' },
+      { id: '13', accountId: '2', accountName: 'Cash', debit: 0, credit: 2500, description: 'Payment for utilities' }
     ],
-    createdAt: new Date('2024-12-06')
+    createdAt: new Date('2024-12-06'),
+    createdBy: 'admin'
   }
 ];
 
@@ -1054,12 +1080,11 @@ export const useBusinessStore = create<BusinessStore>()(
         return get().products.filter(product => product.category === categoryId && product.isActive);
       },
 
-      updateStock: (productId, quantity, type = 'adjustment', userId = 'system', reference?, notes?) => {
+      updateStock: (productId, quantity) => {
         set((state) => {
           const updatedProducts = state.products.map(product => {
             if (product.id === productId) {
-              const previousStock = product.stock;
-              const newStock = product.stock + quantity;
+              const newStock = quantity;
               
               // Create stock movement record (in a real app, this would be async)
               // For now, we'll just update the product stock
