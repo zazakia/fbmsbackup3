@@ -24,7 +24,7 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { useBusinessStore } from '../../store/businessStore';
-import { useAuthStore } from '../../store/authStore';
+import { useSupabaseAuthStore } from '../../store/supabaseAuthStore'; // UPDATED
 import { formatCurrency, formatDate } from '../../utils/formatters';
 import { hasPermission } from '../../utils/permissions';
 
@@ -60,7 +60,7 @@ interface DailyOperations {
 }
 
 const ManagerOperations: React.FC = () => {
-  const { user } = useAuthStore();
+  const { user } = useSupabaseAuthStore(); // UPDATED
   const { products, customers, employees, sales } = useBusinessStore();
   const [activeTab, setActiveTab] = useState('overview');
   const [selectedDate, setSelectedDate] = useState(new Date());

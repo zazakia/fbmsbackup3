@@ -3,13 +3,13 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import LoginForm from '../LoginForm';
 import { useSupabaseAuthStore } from '../../../store/supabaseAuthStore';
 
-// Mock the auth store
+// Mock the supabase auth store
 vi.mock('../../../store/supabaseAuthStore', () => ({
   useSupabaseAuthStore: vi.fn()
 }));
 
-const mockAuthStore = {
-  login: vi.fn(),
+const mockSupabaseAuthStore = { // UPDATED name
+  login: vi.fn(() => Promise.resolve()), // UPDATED to return a promise
   isLoading: false,
   error: null,
   clearError: vi.fn()
@@ -20,7 +20,7 @@ describe('LoginForm', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    (useSupabaseAuthStore as any).mockReturnValue(mockAuthStore);
+    (useSupabaseAuthStore as any).mockReturnValue(mockSupabaseAuthStore);
   });
 
   it('renders login form correctly', () => {
@@ -56,7 +56,7 @@ describe('LoginForm', () => {
 
   it('validates email format', async () => {
     // Make sure loading is false for this test
-    const testStore = { ...mockAuthStore, isLoading: false };
+    const testStore = { ...mockSupabaseAuthStore, isLoading: false };
     (useSupabaseAuthStore as any).mockReturnValue(testStore);
     
     render(<LoginForm onSwitchToRegister={mockOnSwitchToRegister} />);
@@ -104,7 +104,7 @@ describe('LoginForm', () => {
     fireEvent.click(submitButton);
     
     await waitFor(() => {
-      expect(mockAuthStore.login).toHaveBeenCalledWith({
+      expect(mockSupabaseAuthStore.login).toHaveBeenCalledWith({ // UPDATED
         email: 'test@example.com',
         password: 'password123'
       });
@@ -112,7 +112,7 @@ describe('LoginForm', () => {
   });
 
   it('displays error message when login fails', () => {
-    const errorStore = { ...mockAuthStore, error: 'Invalid credentials' };
+    const errorStore = { ...mockSupabaseAuthStore, error: 'Invalid credentials', login: vi.fn(() => Promise.reject(new Error('Invalid credentials'))) };
     (useSupabaseAuthStore as any).mockReturnValue(errorStore);
     
     render(<LoginForm onSwitchToRegister={mockOnSwitchToRegister} />);
@@ -121,7 +121,7 @@ describe('LoginForm', () => {
   });
 
   it('shows loading state during login', () => {
-    const loadingStore = { ...mockAuthStore, isLoading: true };
+    const loadingStore = { ...mockSupabaseAuthStore, isLoading: true };
     (useSupabaseAuthStore as any).mockReturnValue(loadingStore);
     
     render(<LoginForm onSwitchToRegister={mockOnSwitchToRegister} />);
@@ -140,7 +140,7 @@ describe('LoginForm', () => {
   });
 
   it('clears errors when user starts typing', async () => {
-    const errorStore = { ...mockAuthStore, error: 'Some error', clearError: vi.fn() };
+    const errorStore = { ...mockSupabaseAuthStore, error: 'Some error' };
     (useSupabaseAuthStore as any).mockReturnValue(errorStore);
     
     render(<LoginForm onSwitchToRegister={mockOnSwitchToRegister} />);
@@ -148,6 +148,6 @@ describe('LoginForm', () => {
     const emailInput = screen.getByLabelText('Email Address');
     fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
     
-    expect(errorStore.clearError).toHaveBeenCalled();
+    expect(mockSupabaseAuthStore.clearError).toHaveBeenCalled();
   });
 });

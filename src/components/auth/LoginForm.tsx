@@ -15,10 +15,8 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister }) => {
   const {
     data: formData,
     errors: validationErrors,
-    isValid,
     updateField,
-    validate,
-    getFieldProps
+    validate
   } = useSafeForm({
     email: '',
     password: ''
@@ -50,7 +48,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister }) => {
     }
   };
 
-  const handleInputChange = (field: string, value: string) => {
+  const handleInputChange = (field: 'email' | 'password', value: string) => {
     updateField(field, value);
     
     // Clear auth error and unregistered prompt when user makes changes

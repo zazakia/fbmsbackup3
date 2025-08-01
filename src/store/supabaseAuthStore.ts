@@ -82,7 +82,13 @@ export const useSupabaseAuthStore = create<SupabaseAuthStore>()(
                 createdAt: new Date(userProfile.created_at),
               };
             } else {
-              // Create basic user from auth data and insert into database
+              // Profile not found or error fetching it. This should ideally not happen if the trigger works.
+              console.warn(
+                `User profile not found in public.users for email ${data.user.email} or error fetching:`,
+                profileError?.message
+              );
+              
+              // Create basic user from auth data and insert into database as fallback
               console.warn('User profile not found in database, creating user profile...');
               
               // SECURITY: Remove automatic admin role assignment based on email
@@ -112,7 +118,6 @@ export const useSupabaseAuthStore = create<SupabaseAuthStore>()(
               } catch (insertError) {
                 console.warn('Error creating user profile:', insertError);
               }
-
               user = {
                 id: data.user.id,
                 email: email,
@@ -173,24 +178,32 @@ export const useSupabaseAuthStore = create<SupabaseAuthStore>()(
             // Check if email is verified (new users need verification)
             const isEmailVerified = authData.user.email_confirmed_at !== null;
             
-            // Create user profile in our users table
-            const { error: profileError } = await supabase
-              .from('users')
-              .insert({
-                id: authData.user.id,
-                email: authData.user.email,
-                first_name: data.firstName,
-                last_name: data.lastName,
-                role: data.role || 'user',
-                department: data.department,
-                is_active: true,
-              });
-
-            if (profileError) {
-              console.warn('Failed to create user profile:', profileError.message);
+            // The trigger 'on_auth_user_created' is now responsible for creating the user profile in public.users.
+            try {
+              const { error: profileError } = await supabase
+                .from('users')
+                .insert({
+                  id: authData.user.id,
+                  email: authData.user.email,
+                  first_name: data.firstName,
+                  last_name: data.lastName,
+                  role: data.role || 'cashier',
+                  department: data.department,
+                  is_active: true,
+                });
+              
+              if (profileError && !profileError.message.includes('duplicate key')) {
+                console.warn('Failed to create user profile:', profileError.message);
+              }
+            } catch (error) {
+              console.warn('Error creating user profile during registration:', error);
             }
 
-            const user: User = {
+            // if (profileError) { // This block is removed
+            //   console.warn('Failed to create user profile:', profileError.message);
+            // }
+
+            const user: User = { // Construct user from signup data for immediate state update
               id: authData.user.id,
               email: authData.user.email || '',
               firstName: data.firstName,
@@ -320,6 +333,12 @@ export const useSupabaseAuthStore = create<SupabaseAuthStore>()(
                 createdAt: new Date(userProfile.created_at),
               };
             } else {
+              // Profile not found or error fetching it. This should ideally not happen if the trigger works.
+              console.warn(
+                `User profile not found in public.users for email ${session.user.email} or error fetching:`,
+                profileError?.message
+              );
+              
               console.warn('User profile not found in database during auth check, creating user profile...');
               
               // SECURITY: Remove automatic admin role assignment based on email
@@ -349,7 +368,6 @@ export const useSupabaseAuthStore = create<SupabaseAuthStore>()(
               } catch (insertError) {
                 console.warn('Error creating user profile during auth check:', insertError);
               }
-
               user = {
                 id: session.user.id,
                 email: email,
