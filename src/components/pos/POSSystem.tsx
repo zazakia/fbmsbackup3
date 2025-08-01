@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Search, ShoppingCart, User, CreditCard, Calculator, Menu, X } from 'lucide-react';
 import { useBusinessStore } from '../../store/businessStore';
-import { useAuthStore } from '../../store/authStore';
+import { useSupabaseAuthStore } from '../../store/supabaseAuthStore'; // UPDATED
 import ProductGrid from './ProductGrid';
 import Cart from './Cart';
 import CustomerSelector from './CustomerSelector';
@@ -29,7 +29,7 @@ const POSSystem: React.FC = () => {
     getCustomer
   } = useBusinessStore();
   
-  const { user } = useAuthStore();
+  const { user } = useSupabaseAuthStore(); // UPDATED
 
   const filteredProducts = products.filter(product => {
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||

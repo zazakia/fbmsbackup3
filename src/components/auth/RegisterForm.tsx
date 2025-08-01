@@ -1,7 +1,28 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff, User, Mail, Lock, Building, AlertCircle, CheckCircle } from 'lucide-react';
-import { useAuthStore } from '../../store/authStore';
-import { validateEmail, validatePassword, validateName } from '../../utils/auth';
+import { useSupabaseAuthStore } from '../../store/supabaseAuthStore'; // UPDATED
+
+// Inlined validation functions as src/utils/auth.ts is being deleted
+const validateEmail = (email: string): boolean => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+};
+
+const validatePassword = (password: string): { isValid: boolean; errors: string[] } => {
+  const errors: string[] = [];
+  if (password.length < 8) { errors.push('Password must be at least 8 characters long'); }
+  // Supabase default password policy is min 6 chars, no other complexity.
+  // This client-side validation is stricter and good to keep for UX.
+  // We might want to align this with Supabase's actual configured policy later.
+  if (!/[A-Z]/.test(password)) { errors.push('Password must contain at least one uppercase letter'); }
+  if (!/[a-z]/.test(password)) { errors.push('Password must contain at least one lowercase letter'); }
+  if (!/\d/.test(password)) { errors.push('Password must contain at least one number'); }
+  return { isValid: errors.length === 0, errors };
+};
+
+const validateName = (name: string): boolean => {
+  return name.trim().length >= 2 && /^[a-zA-Z\s'-]+$/.test(name); // Allow hyphen and apostrophe in names
+};
 
 interface RegisterFormProps {
   onSwitchToLogin: () => void;
@@ -20,7 +41,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
 
-  const { register, isLoading, error, clearError } = useAuthStore();
+  const { register, isLoading, error, clearError } = useSupabaseAuthStore(); // UPDATED
 
   const validateForm = (): boolean => {
     const errors: Record<string, string> = {};

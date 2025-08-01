@@ -23,7 +23,7 @@ import {
   Package
 } from 'lucide-react';
 import { useBusinessStore } from '../../store/businessStore';
-import { useAuthStore } from '../../store/authStore';
+import { useSupabaseAuthStore } from '../../store/supabaseAuthStore'; // UPDATED
 import { useToastStore } from '../../store/toastStore';
 import { useNotificationStore, createSystemNotification } from '../../store/notificationStore';
 import { Product, Customer, PaymentMethod, CartItem } from '../../types/business';
@@ -97,7 +97,7 @@ const EnhancedPOSSystem: React.FC = () => {
     getCustomer
   } = useBusinessStore();
   
-  const { user } = useAuthStore();
+  const { user } = useSupabaseAuthStore(); // UPDATED
   const { addToast } = useToastStore();
   const { addNotification } = useNotificationStore();
 
