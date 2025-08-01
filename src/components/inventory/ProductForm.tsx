@@ -101,12 +101,15 @@ const ProductForm: React.FC<ProductFormProps> = ({ productId, onClose }) => {
       sku: formData.sku.trim(),
       barcode: formData.barcode.trim() || undefined,
       category: formData.category,
+      categoryId: formData.category,
       price: parseFloat(formData.price),
       cost: parseFloat(formData.cost),
       stock: parseInt(formData.stock),
       minStock: parseInt(formData.minStock),
       unit: formData.unit,
-      isActive: true
+      isActive: true,
+      tags: [],
+      images: []
     };
 
     if (productId) {
