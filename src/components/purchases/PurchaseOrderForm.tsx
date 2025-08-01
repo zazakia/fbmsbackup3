@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Save, FileText, Plus, Trash2, Package } from 'lucide-react';
 import { useBusinessStore } from '../../store/businessStore';
-import { PurchaseOrderItem, Supplier } from '../../types/business';
+import { PurchaseOrderItem, Supplier, PurchaseOrderStatus } from '../../types/business';
 import { getActiveSuppliers, createPurchaseOrder, updatePurchaseOrder as updatePO, getNextPONumber } from '../../api/purchases';
 
 interface PurchaseOrderFormProps {
@@ -12,7 +12,6 @@ interface PurchaseOrderFormProps {
 const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ poId, onClose }) => {
   const { 
     products, 
-    purchaseOrders, 
     addPurchaseOrder, 
     updatePurchaseOrder, 
     getPurchaseOrder
@@ -21,7 +20,7 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ poId, onClose }) 
   const [formData, setFormData] = useState({
     supplierId: '',
     expectedDate: '',
-    status: 'draft' as const
+    status: 'draft' as PurchaseOrderStatus
   });
 
   const [items, setItems] = useState<PurchaseOrderItem[]>([]);
@@ -208,13 +207,13 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ poId, onClose }) 
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-4xl mx-4 max-h-[90vh] overflow-y-auto">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-4xl mx-4 max-h-[90vh] overflow-y-auto dark:border-gray-600">
         {/* Header */}
-        <div className="p-6 border-b border-gray-200">
+        <div className="p-6 border-b border-gray-200 dark:border-gray-600">
           <div className="flex items-center justify-between">
             <div className="flex items-center">
               <FileText className="h-6 w-6 text-green-600 mr-3" />
-              <h2 className="text-xl font-semibold text-gray-900">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
                 {poId ? 'Edit Purchase Order' : 'Create Purchase Order'}
               </h2>
             </div>
@@ -232,7 +231,7 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ poId, onClose }) 
           {/* Basic Information */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-white mb-2">
                 Supplier *
               </label>
               <select
@@ -260,25 +259,25 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ poId, onClose }) 
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-white mb-2">
                 Expected Date
               </label>
               <input
                 type="date"
                 value={formData.expectedDate}
                 onChange={(e) => handleInputChange('expectedDate', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-white mb-2">
                 Status
               </label>
               <select
                 value={formData.status}
                 onChange={(e) => handleInputChange('status', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
               >
                 <option value="draft">Draft</option>
                 <option value="sent">Sent</option>
@@ -292,7 +291,7 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ poId, onClose }) 
           {/* Items Section */}
           <div>
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-medium text-gray-900">Purchase Order Items</h3>
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white">Purchase Order Items</h3>
               <button
                 type="button"
                 onClick={addItem}
@@ -318,13 +317,13 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ poId, onClose }) 
                   <div key={item.id} className="border border-gray-200 rounded-lg p-4">
                     <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label className="block text-sm font-medium text-gray-700 dark:text-white mb-2">
                           Product
                         </label>
                         <select
                           value={item.productId}
                           onChange={(e) => updateItem(index, 'productId', e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                         >
                           <option value="">Select Product</option>
                           {products.filter(p => p.isActive).map(product => (
@@ -336,7 +335,7 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ poId, onClose }) 
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label className="block text-sm font-medium text-gray-700 dark:text-white mb-2">
                           Quantity
                         </label>
                         <input
@@ -344,12 +343,12 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ poId, onClose }) 
                           min="1"
                           value={item.quantity}
                           onChange={(e) => updateItem(index, 'quantity', parseInt(e.target.value) || 0)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label className="block text-sm font-medium text-gray-700 dark:text-white mb-2">
                           Cost (₱)
                         </label>
                         <input
@@ -358,19 +357,19 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ poId, onClose }) 
                           min="0"
                           value={item.cost}
                           onChange={(e) => updateItem(index, 'cost', parseFloat(e.target.value) || 0)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label className="block text-sm font-medium text-gray-700 dark:text-white mb-2">
                           Total (₱)
                         </label>
                         <input
                           type="number"
                           value={item.total}
                           readOnly
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50"
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 dark:text-white"
                         />
                       </div>
 
@@ -395,19 +394,19 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ poId, onClose }) 
             <div className="bg-gray-50 rounded-lg p-4">
               <div className="flex justify-between items-center">
                 <div>
-                  <p className="text-sm text-gray-600">Subtotal:</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-300">Subtotal:</p>
                   <p className="text-lg font-semibold text-gray-900">
                     ₱{items.reduce((sum, item) => sum + item.total, 0).toLocaleString()}
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">VAT (12%):</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-300">VAT (12%):</p>
                   <p className="text-lg font-semibold text-gray-900">
                     ₱{(items.reduce((sum, item) => sum + item.total, 0) * 0.12).toLocaleString()}
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">Total:</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-300">Total:</p>
                   <p className="text-xl font-bold text-green-600">
                     ₱{(items.reduce((sum, item) => sum + item.total, 0) * 1.12).toLocaleString()}
                   </p>
@@ -417,7 +416,7 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ poId, onClose }) 
           )}
 
           {/* Action Buttons */}
-          <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
+          <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200 dark:border-gray-600">
             <button
               type="button"
               onClick={onClose}
@@ -440,4 +439,4 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ poId, onClose }) 
   );
 };
 
-export default PurchaseOrderForm; 
+export default PurchaseOrderForm;                  

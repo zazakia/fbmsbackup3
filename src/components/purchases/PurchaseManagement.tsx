@@ -129,7 +129,7 @@ const PurchaseManagement: React.FC = () => {
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Active Suppliers</p>
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-300">Active Suppliers</p>
               <p className="text-2xl font-bold text-gray-900">{activeSuppliers}</p>
             </div>
             <Package className="h-8 w-8 text-blue-500" />
@@ -139,7 +139,7 @@ const PurchaseManagement: React.FC = () => {
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Pending POs</p>
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-300">Pending POs</p>
               <p className="text-2xl font-bold text-orange-600">{pendingPOs}</p>
             </div>
             <AlertTriangle className="h-8 w-8 text-orange-500" />
@@ -149,7 +149,7 @@ const PurchaseManagement: React.FC = () => {
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Total PO Value</p>
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-300">Total PO Value</p>
               <p className="text-2xl font-bold text-green-600">₱{totalPOValue.toLocaleString()}</p>
             </div>
             <FileText className="h-8 w-8 text-green-500" />
@@ -159,7 +159,7 @@ const PurchaseManagement: React.FC = () => {
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">This Month</p>
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-300">This Month</p>
               <p className="text-2xl font-bold text-purple-600">{realPurchaseOrders.filter(po => {
                 const thisMonth = new Date().getMonth();
                 const poMonth = new Date(po.createdAt).getMonth();
@@ -173,7 +173,7 @@ const PurchaseManagement: React.FC = () => {
 
       {/* Tabs */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-        <div className="border-b border-gray-200">
+        <div className="border-b border-gray-200 dark:border-gray-600">
           <nav className="flex space-x-8 px-6">
             <button
               onClick={() => setActiveTab('suppliers')}
@@ -210,7 +210,7 @@ const PurchaseManagement: React.FC = () => {
                     placeholder="Search suppliers..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white dark:border-gray-600"
                   />
                 </div>
               </div>
@@ -235,13 +235,13 @@ const PurchaseManagement: React.FC = () => {
                     placeholder="Search purchase orders..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white dark:border-gray-600"
                   />
                 </div>
                 <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
-                  className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white dark:border-gray-600"
                 >
                   <option value="all">All Status</option>
                   <option value="draft">Draft</option>
@@ -282,4 +282,4 @@ const PurchaseManagement: React.FC = () => {
   );
 };
 
-export default PurchaseManagement; 
+export default PurchaseManagement;        

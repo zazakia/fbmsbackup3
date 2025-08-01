@@ -55,7 +55,7 @@ const PurchaseOrderList: React.FC<PurchaseOrderListProps> = ({ purchaseOrders, o
     return (
       <div className="text-center py-12">
         <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-        <h3 className="text-lg font-medium text-gray-900 mb-2">No purchase orders found</h3>
+        <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No purchase orders found</h3>
         <p className="text-gray-500">Create your first purchase order to get started</p>
       </div>
     );
@@ -178,4 +178,4 @@ const PurchaseOrderList: React.FC<PurchaseOrderListProps> = ({ purchaseOrders, o
   );
 };
 
-export default PurchaseOrderList; 
+export default PurchaseOrderList;  

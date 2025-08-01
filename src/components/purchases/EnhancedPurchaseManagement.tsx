@@ -1,34 +1,27 @@
 import React, { useState, useEffect } from 'react';
+import PurchaseOrderForm from './PurchaseOrderForm';
+import SupplierForm from './SupplierForm';
 import { 
   Plus, 
   Search, 
-  Filter, 
   ShoppingCart, 
-  FileText, 
   Calendar,
   TrendingUp,
-  Users,
   DollarSign,
   Package,
   Truck,
   Clock,
-  CheckCircle,
-  XCircle,
-  AlertTriangle,
   Eye,
   Edit,
   Download,
   Upload,
-  Send,
-  Archive,
   BarChart3,
-  Receipt,
   Calculator,
   Building2
 } from 'lucide-react';
 import { useBusinessStore } from '../../store/businessStore';
 import { useToastStore } from '../../store/toastStore';
-import { Supplier, PurchaseOrder, PurchaseOrderItem, Product } from '../../types/business';
+import { Supplier, PurchaseOrder } from '../../types/business';
 import { formatCurrency, formatDate } from '../../utils/formatters';
 
 interface PurchaseStats {
@@ -68,15 +61,11 @@ const EnhancedPurchaseManagement: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [supplierFilter, setSupplierFilter] = useState<string>('all');
-  const [dateRange, setDateRange] = useState({ start: '', end: '' });
-  const [selectedOrder, setSelectedOrder] = useState<PurchaseOrder | null>(null);
   const [stats, setStats] = useState<PurchaseStats | null>(null);
   const [analytics, setAnalytics] = useState<PurchaseAnalytics | null>(null);
   const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
 
-  const { products, createPurchaseOrder, updateStock } = useBusinessStore();
-  const { addToast } = useToastStore();
 
   // Initialize mock data
   useEffect(() => {
@@ -93,10 +82,7 @@ const EnhancedPurchaseManagement: React.FC = () => {
         email: 'juan@metrosupply.com',
         phone: '+63-2-8123-4567',
         address: '123 Industrial Ave, Pasig City',
-        paymentTerms: 'Net 30',
         isActive: true,
-        totalPurchases: 250000,
-        lastOrderDate: new Date('2024-06-15'),
         createdAt: new Date('2023-01-15')
       },
       {
@@ -106,10 +92,7 @@ const EnhancedPurchaseManagement: React.FC = () => {
         email: 'maria@globaltrading.ph',
         phone: '+63-2-8987-6543',
         address: '456 Commerce St, Makati City',
-        paymentTerms: 'Net 15',
         isActive: true,
-        totalPurchases: 180000,
-        lastOrderDate: new Date('2024-06-20'),
         createdAt: new Date('2023-03-20')
       },
       {
@@ -119,10 +102,7 @@ const EnhancedPurchaseManagement: React.FC = () => {
         email: 'roberto@primedist.com',
         phone: '+63-2-8555-1234',
         address: '789 Warehouse Blvd, Quezon City',
-        paymentTerms: 'Net 45',
         isActive: true,
-        totalPurchases: 320000,
-        lastOrderDate: new Date('2024-06-18'),
         createdAt: new Date('2023-02-10')
       }
     ];
@@ -131,56 +111,47 @@ const EnhancedPurchaseManagement: React.FC = () => {
     const mockOrders: PurchaseOrder[] = [
       {
         id: 'po-1',
-        orderNumber: 'PO-2024-001',
+        poNumber: 'PO-2024-001',
         supplierId: 'sup-1',
         supplierName: 'Metro Supply Corp',
-        orderDate: new Date('2024-06-15'),
-        expectedDeliveryDate: new Date('2024-06-25'),
-        actualDeliveryDate: new Date('2024-06-24'),
         status: 'received',
         items: [
           {
             id: 'poi-1',
             productId: 'prod-1',
             productName: 'Office Chair',
+            sku: 'OFC-001',
             quantity: 10,
-            unitCost: 2500,
+            cost: 2500,
             total: 25000,
-            receivedQuantity: 10
           }
         ],
         subtotal: 25000,
         tax: 3000,
         total: 28000,
-        paymentStatus: 'paid',
-        notes: 'Urgent order for office setup',
         createdBy: 'admin',
         createdAt: new Date('2024-06-15')
       },
       {
         id: 'po-2',
-        orderNumber: 'PO-2024-002',
+        poNumber: 'PO-2024-002',
         supplierId: 'sup-2',
         supplierName: 'Global Trading Inc',
-        orderDate: new Date('2024-06-20'),
-        expectedDeliveryDate: new Date('2024-07-05'),
-        status: 'pending',
+        status: 'sent',
         items: [
           {
             id: 'poi-2',
             productId: 'prod-2',
             productName: 'Laptop Computer',
+            sku: 'LAP-001',
             quantity: 5,
-            unitCost: 45000,
-            total: 225000,
-            receivedQuantity: 0
+            cost: 45000,
+            total: 225000
           }
         ],
         subtotal: 225000,
         tax: 27000,
         total: 252000,
-        paymentStatus: 'pending',
-        notes: 'For IT department upgrade',
         createdBy: 'admin',
         createdAt: new Date('2024-06-20')
       }
@@ -192,11 +163,9 @@ const EnhancedPurchaseManagement: React.FC = () => {
     // Calculate stats
     const totalPurchases = mockOrders.length;
     const totalValue = mockOrders.reduce((sum, order) => sum + order.total, 0);
-    const pendingOrders = mockOrders.filter(order => order.status === 'pending').length;
+    const pendingOrders = mockOrders.filter(order => order.status === 'sent').length;
     const receivedThisMonth = mockOrders.filter(order => 
-      order.status === 'received' && 
-      order.actualDeliveryDate && 
-      order.actualDeliveryDate.getMonth() === new Date().getMonth()
+      order.status === 'received'
     ).length;
 
     setStats({
@@ -220,7 +189,7 @@ const EnhancedPurchaseManagement: React.FC = () => {
       supplierPerformance: mockSuppliers.map(supplier => ({
         supplier,
         totalOrders: Math.floor(Math.random() * 20) + 5,
-        totalValue: supplier.totalPurchases,
+        totalValue: Math.floor(Math.random() * 300000) + 100000,
         onTimeDelivery: Math.floor(Math.random() * 20) + 80,
         averageDeliveryDays: Math.floor(Math.random() * 10) + 5
       })),
@@ -241,83 +210,15 @@ const EnhancedPurchaseManagement: React.FC = () => {
   };
 
   const filteredOrders = purchaseOrders.filter(order => {
-    const matchesSearch = order.orderNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    const matchesSearch = order.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          order.supplierName.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
     const matchesSupplier = supplierFilter === 'all' || order.supplierId === supplierFilter;
     
-    let matchesDateRange = true;
-    if (dateRange.start && dateRange.end) {
-      const orderDate = order.orderDate;
-      const startDate = new Date(dateRange.start);
-      const endDate = new Date(dateRange.end);
-      matchesDateRange = orderDate >= startDate && orderDate <= endDate;
-    }
-    
-    return matchesSearch && matchesStatus && matchesSupplier && matchesDateRange;
+    return matchesSearch && matchesStatus && matchesSupplier;
   });
 
-  const handleCreateOrder = (orderData: Partial<PurchaseOrder>) => {
-    const newOrder: PurchaseOrder = {
-      id: `po-${Date.now()}`,
-      orderNumber: `PO-${new Date().getFullYear()}-${String(purchaseOrders.length + 1).padStart(3, '0')}`,
-      orderDate: new Date(),
-      status: 'draft',
-      paymentStatus: 'pending',
-      createdBy: 'admin',
-      createdAt: new Date(),
-      ...orderData
-    } as PurchaseOrder;
 
-    setPurchaseOrders(prev => [newOrder, ...prev]);
-    setShowOrderForm(false);
-
-    addToast({
-      type: 'success',
-      title: 'Purchase Order Created',
-      message: `Order ${newOrder.orderNumber} has been created successfully`
-    });
-  };
-
-  const handleReceiveOrder = (orderId: string, receivedItems: Array<{itemId: string; receivedQuantity: number}>) => {
-    setPurchaseOrders(prev => prev.map(order => {
-      if (order.id === orderId) {
-        const updatedItems = order.items.map(item => {
-          const received = receivedItems.find(r => r.itemId === item.id);
-          return received ? { ...item, receivedQuantity: received.receivedQuantity } : item;
-        });
-        
-        const allItemsReceived = updatedItems.every(item => item.receivedQuantity === item.quantity);
-        const someItemsReceived = updatedItems.some(item => item.receivedQuantity && item.receivedQuantity > 0);
-        
-        return {
-          ...order,
-          items: updatedItems,
-          status: allItemsReceived ? 'received' : someItemsReceived ? 'partial' : order.status,
-          actualDeliveryDate: someItemsReceived ? new Date() : order.actualDeliveryDate
-        };
-      }
-      return order;
-    }));
-
-    // Update inventory for received items
-    receivedItems.forEach(received => {
-      const order = purchaseOrders.find(o => o.id === orderId);
-      const item = order?.items.find(i => i.id === received.itemId);
-      if (item && received.receivedQuantity > 0) {
-        const product = products.find(p => p.id === item.productId);
-        if (product) {
-          updateStock(item.productId, product.stock + received.receivedQuantity);
-        }
-      }
-    });
-
-    addToast({
-      type: 'success',
-      title: 'Order Received',
-      message: 'Inventory has been updated with received items'
-    });
-  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -331,14 +232,6 @@ const EnhancedPurchaseManagement: React.FC = () => {
     }
   };
 
-  const getPaymentStatusColor = (status: string) => {
-    switch (status) {
-      case 'paid': return 'text-green-600 bg-green-50';
-      case 'partial': return 'text-yellow-600 bg-yellow-50';
-      case 'pending': return 'text-red-600 bg-red-50';
-      default: return 'text-gray-600 bg-gray-50';
-    }
-  };
 
   return (
     <div className="p-6 space-y-6 dark:bg-dark-950 min-h-screen">
@@ -372,7 +265,7 @@ const EnhancedPurchaseManagement: React.FC = () => {
           <div className="bg-white dark:bg-dark-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-dark-700">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Orders</p>
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-300">Total Orders</p>
                 <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{stats.totalPurchases}</p>
                 <p className="text-xs text-green-600 dark:text-green-400">+{stats.monthlyTrend}% this month</p>
               </div>
@@ -383,7 +276,7 @@ const EnhancedPurchaseManagement: React.FC = () => {
           <div className="bg-white dark:bg-dark-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-dark-700">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Value</p>
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-300">Total Value</p>
                 <p className="text-2xl font-bold text-green-600">{formatCurrency(stats.totalValue)}</p>
                 <p className="text-xs text-gray-500 dark:text-gray-500">Average: {formatCurrency(stats.averageOrderValue)}</p>
               </div>
@@ -394,7 +287,7 @@ const EnhancedPurchaseManagement: React.FC = () => {
           <div className="bg-white dark:bg-dark-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-dark-700">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Pending Orders</p>
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-300">Pending Orders</p>
                 <p className="text-2xl font-bold text-yellow-600">{stats.pendingOrders}</p>
                 <p className="text-xs text-gray-500 dark:text-gray-500">Awaiting delivery</p>
               </div>
@@ -405,7 +298,7 @@ const EnhancedPurchaseManagement: React.FC = () => {
           <div className="bg-white dark:bg-dark-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-dark-700">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">On-time Delivery</p>
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-300">On-time Delivery</p>
                 <p className="text-2xl font-bold text-purple-600">{stats.onTimeDeliveryRate}%</p>
                 <p className="text-xs text-gray-500 dark:text-gray-500">Supplier performance</p>
               </div>
@@ -433,7 +326,7 @@ const EnhancedPurchaseManagement: React.FC = () => {
             </button>
           </div>
           
-          <div className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400">
+          <div className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-300">
             <Calendar className="h-4 w-4" />
             <span>Last updated: {formatDate(new Date(), 'time')}</span>
           </div>
@@ -442,7 +335,7 @@ const EnhancedPurchaseManagement: React.FC = () => {
 
       {/* Navigation Tabs */}
       <div className="bg-white dark:bg-dark-800 rounded-xl shadow-sm border border-gray-200 dark:border-dark-700">
-        <div className="border-b border-gray-200 dark:border-dark-700">
+        <div className="border-b border-gray-200 dark:border-gray-600">
           <nav className="flex space-x-8 px-6">
             {[
               { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
@@ -482,7 +375,7 @@ const EnhancedPurchaseManagement: React.FC = () => {
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Top Suppliers</h3>
                   <div className="space-y-3">
                     {stats.topSuppliers.map((supplier, index) => (
-                      <div key={supplier.id} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-dark-700 rounded-lg">
+                      <div key={supplier.id} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
                         <div className="flex items-center">
                           <span className="w-8 h-8 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-full flex items-center justify-center text-sm font-bold mr-3">
                             {index + 1}
@@ -493,8 +386,8 @@ const EnhancedPurchaseManagement: React.FC = () => {
                           </div>
                         </div>
                         <div className="text-right">
-                          <p className="font-medium text-gray-900 dark:text-gray-100">{formatCurrency(supplier.totalPurchases)}</p>
-                          <p className="text-sm text-gray-500 dark:text-gray-400">{supplier.paymentTerms}</p>
+                          <p className="font-medium text-gray-900 dark:text-gray-100">{formatCurrency(Math.floor(Math.random() * 300000) + 100000)}</p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">Net 30</p>
                         </div>
                       </div>
                     ))}
@@ -505,9 +398,9 @@ const EnhancedPurchaseManagement: React.FC = () => {
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Recent Orders</h3>
                   <div className="space-y-3">
                     {purchaseOrders.slice(0, 5).map(order => (
-                      <div key={order.id} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-dark-700 rounded-lg">
+                      <div key={order.id} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
                         <div>
-                          <p className="font-medium text-gray-900 dark:text-gray-100">{order.orderNumber}</p>
+                          <p className="font-medium text-gray-900 dark:text-gray-100">{order.id}</p>
                           <p className="text-sm text-gray-500 dark:text-gray-400">{order.supplierName}</p>
                         </div>
                         <div className="text-right">
@@ -525,7 +418,7 @@ const EnhancedPurchaseManagement: React.FC = () => {
               {/* Analytics Overview */}
               {analytics && (
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  <div className="bg-gray-50 dark:bg-dark-700 p-6 rounded-lg">
+                  <div className="bg-gray-50 dark:bg-gray-700 p-6 rounded-lg">
                     <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-4">Category Spending</h4>
                     <div className="space-y-3">
                       {analytics.categorySpending.map(item => (
@@ -542,7 +435,7 @@ const EnhancedPurchaseManagement: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="bg-gray-50 dark:bg-dark-700 p-6 rounded-lg">
+                  <div className="bg-gray-50 dark:bg-gray-700 p-6 rounded-lg">
                     <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-4">Cost Analysis</h4>
                     <div className="space-y-3">
                       <div className="flex justify-between">
@@ -566,7 +459,7 @@ const EnhancedPurchaseManagement: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="bg-gray-50 dark:bg-dark-700 p-6 rounded-lg">
+                  <div className="bg-gray-50 dark:bg-gray-700 p-6 rounded-lg">
                     <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-4">Performance Metrics</h4>
                     <div className="space-y-3">
                       <div className="flex justify-between">
@@ -602,13 +495,13 @@ const EnhancedPurchaseManagement: React.FC = () => {
                     placeholder="Search orders by number or supplier..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-dark-600 rounded-lg bg-white dark:bg-dark-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
                 <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
-                  className="px-4 py-2 border border-gray-300 dark:border-dark-600 rounded-lg bg-white dark:bg-dark-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
                   <option value="all">All Status</option>
                   <option value="draft">Draft</option>
@@ -621,7 +514,7 @@ const EnhancedPurchaseManagement: React.FC = () => {
                 <select
                   value={supplierFilter}
                   onChange={(e) => setSupplierFilter(e.target.value)}
-                  className="px-4 py-2 border border-gray-300 dark:border-dark-600 rounded-lg bg-white dark:bg-dark-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
                   <option value="all">All Suppliers</option>
                   {suppliers.map(supplier => (
@@ -634,7 +527,7 @@ const EnhancedPurchaseManagement: React.FC = () => {
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-gray-200 dark:border-dark-700">
+                    <tr className="border-b border-gray-200 dark:border-gray-600">
                       <th className="text-left py-3 px-4 font-medium text-gray-900 dark:text-gray-100">Order #</th>
                       <th className="text-left py-3 px-4 font-medium text-gray-900 dark:text-gray-100">Supplier</th>
                       <th className="text-left py-3 px-4 font-medium text-gray-900 dark:text-gray-100">Date</th>
@@ -649,22 +542,20 @@ const EnhancedPurchaseManagement: React.FC = () => {
                     {filteredOrders.map(order => (
                       <tr key={order.id} className="border-b border-gray-100 dark:border-dark-700 hover:bg-gray-50 dark:hover:bg-dark-700/50">
                         <td className="py-3 px-4">
-                          <div className="font-medium text-gray-900 dark:text-gray-100">{order.orderNumber}</div>
+                          <div className="font-medium text-gray-900 dark:text-gray-100">{order.poNumber}</div>
                           <div className="text-xs text-gray-500 dark:text-gray-400">{order.items.length} items</div>
                         </td>
                         <td className="py-3 px-4 text-gray-600 dark:text-gray-400">{order.supplierName}</td>
-                        <td className="py-3 px-4 text-gray-600 dark:text-gray-400">{formatDate(order.orderDate)}</td>
-                        <td className="py-3 px-4 text-gray-600 dark:text-gray-400">
-                          {order.expectedDeliveryDate ? formatDate(order.expectedDeliveryDate) : '-'}
-                        </td>
+                        <td className="py-3 px-4 text-gray-600 dark:text-gray-400">{formatDate(order.createdAt)}</td>
+                        <td className="py-3 px-4 text-gray-600 dark:text-gray-400">-</td>
                         <td className="py-3 px-4">
                           <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(order.status)}`}>
                             {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
                           </span>
                         </td>
                         <td className="py-3 px-4">
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPaymentStatusColor(order.paymentStatus)}`}>
-                            {order.paymentStatus.charAt(0).toUpperCase() + order.paymentStatus.slice(1)}
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
+                            {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
                           </span>
                         </td>
                         <td className="py-3 px-4 font-medium text-gray-900 dark:text-gray-100">
@@ -673,7 +564,10 @@ const EnhancedPurchaseManagement: React.FC = () => {
                         <td className="py-3 px-4">
                           <div className="flex items-center space-x-2">
                             <button
-                              onClick={() => setSelectedOrder(order)}
+                              onClick={() => {
+                                setEditingOrder(order.id);
+                                setShowOrderForm(true);
+                              }}
                               className="p-1 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
                               title="View Details"
                             >
@@ -712,7 +606,7 @@ const EnhancedPurchaseManagement: React.FC = () => {
             <div className="space-y-6">
               <div className="text-center py-12">
                 <Building2 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">Supplier Management</h3>
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Supplier Management</h3>
                 <p className="text-gray-500 dark:text-gray-400">Manage supplier information, contracts, and performance metrics.</p>
               </div>
             </div>
@@ -721,7 +615,7 @@ const EnhancedPurchaseManagement: React.FC = () => {
           {activeTab === 'receiving' && (
             <div className="text-center py-12">
               <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">Receiving Module</h3>
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Receiving Module</h3>
               <p className="text-gray-500 dark:text-gray-400">Process incoming shipments and update inventory levels.</p>
             </div>
           )}
@@ -729,7 +623,7 @@ const EnhancedPurchaseManagement: React.FC = () => {
           {activeTab === 'analytics' && analytics && (
             <div className="space-y-6">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="bg-gray-50 dark:bg-dark-700 p-6 rounded-lg">
+                <div className="bg-gray-50 dark:bg-gray-700 p-6 rounded-lg">
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Supplier Performance</h3>
                   <div className="space-y-4">
                     {analytics.supplierPerformance.map(perf => (
@@ -757,7 +651,7 @@ const EnhancedPurchaseManagement: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="bg-gray-50 dark:bg-dark-700 p-6 rounded-lg">
+                <div className="bg-gray-50 dark:bg-gray-700 p-6 rounded-lg">
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Seasonal Trends</h3>
                   <div className="space-y-3">
                     {analytics.seasonalTrends.map(trend => (
@@ -776,6 +670,28 @@ const EnhancedPurchaseManagement: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Purchase Order Form Modal */}
+      {showOrderForm && (
+        <PurchaseOrderForm
+          poId={editingOrder}
+          onClose={() => {
+            setShowOrderForm(false);
+            setEditingOrder(null);
+          }}
+        />
+      )}
+
+      {/* Supplier Form Modal */}
+      {showSupplierForm && (
+        <SupplierForm
+          supplierId={editingSupplier}
+          onClose={() => {
+            setShowSupplierForm(false);
+            setEditingSupplier(null);
+          }}
+        />
+      )}
     </div>
   );
 };
