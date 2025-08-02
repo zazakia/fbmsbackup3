@@ -81,7 +81,8 @@ import {
   LazyCashierPOS,
   LazyMarketingCampaigns,
   LazyLoyaltyPrograms,
-  LazyCloudBackup
+  LazyCloudBackup,
+  LazySalesHistory
 } from './utils/lazyComponents';
 
 const App: React.FC = () => {
@@ -129,6 +130,7 @@ const App: React.FC = () => {
   const menuIdToVisibilityKey: Record<string, keyof typeof menuVisibility> = {
     'dashboard': 'dashboard',
     'sales': 'sales',
+    'sales-history': 'sales',
     'inventory': 'inventory',
     'purchases': 'purchases',
     'customers': 'customers',
@@ -155,6 +157,7 @@ const App: React.FC = () => {
   const allMenuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: Home, module: 'dashboard' },
     { id: 'sales', label: 'Sales & POS', icon: ShoppingCart, module: 'pos' },
+    { id: 'sales-history', label: 'Sales History', icon: Receipt, module: 'pos' },
     { id: 'inventory', label: 'Inventory', icon: Package, module: 'inventory' },
     { id: 'purchases', label: 'Purchases', icon: Receipt, module: 'purchases' },
     { id: 'customers', label: 'Customers', icon: Users, module: 'customers' },
@@ -229,6 +232,12 @@ const App: React.FC = () => {
         return (
           <PermissionGuard module="pos">
             {enhancedVersions.sales ? <LazyEnhancedPOSSystem /> : <LazyPOSSystem />}
+          </PermissionGuard>
+        );
+      case 'sales-history':
+        return (
+          <PermissionGuard module="pos">
+            <LazySalesHistory />
           </PermissionGuard>
         );
       case 'inventory':

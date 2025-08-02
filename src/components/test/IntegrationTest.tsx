@@ -93,7 +93,7 @@ const IntegrationTest: React.FC = () => {
       };
 
       await sleep(500);
-      createSale(testSale);
+      await createSale(testSale);
       await sleep(500);
 
       // Verify journal entry was created

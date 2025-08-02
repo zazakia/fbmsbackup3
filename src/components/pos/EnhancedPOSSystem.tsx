@@ -395,7 +395,7 @@ const EnhancedPOSSystem: React.FC = () => {
 
       // Create sale record (this will automatically update stock)
       try {
-        createSale(saleData);
+        await createSale(saleData);
       } catch (error) {
         console.error('Error creating sale:', error);
         throw new Error('Failed to create sale record');

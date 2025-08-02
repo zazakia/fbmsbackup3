@@ -17,7 +17,7 @@ import { formatCurrency, formatReceiptNumber } from '../../utils/formatters';
 
 interface EnhancedPaymentModalProps {
   total: number;
-  onPayment: (paymentMethod: PaymentMethod, cashReceived?: number, splitPayments?: SplitPayment[]) => void;
+  onPayment: (paymentMethod: PaymentMethod, cashReceived?: number, splitPayments?: SplitPayment[]) => void | Promise<void>;
   onClose: () => void;
   customer?: Customer | null;
   items: CartItem[];
@@ -47,6 +47,7 @@ const EnhancedPaymentModal: React.FC<EnhancedPaymentModalProps> = ({
   const [currentSplitAmount, setCurrentSplitAmount] = useState<string>('');
   const [showCalculator, setShowCalculator] = useState(false);
   const [calculatorValue, setCalculatorValue] = useState('0');
+  const [isProcessing, setIsProcessing] = useState(false);
   const [calculatorDisplay, setCalculatorDisplay] = useState('0');
   const [calculatorOperation, setCalculatorOperation] = useState<string | null>(null);
   const [calculatorPrevValue, setCalculatorPrevValue] = useState<string | null>(null);
@@ -160,26 +161,46 @@ const EnhancedPaymentModal: React.FC<EnhancedPaymentModalProps> = ({
   const change = parseFloat(cashReceived) - total;
   const isValidCashAmount = selectedMethod !== 'cash' || parseFloat(cashReceived) >= total;
 
-  const handlePayment = () => {
-    if (isSplitPayment) {
-      const totalSplitAmount = splitPayments.reduce((sum, payment) => sum + payment.amount, 0);
-      if (Math.abs(totalSplitAmount - total) < 0.01) {
-        onPayment('cash', undefined, splitPayments); // Use 'cash' as primary method for split payments
-      } else {
-        alert('Split payment amounts must equal the total amount');
-        return;
-      }
-    } else {
-      if (selectedMethod === 'cash') {
-        const cashAmount = parseFloat(cashReceived);
-        if (!cashReceived || isNaN(cashAmount) || cashAmount < total) {
-          alert('Cash amount must be at least the total amount');
+  const handlePayment = async () => {
+    setIsProcessing(true);
+    
+    try {
+      if (isSplitPayment) {
+        const totalSplitAmount = splitPayments.reduce((sum, payment) => sum + payment.amount, 0);
+        if (Math.abs(totalSplitAmount - total) < 0.01) {
+          const result = onPayment('cash', undefined, splitPayments); // Use 'cash' as primary method for split payments
+          if (result instanceof Promise) {
+            await result;
+          }
+        } else {
+          alert('Split payment amounts must equal the total amount');
+          setIsProcessing(false);
           return;
         }
-        onPayment(selectedMethod, cashAmount);
       } else {
-        onPayment(selectedMethod, undefined);
+        if (selectedMethod === 'cash') {
+          const cashAmount = parseFloat(cashReceived);
+          if (!cashReceived || isNaN(cashAmount) || cashAmount < total) {
+            alert('Cash amount must be at least the total amount');
+            setIsProcessing(false);
+            return;
+          }
+          const result = onPayment(selectedMethod, cashAmount);
+          if (result instanceof Promise) {
+            await result;
+          }
+        } else {
+          const result = onPayment(selectedMethod, undefined);
+          if (result instanceof Promise) {
+            await result;
+          }
+        }
       }
+      setIsProcessing(false);
+    } catch (error) {
+      console.error('Payment processing error:', error);
+      alert('Payment processing failed. Please try again.');
+      setIsProcessing(false);
     }
   };
 
@@ -586,16 +607,26 @@ const EnhancedPaymentModal: React.FC<EnhancedPaymentModalProps> = ({
             <div className="space-y-3">
               <button
                 onClick={handlePayment}
-                disabled={!isSplitPayment ? !isValidCashAmount : Math.abs(remainingSplitAmount) > 0.01}
+                disabled={isProcessing || (!isSplitPayment ? !isValidCashAmount : Math.abs(remainingSplitAmount) > 0.01)}
                 className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-semibold py-3 px-4 rounded-lg transition-colors flex items-center justify-center"
               >
-                <Check className="h-5 w-5 mr-2" />
-                Complete Payment (Enter)
+                {isProcessing ? (
+                  <>
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                    Processing...
+                  </>
+                ) : (
+                  <>
+                    <Check className="h-5 w-5 mr-2" />
+                    Complete Payment (Enter)
+                  </>
+                )}
               </button>
               
               <button
                 onClick={onClose}
-                className="w-full border border-gray-300 dark:border-dark-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-dark-700 font-medium py-3 px-4 rounded-lg transition-colors"
+                disabled={isProcessing}
+                className="w-full border border-gray-300 dark:border-dark-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-dark-700 font-medium py-3 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Cancel (Esc)
               </button>

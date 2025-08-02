@@ -23,6 +23,7 @@ export const LazyPayrollManagement = lazy(() => import('../components/payroll/Pa
 export const LazyBIRForms = lazy(() => import('../components/bir/BIRForms'));
 export const LazyBranchManagement = lazy(() => import('../components/branches/BranchManagement'));
 export const LazySettingsPage = lazy(() => import('../components/settings/SettingsPage'));
+export const LazySalesHistory = lazy(() => import('../components/sales/SalesHistory'));
 
 // Customer management
 export const LazyCustomerManagement = lazy(() => 
