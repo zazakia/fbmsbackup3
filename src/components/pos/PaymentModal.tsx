@@ -4,7 +4,7 @@ import { PaymentMethod } from '../../types/business';
 
 interface PaymentModalProps {
   total: number;
-  onPayment: (paymentMethod: PaymentMethod) => void | Promise<void>;
+  onPayment: (paymentMethod: PaymentMethod, cashReceived?: number) => void | Promise<void>;
   onClose: () => void;
 }
 
@@ -33,7 +33,10 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ total, onPayment, onClose }
     
     try {
       // Handle both sync and async payment functions
-      const result = onPayment(selectedMethod);
+      const result = selectedMethod === 'cash' 
+        ? onPayment(selectedMethod, cashAmount)
+        : onPayment(selectedMethod);
+      
       if (result instanceof Promise) {
         await result;
       }

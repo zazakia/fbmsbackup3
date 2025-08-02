@@ -65,12 +65,64 @@ const EnhancedPurchaseManagement: React.FC = () => {
   const [analytics, setAnalytics] = useState<PurchaseAnalytics | null>(null);
   const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [reorderSuggestions, setReorderSuggestions] = useState<Array<{
+    productId: string;
+    productName: string;
+    currentStock: number;
+    reorderPoint: number;
+    suggestedQuantity: number;
+    preferredSupplier?: Supplier;
+    estimatedCost: number;
+  }>>([]);
 
 
   // Initialize mock data
   useEffect(() => {
     initializeMockData();
+    generateReorderSuggestions();
   }, []);
+
+  const { products } = useBusinessStore();
+  const { addToast } = useToastStore();
+
+  const generateReorderSuggestions = () => {
+    const suggestions = products
+      .filter(product => product.isActive && product.stock <= product.minStock)
+      .map(product => {
+        const suggestedQuantity = Math.max(product.minStock * 2 - product.stock, product.minStock);
+        const preferredSupplier = suppliers.find(s => s.name.includes('Metro')); // Mock preferred supplier logic
+        const estimatedCost = product.cost * suggestedQuantity;
+
+        return {
+          productId: product.id,
+          productName: product.name,
+          currentStock: product.stock,
+          reorderPoint: product.minStock,
+          suggestedQuantity,
+          preferredSupplier,
+          estimatedCost
+        };
+      });
+
+    setReorderSuggestions(suggestions);
+
+    if (suggestions.length > 0) {
+      addToast({
+        type: 'info',
+        title: 'Reorder Alert',
+        message: `${suggestions.length} products need reordering`
+      });
+    }
+  };
+
+  const handleCreateReorderPO = (suggestion: typeof reorderSuggestions[0]) => {
+    // This would create a new purchase order with the suggested items
+    addToast({
+      type: 'success',
+      title: 'Purchase Order Created',
+      message: `PO created for ${suggestion.productName}`
+    });
+  };
 
   const initializeMockData = () => {
     // Mock suppliers

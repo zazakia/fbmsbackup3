@@ -271,6 +271,34 @@ const EnhancedPOSSystem: React.FC = () => {
     });
   };
 
+  const handleRedeemLoyaltyPoints = (pointsToRedeem: number) => {
+    if (!selectedCustomer || selectedCustomer.loyaltyPoints < pointsToRedeem) {
+      addToast({
+        type: 'error',
+        title: 'Insufficient Points',
+        message: 'Customer does not have enough loyalty points'
+      });
+      return;
+    }
+
+    // Convert points to discount (1 point = ₱1 discount)
+    const discountAmount = pointsToRedeem;
+    const maxDiscount = getCartSubtotal();
+    const actualDiscount = Math.min(discountAmount, maxDiscount);
+
+    setDiscount({ 
+      type: 'fixed', 
+      value: actualDiscount, 
+      reason: `Loyalty points redemption: ${pointsToRedeem} points` 
+    });
+
+    addToast({
+      type: 'success',
+      title: 'Points Redeemed',
+      message: `${pointsToRedeem} loyalty points redeemed for ₱${actualDiscount.toFixed(2)} discount`
+    });
+  };
+
   const handleHoldTransaction = () => {
     if (cart.length === 0) return;
     
@@ -666,7 +694,9 @@ const EnhancedPOSSystem: React.FC = () => {
                 {selectedCustomer ? (
                   <div>
                     <div className="font-medium text-sm">{selectedCustomer.firstName} {selectedCustomer.lastName}</div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400">{selectedCustomer.email}</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                      {selectedCustomer.email} • {selectedCustomer.loyaltyPoints || 0} points
+                    </div>
                   </div>
                 ) : (
                   <div className="text-gray-500 dark:text-gray-400 text-sm">Select customer</div>
@@ -681,6 +711,52 @@ const EnhancedPOSSystem: React.FC = () => {
                 </button>
               )}
             </div>
+            
+            {/* Loyalty Points Redemption */}
+            {selectedCustomer && selectedCustomer.loyaltyPoints > 0 && (
+              <div className="mt-2 p-2 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-medium text-yellow-800 dark:text-yellow-200">
+                    <Star className="h-3 w-3 inline mr-1" />
+                    Loyalty Points: {selectedCustomer.loyaltyPoints}
+                  </span>
+                </div>
+                <div className="flex space-x-2">
+                  <input
+                    type="number"
+                    min="1"
+                    max={Math.min(selectedCustomer.loyaltyPoints, getCartSubtotal())}
+                    placeholder="Points to redeem"
+                    className="flex-1 px-2 py-1 text-xs border border-yellow-300 dark:border-yellow-700 rounded bg-white dark:bg-dark-800 text-gray-900 dark:text-gray-100"
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter') {
+                        const points = parseInt((e.target as HTMLInputElement).value);
+                        if (points > 0) {
+                          handleRedeemLoyaltyPoints(points);
+                          (e.target as HTMLInputElement).value = '';
+                        }
+                      }
+                    }}
+                  />
+                  <button
+                    onClick={(e) => {
+                      const input = e.currentTarget.previousElementSibling as HTMLInputElement;
+                      const points = parseInt(input.value);
+                      if (points > 0) {
+                        handleRedeemLoyaltyPoints(points);
+                        input.value = '';
+                      }
+                    }}
+                    className="px-2 py-1 text-xs bg-yellow-600 text-white rounded hover:bg-yellow-700 transition-colors"
+                  >
+                    Redeem
+                  </button>
+                </div>
+                <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-1">
+                  1 point = ₱1 discount
+                </p>
+              </div>
+            )}
           </div>
         </div>
 

@@ -4,9 +4,10 @@ import { useBusinessStore } from '../../store/businessStore';
 import ExpenseList from './ExpenseList';
 import ExpenseForm from './ExpenseForm';
 import ExpenseCategories from './ExpenseCategories';
+import ExpenseApprovalWorkflow from './ExpenseApprovalWorkflow';
 
 const ExpenseTracking: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'expenses' | 'categories'>('expenses');
+  const [activeTab, setActiveTab] = useState<'expenses' | 'categories' | 'approvals'>('expenses');
   const [showExpenseForm, setShowExpenseForm] = useState(false);
   const [editingExpense, setEditingExpense] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -134,6 +135,16 @@ const ExpenseTracking: React.FC = () => {
             >
               Categories
             </button>
+            <button
+              onClick={() => setActiveTab('approvals')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'approvals'
+                  ? 'border-red-500 text-red-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              Approvals
+            </button>
           </nav>
         </div>
 
@@ -185,6 +196,10 @@ const ExpenseTracking: React.FC = () => {
 
           {activeTab === 'categories' && (
             <ExpenseCategories />
+          )}
+
+          {activeTab === 'approvals' && (
+            <ExpenseApprovalWorkflow />
           )}
         </div>
       </div>

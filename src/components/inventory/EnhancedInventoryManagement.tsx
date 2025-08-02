@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import ProductForm from './ProductForm';
+import TransferSlip from './TransferSlip';
 import { 
   Plus, 
   Search, 
@@ -17,11 +18,14 @@ import {
   Eye,
   Edit,
   ShoppingCart,
-  History
+  History,
+  MapPin,
+  ArrowRightLeft,
+  Building2
 } from 'lucide-react';
 import { useBusinessStore } from '../../store/businessStore';
 import { useToastStore } from '../../store/toastStore';
-import { Product } from '../../types/business';
+import { Product, InventoryLocation, StockTransfer, LocationStockSummary } from '../../types/business';
 import { formatCurrency, formatDate } from '../../utils/formatters';
 import { StockMovementLedger } from '../../types/business';
 
@@ -48,7 +52,7 @@ interface StockAlert {
 }
 
 const EnhancedInventoryManagement: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'products' | 'batches' | 'movements' | 'alerts'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'products' | 'locations' | 'transfers' | 'batches' | 'movements' | 'alerts'>('dashboard');
   const [showProductForm, setShowProductForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -61,6 +65,18 @@ const EnhancedInventoryManagement: React.FC = () => {
   const [stockMovements, setStockMovements] = useState<StockMovementLedger[]>([]);
   const [loadingLedger, setLoadingLedger] = useState(false);
   const [ledgerError, setLedgerError] = useState<string | null>(null);
+  
+  // Multi-location state
+  const [locations, setLocations] = useState<InventoryLocation[]>([
+    { id: 'main', name: 'Main Warehouse', address: '123 Main St, Manila', isActive: true, createdAt: new Date() },
+    { id: 'store1', name: 'Store 1 - Makati', address: '456 Ayala Ave, Makati', isActive: true, createdAt: new Date() },
+    { id: 'store2', name: 'Store 2 - BGC', address: '789 BGC Blvd, Taguig', isActive: true, createdAt: new Date() },
+    { id: 'warehouse2', name: 'Secondary Warehouse', address: '321 Industrial Ave, Quezon City', isActive: true, createdAt: new Date() }
+  ]);
+  const [selectedLocation, setSelectedLocation] = useState<string>('all');
+  const [showTransferModal, setShowTransferModal] = useState(false);
+  const [pendingTransfers, setPendingTransfers] = useState<StockTransfer[]>([]);
+  const [locationStockSummary, setLocationStockSummary] = useState<LocationStockSummary[]>([]);
 
   const { 
     products, 
