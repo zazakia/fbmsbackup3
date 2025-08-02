@@ -73,6 +73,7 @@ interface BusinessActions {
   
   // Sale actions
   createSale: (sale: Omit<Sale, 'id' | 'createdAt'>) => void;
+  createSaleJournalEntry: (sale: Sale) => void;
   updateSale: (id: string, updates: Partial<Sale>) => void;
   getSale: (id: string) => Sale | undefined;
   getSalesByCustomer: (customerId: string) => Sale[];
@@ -88,6 +89,8 @@ interface BusinessActions {
   updatePurchaseOrder: (id: string, updates: Partial<PurchaseOrder>) => void;
   deletePurchaseOrder: (id: string) => void;
   getPurchaseOrder: (id: string) => PurchaseOrder | undefined;
+  receivePurchaseOrder: (id: string, receivedItems: Array<{productId: string; receivedQuantity: number}>) => void;
+  createPurchaseJournalEntry: (purchaseOrder: PurchaseOrder, receivedItems: Array<{productId: string; receivedQuantity: number}>) => void;
   
   // Expense actions
   addExpense: (expense: Omit<Expense, 'id' | 'createdAt'>) => void;
@@ -504,7 +507,7 @@ const initialAccounts: Account[] = [
   },
   {
     id: '11',
-    code: '2100',
+    code: '2150',
     name: 'Notes Payable',
     type: 'Liability',
     description: 'Short-term loans and notes',
@@ -522,7 +525,7 @@ const initialAccounts: Account[] = [
   },
   {
     id: '13',
-    code: '2300',
+    code: '2100',
     name: 'VAT Payable',
     type: 'Liability',
     description: 'Value Added Tax collected',
@@ -1238,7 +1241,7 @@ export const useBusinessStore = create<BusinessStore>()(
         const sale: Sale = {
           ...saleData,
           id: generateId(),
-          invoiceNumber: generateInvoiceNumber(),
+          invoiceNumber: saleData.invoiceNumber || generateInvoiceNumber(),
           createdAt: new Date()
         };
         
@@ -1251,8 +1254,105 @@ export const useBusinessStore = create<BusinessStore>()(
           get().updateStock(item.productId, -item.quantity);
         });
 
+        // Create automatic journal entry for the sale
+        get().createSaleJournalEntry(sale);
+
         // Clear cart after sale
         get().clearCart();
+      },
+
+      createSaleJournalEntry: (sale) => {
+        const accounts = get().accounts;
+        const cashAccount = accounts.find(a => a.code === '1000'); // Cash on Hand
+        const salesRevenueAccount = accounts.find(a => a.code === '4000'); // Sales Revenue
+        const cogsAccount = accounts.find(a => a.code === '5000'); // Cost of Goods Sold
+        const inventoryAccount = accounts.find(a => a.code === '1300'); // Inventory
+        const vatPayableAccount = accounts.find(a => a.code === '2100'); // VAT Payable
+
+        if (!cashAccount || !salesRevenueAccount || !cogsAccount || !inventoryAccount) {
+          console.warn('Required accounts not found for journal entry creation');
+          return;
+        }
+
+        // Calculate amounts
+        const subtotalWithoutTax = sale.subtotal - sale.discount;
+        const vatAmount = sale.tax;
+        const totalCashReceived = sale.total;
+        
+        // Calculate COGS from sale items
+        const totalCogs = sale.items.reduce((total, item) => {
+          const product = get().products.find(p => p.id === item.productId);
+          return total + (product?.cost || 0) * item.quantity;
+        }, 0);
+
+        // Create journal entry lines
+        const journalLines = [
+          // Debit Cash (Asset increases)
+          {
+            id: generateId(),
+            accountId: cashAccount.id,
+            accountName: cashAccount.name,
+            debit: totalCashReceived,
+            credit: 0,
+            description: `Cash received from sale ${sale.invoiceNumber}`
+          },
+          // Credit Sales Revenue (Income increases)
+          {
+            id: generateId(),
+            accountId: salesRevenueAccount.id,
+            accountName: salesRevenueAccount.name,
+            debit: 0,
+            credit: subtotalWithoutTax,
+            description: `Sales revenue from invoice ${sale.invoiceNumber}`
+          }
+        ];
+
+        // Add VAT Payable if there's tax
+        if (vatAmount > 0 && vatPayableAccount) {
+          journalLines.push({
+            id: generateId(),
+            accountId: vatPayableAccount.id,
+            accountName: vatPayableAccount.name,
+            debit: 0,
+            credit: vatAmount,
+            description: `VAT payable on sale ${sale.invoiceNumber}`
+          });
+        }
+
+        // Add COGS entry if there's cost
+        if (totalCogs > 0) {
+          journalLines.push(
+            // Debit COGS (Expense increases)
+            {
+              id: generateId(),
+              accountId: cogsAccount.id,
+              accountName: cogsAccount.name,
+              debit: totalCogs,
+              credit: 0,
+              description: `Cost of goods sold for ${sale.invoiceNumber}`
+            },
+            // Credit Inventory (Asset decreases)
+            {
+              id: generateId(),
+              accountId: inventoryAccount.id,
+              accountName: inventoryAccount.name,
+              debit: 0,
+              credit: totalCogs,
+              description: `Inventory reduction for ${sale.invoiceNumber}`
+            }
+          );
+        }
+
+        // Create the journal entry
+        const journalEntry = {
+          date: sale.createdAt,
+          reference: sale.invoiceNumber || '',
+          description: `Sale to ${sale.customerName || 'Walk-in Customer'} - Invoice ${sale.invoiceNumber}`,
+          lines: journalLines,
+          createdBy: sale.cashierId
+        };
+
+        get().addJournalEntry(journalEntry);
       },
 
       updateSale: (id, updates) => {
@@ -1306,7 +1406,7 @@ export const useBusinessStore = create<BusinessStore>()(
         const purchaseOrder: PurchaseOrder = {
           ...poData,
           id: generateId(),
-          poNumber: generatePONumber(),
+          poNumber: poData.poNumber || generatePONumber(),
           createdAt: new Date()
         };
         set((state) => ({
@@ -1324,6 +1424,139 @@ export const useBusinessStore = create<BusinessStore>()(
 
       getPurchaseOrder: (id) => {
         return get().purchaseOrders.find(po => po.id === id);
+      },
+
+      receivePurchaseOrder: (id, receivedItems) => {
+        const purchaseOrder = get().getPurchaseOrder(id);
+        if (!purchaseOrder) {
+          console.warn(`Purchase order ${id} not found`);
+          return;
+        }
+
+        // Update inventory for received items
+        receivedItems.forEach(receivedItem => {
+          const poItem = purchaseOrder.items.find(item => item.productId === receivedItem.productId);
+          if (poItem) {
+            // Update product stock with the received quantity
+            get().updateStock(
+              receivedItem.productId, 
+              receivedItem.receivedQuantity,
+              'purchase_receipt',
+              purchaseOrder.createdBy,
+              `PO Receiving: ${purchaseOrder.poNumber}`,
+              `Received ${receivedItem.receivedQuantity} units`
+            );
+
+            // Update product cost if provided in PO
+            const product = get().products.find(p => p.id === receivedItem.productId);
+            if (product && poItem.cost !== product.cost) {
+              get().updateProduct(receivedItem.productId, { cost: poItem.cost });
+            }
+          }
+        });
+
+        // Calculate total received vs ordered quantities to determine status
+        const allItemsFullyReceived = purchaseOrder.items.every(poItem => {
+          const receivedItem = receivedItems.find(ri => ri.productId === poItem.productId);
+          return receivedItem && receivedItem.receivedQuantity >= poItem.quantity;
+        });
+
+        const anyItemsReceived = receivedItems.some(ri => ri.receivedQuantity > 0);
+
+        // Update purchase order status
+        const newStatus: PurchaseOrderStatus = allItemsFullyReceived 
+          ? 'received' 
+          : anyItemsReceived 
+            ? 'partial' 
+            : purchaseOrder.status;
+
+        // Update the purchase order
+        get().updatePurchaseOrder(id, {
+          status: newStatus,
+          receivedDate: newStatus === 'received' ? new Date() : purchaseOrder.receivedDate
+        });
+
+        // Create journal entry for the purchase
+        if (anyItemsReceived) {
+          get().createPurchaseJournalEntry(purchaseOrder, receivedItems);
+        }
+      },
+
+      createPurchaseJournalEntry: (purchaseOrder, receivedItems) => {
+        const accounts = get().accounts;
+        const inventoryAccount = accounts.find(a => a.code === '1300'); // Inventory
+        const accountsPayableAccount = accounts.find(a => a.code === '2000'); // Accounts Payable
+        const vatInputAccount = accounts.find(a => a.code === '1400'); // VAT Input (if exists)
+
+        if (!inventoryAccount || !accountsPayableAccount) {
+          console.warn('Required accounts not found for purchase journal entry creation');
+          return;
+        }
+
+        // Calculate amounts for received items only
+        let totalInventoryValue = 0;
+        let totalVatInput = 0;
+
+        receivedItems.forEach(receivedItem => {
+          const poItem = purchaseOrder.items.find(item => item.productId === receivedItem.productId);
+          if (poItem) {
+            const itemValue = poItem.cost * receivedItem.receivedQuantity;
+            totalInventoryValue += itemValue;
+            
+            // Calculate VAT input (if VAT is included in the purchase)
+            // Assuming 12% VAT is included in the cost
+            const vatAmount = itemValue * 0.12 / 1.12; // Extract VAT from inclusive amount
+            totalVatInput += vatAmount;
+          }
+        });
+
+        const totalPayable = totalInventoryValue;
+        const netInventoryValue = totalInventoryValue - totalVatInput;
+
+        // Create journal entry lines
+        const journalLines = [
+          // Debit Inventory (Asset increases)
+          {
+            id: generateId(),
+            accountId: inventoryAccount.id,
+            accountName: inventoryAccount.name,
+            debit: netInventoryValue,
+            credit: 0,
+            description: `Inventory received from PO ${purchaseOrder.poNumber}`
+          },
+          // Credit Accounts Payable (Liability increases)
+          {
+            id: generateId(),
+            accountId: accountsPayableAccount.id,
+            accountName: accountsPayableAccount.name,
+            debit: 0,
+            credit: totalPayable,
+            description: `Amount payable to ${purchaseOrder.supplierName} - PO ${purchaseOrder.poNumber}`
+          }
+        ];
+
+        // Add VAT Input if there's VAT and account exists
+        if (totalVatInput > 0 && vatInputAccount) {
+          journalLines.push({
+            id: generateId(),
+            accountId: vatInputAccount.id,
+            accountName: vatInputAccount.name,
+            debit: totalVatInput,
+            credit: 0,
+            description: `VAT input on purchase PO ${purchaseOrder.poNumber}`
+          });
+        }
+
+        // Create the journal entry
+        const journalEntry = {
+          date: new Date(),
+          reference: purchaseOrder.poNumber || '',
+          description: `Purchase from ${purchaseOrder.supplierName} - PO ${purchaseOrder.poNumber}`,
+          lines: journalLines,
+          createdBy: purchaseOrder.createdBy || 'system'
+        };
+
+        get().addJournalEntry(journalEntry);
       },
 
       deletePurchaseOrder: (id) => {

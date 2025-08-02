@@ -22,6 +22,7 @@ import AuthTest from './AuthTest';
 import NavigationTest from './NavigationTest';
 import POSTest from './POSTest';
 import ReportsTest from './ReportsTest';
+import IntegrationTest from './IntegrationTest';
 
 interface TestSuite {
   id: string;
@@ -100,6 +101,16 @@ const TestDashboard: React.FC = () => {
       category: 'business',
       estimatedTime: '3-4 min',
       complexity: 'intermediate'
+    },
+    {
+      id: 'integration',
+      name: 'Integration Tests',
+      description: 'Test critical integrations between Sales, Purchase, Inventory, and Accounting',
+      icon: Activity,
+      component: IntegrationTest,
+      category: 'system',
+      estimatedTime: '5-6 min',
+      complexity: 'advanced'
     }
   ];
 
