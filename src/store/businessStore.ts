@@ -4,6 +4,7 @@ import { Product, Category, Customer, Sale, CartItem, Supplier, PurchaseOrder, E
 import { getCustomers as supaGetCustomers, createCustomer as supaCreateCustomer, updateCustomer as supaUpdateCustomer, deleteCustomer as supaDeleteCustomer } from '../api/customers';
 import { createSale as supaCreateSale, getSales as supaGetSales, updateSale as supaUpdateSale, deleteSale as supaDeleteSale, getNextInvoiceNumber } from '../api/sales';
 import { createProductMovement } from '../api/productHistory';
+import { receiptService } from '../services/receiptService';
 
 interface BusinessState {
   // Products
@@ -1293,13 +1294,58 @@ export const useBusinessStore = create<BusinessStore>()(
               isLoading: false
             }));
 
-            // Update product stock
-            savedSale.items.forEach(item => {
-              get().updateStock(item.productId, -item.quantity);
-            });
+            // Update product stock and create movement records
+            for (const item of savedSale.items) {
+              get().updateStock(item.productId, -item.quantity, 'sale', savedSale.cashierId, savedSale.invoiceNumber, `Sale to ${savedSale.customerName}`);
+              
+              // Create product movement record
+              try {
+                await get().createMovementRecord(
+                  item.productId,
+                  'out',
+                  item.quantity,
+                  'Sale transaction',
+                  {
+                    referenceNumber: savedSale.invoiceNumber,
+                    referenceType: 'sale',
+                    unitCost: item.price,
+                    notes: `Sale to ${savedSale.customerName}`,
+                    userId: savedSale.cashierId
+                  }
+                );
+              } catch (error) {
+                console.warn('Failed to create movement record:', error);
+              }
+            }
+
+            // Update customer data if customer is selected
+            if (savedSale.customerId) {
+              const customer = get().customers.find(c => c.id === savedSale.customerId);
+              if (customer) {
+                const loyaltyPoints = Math.floor(savedSale.total / 100); // 1 point per ₱100 spent
+                get().updateCustomer(savedSale.customerId, {
+                  totalPurchases: customer.totalPurchases + savedSale.total,
+                  loyaltyPoints: customer.loyaltyPoints + loyaltyPoints,
+                  lastPurchase: new Date()
+                });
+              }
+            }
 
             // Create automatic journal entry for the sale
             get().createSaleJournalEntry(savedSale);
+
+            // Generate receipt data for potential delivery
+            try {
+              const customer = savedSale.customerId ? get().customers.find(c => c.id === savedSale.customerId) : undefined;
+              const receiptData = receiptService.createReceiptData(savedSale, customer);
+              
+              // Store receipt data for later access (in a real app, this would be saved to database)
+              localStorage.setItem(`receipt-${savedSale.id}`, JSON.stringify(receiptData));
+              
+              console.log('Receipt generated:', receiptData.receiptNumber);
+            } catch (error) {
+              console.warn('Failed to generate receipt:', error);
+            }
 
             // Clear cart after sale
             get().clearCart();

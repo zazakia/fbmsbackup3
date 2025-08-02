@@ -7,7 +7,8 @@ import ProductGrid from './ProductGrid';
 import Cart from './Cart';
 import CustomerSelector from './CustomerSelector';
 import PaymentModal from './PaymentModal';
-import { PaymentMethod, Customer } from '../../types/business';
+import ReceiptModal from './ReceiptModal';
+import { PaymentMethod, Customer, Sale } from '../../types/business';
 import { getCustomers } from '../../api/customers';
 import { useDebounce } from '../../hooks/useDebounce';
 
@@ -19,6 +20,8 @@ const POSSystem: React.FC = () => {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showCustomerSelector, setShowCustomerSelector] = useState(false);
   const [showMobileCart, setShowMobileCart] = useState(false);
+  const [showReceiptModal, setShowReceiptModal] = useState(false);
+  const [completedSale, setCompletedSale] = useState<Sale | null>(null);
   const [realCustomers, setRealCustomers] = useState<Customer[]>([]);
   const [loadingCustomers, setLoadingCustomers] = useState(false);
 
@@ -74,19 +77,52 @@ const POSSystem: React.FC = () => {
       return matchesSearch && matchesCategory && product.isActive && product.stock > 0;
     }), [products, debouncedSearchTerm, selectedCategory]);
 
-  const handleCompleteSale = useCallback(async (paymentMethod: PaymentMethod) => {
-    if (cart.length === 0) return;
+  const handleCompleteSale = useCallback(async (paymentMethod: PaymentMethod, cashReceived?: number) => {
+    if (cart.length === 0) {
+      addToast({
+        type: 'error',
+        title: 'Empty Cart',
+        message: 'Please add items to cart before completing sale'
+      });
+      return;
+    }
+
+    // Validate stock availability before processing
+    for (const item of cart) {
+      if (item.product.stock < item.quantity) {
+        addToast({
+          type: 'error',
+          title: 'Insufficient Stock',
+          message: `Not enough stock for ${item.product.name}. Available: ${item.product.stock}, Required: ${item.quantity}`
+        });
+        return;
+      }
+    }
 
     const subtotal = getCartSubtotal();
     const tax = getCartTax();
     const total = getCartTotal();
 
+    // Validate cash payment
+    if (paymentMethod === 'cash' && cashReceived && cashReceived < total) {
+      addToast({
+        type: 'error',
+        title: 'Insufficient Cash',
+        message: `Cash received (₱${cashReceived.toFixed(2)}) is less than total (₱${total.toFixed(2)})`
+      });
+      return;
+    }
+
     try {
+      // Generate receipt number
+      const receiptNumber = `RCP-${Date.now()}`;
+      
+      // Create sale with enhanced data
       await createSale({
         customerId: selectedCustomer?.id,
         customerName: selectedCustomer ? `${selectedCustomer.firstName} ${selectedCustomer.lastName}` : 'Walk-in Customer',
         items: cart.map(item => ({
-          id: item.product.id,
+          id: `item-${Date.now()}-${Math.random()}`,
           productId: item.product.id,
           productName: item.product.name,
           sku: item.product.sku,
@@ -101,18 +137,66 @@ const POSSystem: React.FC = () => {
         paymentMethod,
         paymentStatus: 'paid',
         status: 'completed',
-        cashierId: user?.id || '1',
+        cashierId: user?.id || 'system',
+        receiptNumber,
+        cashReceived,
+        change: cashReceived ? cashReceived - total : undefined,
         notes: ''
       });
 
+      // Update customer loyalty points if customer is selected
+      if (selectedCustomer) {
+        try {
+          const loyaltyPoints = Math.floor(total / 100); // 1 point per ₱100 spent
+          // This would be handled by the business store's createSale method
+        } catch (error) {
+          console.warn('Failed to update customer loyalty points:', error);
+        }
+      }
+
+      // Create sale object for receipt
+      const saleForReceipt: Sale = {
+        id: `sale-${Date.now()}`,
+        customerId: selectedCustomer?.id,
+        customerName: selectedCustomer ? `${selectedCustomer.firstName} ${selectedCustomer.lastName}` : 'Walk-in Customer',
+        items: cart.map(item => ({
+          id: `item-${Date.now()}-${Math.random()}`,
+          productId: item.product.id,
+          productName: item.product.name,
+          sku: item.product.sku,
+          quantity: item.quantity,
+          price: item.product.price,
+          total: item.total
+        })),
+        subtotal,
+        tax,
+        discount: 0,
+        total,
+        paymentMethod,
+        paymentStatus: 'paid',
+        status: 'completed',
+        cashierId: user?.id || 'system',
+        invoiceNumber: `INV-${Date.now()}`,
+        receiptNumber,
+        cashReceived,
+        change: cashReceived ? cashReceived - total : undefined,
+        notes: '',
+        createdAt: new Date()
+      };
+
       // Success - clear UI state (cart is cleared by business store)
       setShowPaymentModal(false);
-      setSelectedCustomer(null);
+      setCompletedSale(saleForReceipt);
+      setShowReceiptModal(true);
+      
+      const successMessage = selectedCustomer 
+        ? `Receipt: ${receiptNumber} - Total: ₱${total.toFixed(2)} - Customer: ${selectedCustomer.firstName} ${selectedCustomer.lastName}${cashReceived ? ` - Change: ₱${(cashReceived - total).toFixed(2)}` : ''}`
+        : `Receipt: ${receiptNumber} - Total: ₱${total.toFixed(2)} - Walk-in Customer${cashReceived ? ` - Change: ₱${(cashReceived - total).toFixed(2)}` : ''}`;
       
       addToast({
         type: 'success',
         title: 'Sale Completed',
-        message: `Transaction completed successfully. Total: ₱${total.toFixed(2)}`
+        message: successMessage
       });
 
     } catch (error) {
@@ -435,6 +519,19 @@ const POSSystem: React.FC = () => {
           total={getCartTotal()}
           onPayment={handleCompleteSale}
           onClose={() => setShowPaymentModal(false)}
+        />
+      )}
+
+      {/* Receipt Modal */}
+      {showReceiptModal && completedSale && (
+        <ReceiptModal
+          sale={completedSale}
+          customer={selectedCustomer || undefined}
+          onClose={() => {
+            setShowReceiptModal(false);
+            setCompletedSale(null);
+            setSelectedCustomer(null);
+          }}
         />
       )}
     </div>
