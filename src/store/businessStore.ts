@@ -1,8 +1,9 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { Product, Category, Customer, Sale, CartItem, Supplier, PurchaseOrder, Expense, ExpenseCategory, Account, JournalEntry, Employee, PayrollPeriod, PayrollEntry, LeaveRecord, TimeRecord, PayrollSettings } from '../types/business';
+import { Product, Category, Customer, Sale, CartItem, Supplier, PurchaseOrder, Expense, ExpenseCategory, Account, JournalEntry, Employee, PayrollPeriod, PayrollEntry, LeaveRecord, TimeRecord, PayrollSettings, ProductMovementHistory, ProductMovementType } from '../types/business';
 import { getCustomers as supaGetCustomers, createCustomer as supaCreateCustomer, updateCustomer as supaUpdateCustomer, deleteCustomer as supaDeleteCustomer } from '../api/customers';
 import { createSale as supaCreateSale, getSales as supaGetSales, updateSale as supaUpdateSale, deleteSale as supaDeleteSale, getNextInvoiceNumber } from '../api/sales';
+import { createProductMovement } from '../api/productHistory';
 
 interface BusinessState {
   // Products
@@ -49,6 +50,18 @@ interface BusinessActions {
   getProduct: (id: string) => Product | undefined;
   getProductsByCategoryId: (categoryId: string) => Product[];
   updateStock: (productId: string, quantity: number, type?: string, userId?: string, reference?: string, notes?: string) => void;
+  
+  // Product History actions
+  createMovementRecord: (productId: string, type: ProductMovementType, quantity: number, reason: string, options?: {
+    referenceNumber?: string;
+    referenceType?: string;
+    locationId?: string;
+    unitCost?: number;
+    batchNumber?: string;
+    expiryDate?: Date;
+    notes?: string;
+    userId?: string;
+  }) => Promise<void>;
   
   // Category actions
   addCategory: (category: Omit<Category, 'id' | 'createdAt'>) => void;
@@ -1020,28 +1033,91 @@ export const useBusinessStore = create<BusinessStore>()(
         return get().products.filter(product => product.category === categoryId && product.isActive);
       },
 
-      updateStock: (productId, quantity) => {
-        set((state) => {
-          const updatedProducts = state.products.map(product => {
-            if (product.id === productId) {
-              const newStock = product.stock + quantity;
-              
-              // Prevent negative stock (minimum 0)
-              const validatedStock = Math.max(0, newStock);
-              
-              // Create stock movement record (in a real app, this would be async)
-              // For now, we'll just update the product stock
-              return { 
-                ...product, 
-                stock: validatedStock, 
-                updatedAt: new Date() 
-              };
-            }
-            return product;
-          });
-          
-          return { products: updatedProducts };
+      updateStock: (productId, quantity, type = 'adjustment_in', userId, reference, notes) => {
+        const { createMovementRecord } = get();
+        
+        // Determine movement type based on quantity direction if not specified
+        let movementType: ProductMovementType = type as ProductMovementType;
+        if (type === 'adjustment_in' || type === 'adjustment_out') {
+          movementType = quantity >= 0 ? 'adjustment_in' : 'adjustment_out';
+        }
+
+        // Create movement record automatically
+        const reason = notes || `Stock ${quantity >= 0 ? 'increase' : 'decrease'} via ${type}`;
+        createMovementRecord(
+          productId, 
+          movementType, 
+          Math.abs(quantity), 
+          reason,
+          {
+            referenceNumber: reference,
+            referenceType: type || 'manual',
+            userId,
+            notes
+          }
+        ).catch(error => {
+          console.error('Failed to create automatic movement record:', error);
         });
+      },
+
+      // Product History actions
+      createMovementRecord: async (productId, type, quantity, reason, options = {}) => {
+        const { products } = get();
+        const product = products.find(p => p.id === productId);
+        
+        if (!product) {
+          throw new Error('Product not found');
+        }
+
+        const previousStock = product.stock;
+        const isNegative = ['stock_out', 'adjustment_out', 'transfer_out', 'return_out', 'damage_out', 'expired_out'].includes(type);
+        const stockChange = isNegative ? -quantity : quantity;
+        const newStock = Math.max(0, previousStock + stockChange);
+
+        const movementData: Omit<ProductMovementHistory, 'id' | 'createdAt'> = {
+          productId,
+          productName: product.name,
+          productSku: product.sku,
+          type,
+          quantity,
+          previousStock,
+          newStock,
+          unitCost: options.unitCost || product.cost,
+          totalValue: options.unitCost ? options.unitCost * quantity : product.cost * quantity,
+          reason,
+          referenceNumber: options.referenceNumber,
+          referenceType: options.referenceType || 'manual',
+          locationId: options.locationId,
+          locationName: undefined, // Will be populated by API
+          batchNumber: options.batchNumber,
+          expiryDate: options.expiryDate,
+          performedBy: options.userId || '',
+          performedByName: 'System User', // Will be populated by API with actual user info
+          notes: options.notes,
+          status: 'completed'
+        };
+
+        try {
+          // Create movement record in database
+          const { error } = await createProductMovement(movementData);
+          
+          if (error) {
+            console.error('Failed to create movement record:', error);
+            // Don't throw error to avoid breaking stock updates
+          }
+
+          // Update product stock in store
+          set((state) => ({
+            products: state.products.map(p =>
+              p.id === productId
+                ? { ...p, stock: newStock, updatedAt: new Date() }
+                : p
+            )
+          }));
+        } catch (error) {
+          console.error('Error creating movement record:', error);
+          // Don't throw error to avoid breaking stock updates
+        }
       },
 
       // Category actions

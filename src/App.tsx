@@ -82,7 +82,8 @@ import {
   LazyMarketingCampaigns,
   LazyLoyaltyPrograms,
   LazyCloudBackup,
-  LazySalesHistory
+  LazySalesHistory,
+  LazyProductHistory
 } from './utils/lazyComponents';
 
 const App: React.FC = () => {
@@ -132,6 +133,7 @@ const App: React.FC = () => {
     'sales': 'sales',
     'sales-history': 'sales',
     'inventory': 'inventory',
+    'product-history': 'inventory',
     'purchases': 'purchases',
     'customers': 'customers',
     'customer-transactions': 'customerTransactions',
@@ -159,6 +161,7 @@ const App: React.FC = () => {
     { id: 'sales', label: 'Sales & POS', icon: ShoppingCart, module: 'pos' },
     { id: 'sales-history', label: 'Sales History', icon: Receipt, module: 'pos' },
     { id: 'inventory', label: 'Inventory', icon: Package, module: 'inventory' },
+    { id: 'product-history', label: 'Product History', icon: History, module: 'inventory' },
     { id: 'purchases', label: 'Purchases', icon: Receipt, module: 'purchases' },
     { id: 'customers', label: 'Customers', icon: Users, module: 'customers' },
     { id: 'customer-transactions', label: 'Customer Transactions', icon: Users, module: 'customers' },
@@ -244,6 +247,12 @@ const App: React.FC = () => {
         return (
           <PermissionGuard module="inventory">
             {enhancedVersions.inventory ? <LazyEnhancedInventoryManagement /> : <LazyInventoryManagement />}
+          </PermissionGuard>
+        );
+      case 'product-history':
+        return (
+          <PermissionGuard module="inventory">
+            <LazyProductHistory />
           </PermissionGuard>
         );
       case 'purchases':
