@@ -35,11 +35,6 @@ export const LazyManagerOperations = lazy(() =>
   import('../components/manager/ManagerOperations')
 );
 
-// Cashier POS
-export const LazyCashierPOS = lazy(() => 
-  import('../components/pos/CashierPOS')
-);
-
 // Marketing and Loyalty
 export const LazyMarketingCampaigns = lazy(() => 
   import('../components/marketing/MarketingCampaigns')

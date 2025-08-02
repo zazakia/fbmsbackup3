@@ -235,37 +235,37 @@ ALTER TABLE public.users ADD COLUMN IF NOT EXISTS department VARCHAR(100);`
         });
       }
 
-      // Test 4: Check audit_log table
+      // Test 4: Check audit_logs table
       try {
         const { data, error } = await supabase
-          .from('audit_log')
+          .from('audit_logs')
           .select('id')
           .limit(1);
 
         if (error && error.code === '42P01') {
           diagnostics.push({
-            test: 'Audit Log Table',
+            test: 'Audit Logs Table',
             status: 'error',
-            message: 'Audit log table does not exist',
+            message: 'Audit logs table does not exist',
             solution: 'Run the admin features script to create audit log table'
           });
         } else if (error) {
           diagnostics.push({
-            test: 'Audit Log Table',
+            test: 'Audit Logs Table',
             status: 'warning',
-            message: `Audit log table issue: ${error.message}`,
+            message: `Audit logs table issue: ${error.message}`,
             solution: 'Check table permissions'
           });
         } else {
           diagnostics.push({
-            test: 'Audit Log Table',
+            test: 'Audit Logs Table',
             status: 'success',
-            message: 'Audit log table exists and is accessible'
+            message: 'Audit logs table exists and is accessible'
           });
         }
       } catch (error) {
         diagnostics.push({
-          test: 'Audit Log Table',
+          test: 'Audit Logs Table',
           status: 'error',
           message: `Error checking audit log table: ${error}`,
           solution: 'Check database connection'

@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Shield, Lock } from 'lucide-react';
 import { useSupabaseAuthStore } from '../store/supabaseAuthStore';
 import { hasPermission, canAccessModule } from '../utils/permissions';
@@ -19,7 +19,7 @@ const PermissionGuard: React.FC<PermissionGuardProps> = ({
   children,
   fallback
 }) => {
-  const { user, isAuthenticated, hasLoggedOut, logout, isLoading } = useSupabaseAuthStore();
+  const { user, isAuthenticated, logout, isLoading } = useSupabaseAuthStore();
   const [loggingOut, setLoggingOut] = React.useState(false);
 
   // Handle login button click - forces logout which triggers auth page

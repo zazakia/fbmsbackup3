@@ -28,7 +28,6 @@ interface MenuVisibilitySettings {
   bir: boolean;
   branches: boolean;
   operations: boolean;
-  cashier: boolean;
   marketing: boolean;
   loyalty: boolean;
   backup: boolean;
@@ -78,7 +77,6 @@ const defaultMenuVisibilitySettings: MenuVisibilitySettings = {
   bir: true,
   branches: true,
   operations: true,
-  cashier: true,
   marketing: true,
   loyalty: true,
   backup: true,

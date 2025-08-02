@@ -4,14 +4,13 @@ import {
   TransferSlip, 
   ProductHistoryFilter, 
   ProductStockSummary,
-  LocationStockSummary,
   InventoryLocation
 } from '../types/business';
 
 // CREATE product movement history entry
 export async function createProductMovement(movement: Omit<ProductMovementHistory, 'id' | 'createdAt'>) {
   const { data, error } = await supabase
-    .from('product_movements')
+    .from('stock_movements')
     .insert([{
       product_id: movement.productId,
       product_name: movement.productName,
@@ -58,7 +57,7 @@ export async function createProductMovement(movement: Omit<ProductMovementHistor
 // READ product movements with filtering
 export async function getProductMovements(filter: ProductHistoryFilter = {}, limit = 50, offset = 0) {
   let query = supabase
-    .from('product_movements')
+    .from('stock_movements')
     .select(`
       id,
       product_id,
@@ -153,7 +152,7 @@ export async function getProductMovements(filter: ProductHistoryFilter = {}, lim
 // READ single product movement
 export async function getProductMovement(id: string) {
   const { data, error } = await supabase
-    .from('product_movements')
+    .from('stock_movements')
     .select('*')
     .eq('id', id)
     .single();
@@ -170,7 +169,7 @@ export async function getProductMovement(id: string) {
 
 // UPDATE product movement
 export async function updateProductMovement(id: string, updates: Partial<ProductMovementHistory>) {
-  const updateData: any = {};
+  const updateData: Record<string, unknown> = {};
   
   if (updates.status) updateData.status = updates.status;
   if (updates.approvedBy) updateData.approved_by = updates.approvedBy;
@@ -181,7 +180,7 @@ export async function updateProductMovement(id: string, updates: Partial<Product
   updateData.updated_at = new Date().toISOString();
 
   const { data, error } = await supabase
-    .from('product_movements')
+    .from('stock_movements')
     .update(updateData)
     .eq('id', id)
     .select()
@@ -262,7 +261,7 @@ export async function getTransferSlips(limit = 50, offset = 0) {
 
 // UPDATE transfer slip
 export async function updateTransferSlip(id: string, updates: Partial<TransferSlip>) {
-  const updateData: any = {};
+  const updateData: Record<string, unknown> = {};
   
   if (updates.status) updateData.status = updates.status;
   if (updates.approvedBy) updateData.approved_by = updates.approvedBy;
@@ -299,7 +298,7 @@ export async function updateTransferSlip(id: string, updates: Partial<TransferSl
 }
 
 // GET product stock summary
-export async function getProductStockSummary(productId: string): Promise<{ data: ProductStockSummary | null; error: any }> {
+export async function getProductStockSummary(productId: string): Promise<{ data: ProductStockSummary | null; error: Error | null }> {
   try {
     // Get product details
     const { data: product, error: productError } = await supabase
@@ -361,7 +360,7 @@ export async function getProductStockSummary(productId: string): Promise<{ data:
 }
 
 // GET inventory locations
-export async function getInventoryLocations(): Promise<{ data: InventoryLocation[] | null; error: any }> {
+export async function getInventoryLocations(): Promise<{ data: InventoryLocation[] | null; error: Error | null }> {
   const { data, error } = await supabase
     .from('inventory_locations')
     .select('*')
@@ -369,7 +368,7 @@ export async function getInventoryLocations(): Promise<{ data: InventoryLocation
     .order('name');
 
   if (data) {
-    const transformedData = data.map((location: any) => ({
+    const transformedData = data.map((location: Record<string, unknown>) => ({
       id: location.id,
       name: location.name,
       description: location.description,
@@ -385,7 +384,7 @@ export async function getInventoryLocations(): Promise<{ data: InventoryLocation
 }
 
 // Generate next transfer number
-export async function getNextTransferNumber(): Promise<{ data: string | null; error: any }> {
+export async function getNextTransferNumber(): Promise<{ data: string | null; error: Error | null }> {
   const now = new Date();
   const year = now.getFullYear();
   const month = String(now.getMonth() + 1).padStart(2, '0');
@@ -413,7 +412,7 @@ export async function getNextTransferNumber(): Promise<{ data: string | null; er
 }
 
 // Helper functions to transform database objects
-function transformMovementFromDB(dbMovement: any): ProductMovementHistory {
+function transformMovementFromDB(dbMovement: Record<string, unknown>): ProductMovementHistory {
   return {
     id: dbMovement.id,
     productId: dbMovement.product_id,
@@ -449,7 +448,7 @@ function transformMovementFromDB(dbMovement: any): ProductMovementHistory {
   };
 }
 
-function transformTransferFromDB(dbTransfer: any): TransferSlip {
+function transformTransferFromDB(dbTransfer: Record<string, unknown>): TransferSlip {
   return {
     id: dbTransfer.id,
     transferNumber: dbTransfer.transfer_number,

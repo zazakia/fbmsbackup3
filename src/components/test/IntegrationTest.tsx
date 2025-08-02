@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { useBusinessStore } from '../../store/businessStore';
 import { useToastStore } from '../../store/toastStore';
+import { useSupabaseAuthStore } from '../../store/supabaseAuthStore';
 import type { Sale, PurchaseOrder } from '../../types/business';
 
 interface TestResult {
@@ -26,6 +27,7 @@ const IntegrationTest: React.FC = () => {
   const [testResults, setTestResults] = useState<TestResult[]>([]);
   const [isRunningAll, setIsRunningAll] = useState(false);
   
+  const { user } = useSupabaseAuthStore();
   const { 
     products, 
     accounts, 
@@ -88,7 +90,7 @@ const IntegrationTest: React.FC = () => {
         paymentMethod: 'cash',
         paymentStatus: 'paid',
         status: 'completed',
-        cashierId: 'test-user',
+        cashierId: user?.id || crypto.randomUUID(),
         notes: 'Integration test sale'
       };
 

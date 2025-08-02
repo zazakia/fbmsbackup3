@@ -16,7 +16,6 @@ import {
   Gift,
   Cloud,
   Activity,
-  CreditCard,
   TestTube,
   Shield,
   History,
@@ -78,7 +77,6 @@ import {
   LazySettingsPage,
   LazyCustomerManagement,
   LazyManagerOperations,
-  LazyCashierPOS,
   LazyMarketingCampaigns,
   LazyLoyaltyPrograms,
   LazyCloudBackup,
@@ -127,66 +125,64 @@ const App: React.FC = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // Map menu IDs to visibility keys
-  const menuIdToVisibilityKey: Record<string, keyof typeof menuVisibility> = {
-    'dashboard': 'dashboard',
-    'sales': 'sales',
-    'sales-history': 'sales',
-    'inventory': 'inventory',
-    'product-history': 'inventory',
-    'purchases': 'purchases',
-    'customers': 'customers',
-    'customer-transactions': 'customerTransactions',
-    'suppliers': 'suppliers',
-    'expenses': 'expenses',
-    'payroll': 'payroll',
-    'accounting': 'accounting',
-    'reports': 'reports',
-    'bir': 'bir',
-    'branches': 'branches',
-    'operations': 'operations',
-    'cashier': 'cashier',
-    'marketing': 'marketing',
-    'loyalty': 'loyalty',
-    'backup': 'backup',
-    'testing': 'testing',
-    'admin-dashboard': 'adminDashboard',
-    'user-roles': 'userRoles',
-    'data-history': 'dataHistory',
-    'settings': 'settings'
-  };
-
-  const allMenuItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: Home, module: 'dashboard' },
-    { id: 'sales', label: 'Sales & POS', icon: ShoppingCart, module: 'pos' },
-    { id: 'sales-history', label: 'Sales History', icon: Receipt, module: 'pos' },
-    { id: 'inventory', label: 'Inventory', icon: Package, module: 'inventory' },
-    { id: 'product-history', label: 'Product History', icon: History, module: 'inventory' },
-    { id: 'purchases', label: 'Purchases', icon: Receipt, module: 'purchases' },
-    { id: 'customers', label: 'Customers', icon: Users, module: 'customers' },
-    { id: 'customer-transactions', label: 'Customer Transactions', icon: Users, module: 'customers' },
-    { id: 'suppliers', label: 'Suppliers', icon: Truck, module: 'suppliers' },
-    { id: 'expenses', label: 'Expenses', icon: DollarSign, module: 'expenses' },
-    { id: 'payroll', label: 'Payroll', icon: UserCheck, module: 'payroll' },
-    { id: 'accounting', label: 'Accounting', icon: Calculator, module: 'accounting' },
-    { id: 'reports', label: 'Reports & Analytics', icon: FileText, module: 'reports' },
-    { id: 'bir', label: 'BIR Forms', icon: FileSpreadsheet, module: 'bir' },
-    { id: 'branches', label: 'Multi-Branch', icon: Building2, module: 'branches' },
-    { id: 'operations', label: 'Operations', icon: Activity, module: 'dashboard' }, // Map to dashboard permissions
-    { id: 'cashier', label: 'Cashier POS', icon: CreditCard, module: 'pos' },
-    { id: 'marketing', label: 'Marketing', icon: Megaphone, module: 'reports' }, // Map to reports permissions for now
-    { id: 'loyalty', label: 'Loyalty Programs', icon: Gift, module: 'customers' }, // Map to customers permissions
-    { id: 'backup', label: 'Cloud Backup', icon: Cloud, module: 'settings' }, // Map to settings permissions
-    { id: 'testing', label: 'Testing Suite', icon: TestTube, module: 'settings' }, // Map to settings permissions
-    { id: 'admin-dashboard', label: 'Admin Dashboard', icon: Shield, module: 'admin-dashboard' }, // Admin only
-    { id: 'user-roles', label: 'User Role Management', icon: UserCog, module: 'admin-dashboard' }, // Admin only
-    { id: 'data-history', label: 'Data History', icon: History, module: 'admin-dashboard' }, // Admin only
-    { id: 'settings', label: 'Settings', icon: Settings, module: 'settings' }
-  ];
-
   // Filter menu items based on user role permissions and visibility settings
-  const menuItems = useMemo(() => 
-    allMenuItems.filter(item => {
+  const menuItems = useMemo(() => {
+    // Map menu IDs to visibility keys
+    const menuIdToVisibilityKey: Record<string, keyof typeof menuVisibility> = {
+      'dashboard': 'dashboard',
+      'sales': 'sales',
+      'sales-history': 'sales',
+      'inventory': 'inventory',
+      'product-history': 'inventory',
+      'purchases': 'purchases',
+      'customers': 'customers',
+      'customer-transactions': 'customerTransactions',
+      'suppliers': 'suppliers',
+      'expenses': 'expenses',
+      'payroll': 'payroll',
+      'accounting': 'accounting',
+      'reports': 'reports',
+      'bir': 'bir',
+      'branches': 'branches',
+      'operations': 'operations',
+      'marketing': 'marketing',
+      'loyalty': 'loyalty',
+      'backup': 'backup',
+      'testing': 'testing',
+      'admin-dashboard': 'adminDashboard',
+      'user-roles': 'userRoles',
+      'data-history': 'dataHistory',
+      'settings': 'settings'
+    };
+
+    const allMenuItems = [
+      { id: 'dashboard', label: 'Dashboard', icon: Home, module: 'dashboard' },
+      { id: 'sales', label: 'Sales & POS', icon: ShoppingCart, module: 'pos' },
+      { id: 'sales-history', label: 'Sales History', icon: Receipt, module: 'pos' },
+      { id: 'inventory', label: 'Inventory', icon: Package, module: 'inventory' },
+      { id: 'product-history', label: 'Product History', icon: History, module: 'inventory' },
+      { id: 'purchases', label: 'Purchases', icon: Receipt, module: 'purchases' },
+      { id: 'customers', label: 'Customers', icon: Users, module: 'customers' },
+      { id: 'customer-transactions', label: 'Customer Transactions', icon: Users, module: 'customers' },
+      { id: 'suppliers', label: 'Suppliers', icon: Truck, module: 'suppliers' },
+      { id: 'expenses', label: 'Expenses', icon: DollarSign, module: 'expenses' },
+      { id: 'payroll', label: 'Payroll', icon: UserCheck, module: 'payroll' },
+      { id: 'accounting', label: 'Accounting', icon: Calculator, module: 'accounting' },
+      { id: 'reports', label: 'Reports & Analytics', icon: FileText, module: 'reports' },
+      { id: 'bir', label: 'BIR Forms', icon: FileSpreadsheet, module: 'bir' },
+      { id: 'branches', label: 'Multi-Branch', icon: Building2, module: 'branches' },
+      { id: 'operations', label: 'Operations', icon: Activity, module: 'dashboard' }, // Map to dashboard permissions
+      { id: 'marketing', label: 'Marketing', icon: Megaphone, module: 'reports' }, // Map to reports permissions for now
+      { id: 'loyalty', label: 'Loyalty Programs', icon: Gift, module: 'customers' }, // Map to customers permissions
+      { id: 'backup', label: 'Cloud Backup', icon: Cloud, module: 'settings' }, // Map to settings permissions
+      { id: 'testing', label: 'Testing Suite', icon: TestTube, module: 'settings' }, // Map to settings permissions
+      { id: 'admin-dashboard', label: 'Admin Dashboard', icon: Shield, module: 'admin-dashboard' }, // Admin only
+      { id: 'user-roles', label: 'User Role Management', icon: UserCog, module: 'admin-dashboard' }, // Admin only
+      { id: 'data-history', label: 'Data History', icon: History, module: 'admin-dashboard' }, // Admin only
+      { id: 'settings', label: 'Settings', icon: Settings, module: 'settings' }
+    ];
+
+    return allMenuItems.filter(item => {
       if (!user || !user.role) {
         // Show basic items for unauthenticated users
         return ['dashboard', 'settings'].includes(item.id);
@@ -207,7 +203,8 @@ const App: React.FC = () => {
       }
       
       return true;
-    }), [user, menuVisibility, allMenuItems, menuIdToVisibilityKey]);
+    });
+  }, [user, menuVisibility]);
 
   // Version change handling is now in settings store
 
@@ -319,12 +316,6 @@ const App: React.FC = () => {
         return (
           <PermissionGuard module="dashboard" requiredRole="manager">
             <LazyManagerOperations />
-          </PermissionGuard>
-        );
-      case 'cashier':
-        return (
-          <PermissionGuard module="pos">
-            <LazyCashierPOS />
           </PermissionGuard>
         );
       case 'marketing':
