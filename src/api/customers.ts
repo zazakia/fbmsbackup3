@@ -1,5 +1,5 @@
 import { supabase, isSupabaseAuthenticated } from '../utils/supabase';
-import { Customer, CustomerContact, CustomerTransaction, CustomerType, ContactType, ContactStatus, TransactionType } from '../types/business';
+import { Customer, CustomerContact, CustomerTransaction, CustomerType, TransactionType } from '../types/business';
 import { handleSupabaseError } from '../utils/errorHandling';
 
 // Mock data for development (only used when Supabase is completely unavailable)
@@ -433,26 +433,27 @@ function transformCustomerFromDB(data: Record<string, unknown>): Customer {
   };
 }
 
-function _transformContactFromDB(data: Record<string, unknown>): CustomerContact {
-  return {
-    id: data.id as string,
-    customerId: data.customer_id as string,
-    type: data.type as ContactType,
-    subject: data.subject as string,
-    content: data.content as string,
-    followUpDate: data.follow_up_date ? new Date(data.follow_up_date as string) : undefined,
-    status: data.status as ContactStatus,
-    createdBy: data.created_by as string,
-    createdAt: new Date(data.created_at as string)
-  };
-}
+// Helper functions for future implementation
+// function _transformContactFromDB(data: Record<string, unknown>): CustomerContact {
+//   return {
+//     id: data.id as string,
+//     customerId: data.customer_id as string,
+//     type: data.type as ContactType,
+//     subject: data.subject as string,
+//     content: data.content as string,
+//     followUpDate: data.follow_up_date ? new Date(data.follow_up_date as string) : undefined,
+//     status: data.status as ContactStatus,
+//     createdBy: data.created_by as string,
+//     createdAt: new Date(data.created_at as string)
+//   };
+// }
 
-function _getLoyaltyTier(points: number): string {
-  if (points >= 10000) return 'Platinum';
-  if (points >= 5000) return 'Gold';
-  if (points >= 1000) return 'Silver';
-  return 'Bronze';
-}
+// function _getLoyaltyTier(points: number): string {
+//   if (points >= 10000) return 'Platinum';
+//   if (points >= 5000) return 'Gold';
+//   if (points >= 1000) return 'Silver';
+//   return 'Bronze';
+// }
 
 // Customer Statistics
 export async function getCustomerStats() {

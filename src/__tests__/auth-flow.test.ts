@@ -4,13 +4,11 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import { render, screen, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
-import { createClient } from '@supabase/supabase-js';
 import LoginForm from '../components/auth/LoginForm';
 import RegisterForm from '../components/auth/RegisterForm';
-import { useSupabaseAuthStore } from '../store/supabaseAuthStore';
 import { enhancedAsyncHandler } from '../utils/errorHandling';
 
 // Mock Supabase client
@@ -430,7 +428,6 @@ describe('Authentication Flow Tests', () => {
 
     it('should debounce validation calls', async () => {
       const user = userEvent.setup();
-      const mockValidation = vi.fn();
       
       render(React.createElement(LoginForm, { onSwitchToRegister: () => {} }));
       

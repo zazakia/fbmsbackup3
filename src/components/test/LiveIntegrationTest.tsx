@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { 
   Play, 
   Pause,
@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import { useBusinessStore } from '../../store/businessStore';
 import { useToastStore } from '../../store/toastStore';
-import type { Product, Sale, PurchaseOrder, JournalEntry } from '../../types/business';
+import type { Product, Sale, PurchaseOrder, JournalEntry, Account, CartItem } from '../../types/business';
 
 // Import the actual forms we'll test
 import POSSystem from '../pos/POSSystem';
@@ -30,21 +30,31 @@ import AccountingMonitor from './AccountingMonitor';
 
 type TestScenario = 'sales-accounting' | 'purchase-inventory' | 'purchase-accounting';
 
+interface DataSnapshot {
+  products: Product[];
+  sales: Sale[];
+  purchaseOrders: PurchaseOrder[];
+  journalEntries: JournalEntry[];
+  accounts: Account[];
+  cart: CartItem[];
+  timestamp: number;
+}
+
 interface TestState {
   scenario: TestScenario;
   isRunning: boolean;
   isPaused: boolean;
   currentStep: number;
   totalSteps: number;
-  startSnapshot: any;
-  currentSnapshot: any;
+  startSnapshot: DataSnapshot | null;
+  currentSnapshot: DataSnapshot | null;
 }
 
 interface DataChange {
   type: 'inventory' | 'accounting' | 'sales' | 'purchase';
   field: string;
-  before: any;
-  after: any;
+  before: string | number;
+  after: string | number;
   timestamp: number;
 }
 
@@ -61,6 +71,8 @@ const LiveIntegrationTest: React.FC = () => {
 
   const [dataChanges, setDataChanges] = useState<DataChange[]>([]);
   const [showPOForm, setShowPOForm] = useState(false);
+  const lastUpdateRef = useRef<number>(0);
+  const UPDATE_THROTTLE = 1000; // Update every 1 second to prevent performance issues
 
   const {
     products,
@@ -73,8 +85,8 @@ const LiveIntegrationTest: React.FC = () => {
 
   const { addToast } = useToastStore();
 
-  // Take snapshot of current state
-  const takeSnapshot = () => {
+  // Take snapshot of current state (memoized for performance)
+  const takeSnapshot = useCallback((): DataSnapshot => {
     return {
       products: products.map(p => ({ ...p })),
       sales: [...sales],
@@ -84,7 +96,7 @@ const LiveIntegrationTest: React.FC = () => {
       cart: [...cart],
       timestamp: Date.now()
     };
-  };
+  }, [products, sales, purchaseOrders, journalEntries, accounts, cart]);
 
   // Start test scenario
   const startTest = () => {
@@ -128,16 +140,23 @@ const LiveIntegrationTest: React.FC = () => {
     setShowPOForm(false);
   };
 
-  // Monitor data changes
+  // Monitor data changes with throttling for performance
   useEffect(() => {
     if (!testState.isRunning || testState.isPaused) return;
+
+    const now = Date.now();
+    if (now - lastUpdateRef.current < UPDATE_THROTTLE) return;
 
     const newSnapshot = takeSnapshot();
     
     if (testState.currentSnapshot) {
       const changes = detectChanges(testState.currentSnapshot, newSnapshot);
       if (changes.length > 0) {
-        setDataChanges(prev => [...prev, ...changes]);
+        setDataChanges(prev => {
+          // Limit changes array to prevent memory issues (keep last 20 changes)
+          const newChanges = [...prev, ...changes];
+          return newChanges.length > 20 ? newChanges.slice(-20) : newChanges;
+        });
       }
     }
 
@@ -145,10 +164,12 @@ const LiveIntegrationTest: React.FC = () => {
       ...prev,
       currentSnapshot: newSnapshot
     }));
-  }, [products, sales, purchaseOrders, journalEntries, accounts, cart, testState.isRunning, testState.isPaused]);
+    
+    lastUpdateRef.current = now;
+  }, [takeSnapshot, testState.isRunning, testState.isPaused, testState.currentSnapshot]);
 
-  // Detect changes between snapshots
-  const detectChanges = (before: any, after: any): DataChange[] => {
+  // Detect changes between snapshots (memoized for performance)
+  const detectChanges = useCallback((before: DataSnapshot, after: DataSnapshot): DataChange[] => {
     const changes: DataChange[] = [];
     const timestamp = Date.now();
 
@@ -200,7 +221,7 @@ const LiveIntegrationTest: React.FC = () => {
     }
 
     return changes;
-  };
+  }, []);
 
   const getScenarioName = (scenario: TestScenario) => {
     switch (scenario) {

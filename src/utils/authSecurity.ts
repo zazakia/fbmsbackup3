@@ -84,9 +84,9 @@ export const validatePassword = (password: string, userInfo?: Partial<User>): Pa
     score += 15;
   }
 
-  if (PASSWORD_REQUIREMENTS.requireSpecialChars && !/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
+  if (PASSWORD_REQUIREMENTS.requireSpecialChars && !/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(password)) {
     errors.push('Password must contain at least one special character (!@#$%^&*()_+-=[]{}|;:,.<>?)');
-  } else if (/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
+  } else if (/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(password)) {
     score += 15;
   }
 
@@ -168,7 +168,7 @@ export const validatePassword = (password: string, userInfo?: Partial<User>): Pa
     if (password.length < 12) {
       suggestions.push('Consider using a longer password (12+ characters)');
     }
-    if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
+    if (!/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(password)) {
       suggestions.push('Add special characters for better security');
     }
     if (uniqueChars < 6) {

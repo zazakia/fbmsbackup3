@@ -22,21 +22,20 @@ import { supabase } from '../../utils/supabase';
 interface HistoryRecord {
   id: string;
   table_name: string;
-  record_id: string;
-  action: 'INSERT' | 'UPDATE' | 'DELETE';
+  operation: 'INSERT' | 'UPDATE' | 'DELETE';
   old_data?: any;
   new_data?: any;
   changed_fields?: string[];
-  user_id: string;
+  user_id?: string;
   user_email?: string;
-  timestamp: string;
+  created_at: string;
   ip_address?: string;
   user_agent?: string;
 }
 
 interface HistoryFilter {
   table: string;
-  action: string;
+  operation: string;
   dateRange: string;
   userId: string;
 }
@@ -50,7 +49,7 @@ const DataHistoryTracking: React.FC = () => {
   const [showDetails, setShowDetails] = useState(false);
   const [filters, setFilters] = useState<HistoryFilter>({
     table: 'all',
-    action: 'all',
+    operation: 'all',
     dateRange: '7',
     userId: 'all'
   });
@@ -65,8 +64,8 @@ const DataHistoryTracking: React.FC = () => {
     { value: 'users', label: 'Users' }
   ];
 
-  const actionOptions = [
-    { value: 'all', label: 'All Actions' },
+  const operationOptions = [
+    { value: 'all', label: 'All Operations' },
     { value: 'INSERT', label: 'Created' },
     { value: 'UPDATE', label: 'Updated' },
     { value: 'DELETE', label: 'Deleted' }
@@ -80,13 +79,13 @@ const DataHistoryTracking: React.FC = () => {
     { value: 'all', label: 'All Time' }
   ];
 
-  const actionColors = {
+  const operationColors = {
     INSERT: 'bg-green-100 text-green-800',
     UPDATE: 'bg-blue-100 text-blue-800',
     DELETE: 'bg-red-100 text-red-800'
   };
 
-  const actionIcons = {
+  const operationIcons = {
     INSERT: Plus,
     UPDATE: Edit,
     DELETE: Trash2
@@ -109,20 +108,17 @@ const DataHistoryTracking: React.FC = () => {
     setLoading(true);
     try {
       let query = supabase
-        .from('audit_log')
-        .select(`
-          *,
-          users(email)
-        `)
-        .order('timestamp', { ascending: false });
+        .from('audit_logs')
+        .select('*')
+        .order('created_at', { ascending: false });
 
       // Apply filters
       if (filters.table !== 'all') {
         query = query.eq('table_name', filters.table);
       }
 
-      if (filters.action !== 'all') {
-        query = query.eq('action', filters.action);
+      if (filters.operation !== 'all') {
+        query = query.eq('operation', filters.operation);
       }
 
       if (filters.userId !== 'all') {
@@ -132,7 +128,7 @@ const DataHistoryTracking: React.FC = () => {
       if (filters.dateRange !== 'all') {
         const daysAgo = new Date();
         daysAgo.setDate(daysAgo.getDate() - parseInt(filters.dateRange));
-        query = query.gte('timestamp', daysAgo.toISOString());
+        query = query.gte('created_at', daysAgo.toISOString());
       }
 
       const { data, error } = await query.limit(1000);
@@ -164,10 +160,10 @@ const DataHistoryTracking: React.FC = () => {
     const csvContent = [
       ['Timestamp', 'Table', 'Action', 'Record ID', 'User', 'Changes'].join(','),
       ...filteredHistory.map(record => [
-        new Date(record.timestamp).toLocaleString(),
+        new Date(record.created_at).toLocaleString(),
         record.table_name,
-        record.action,
-        record.record_id,
+        record.operation,
+        record.id,
         record.user_email || 'Unknown',
         record.changed_fields?.join('; ') || 'N/A'
       ].join(','))
@@ -198,9 +194,9 @@ const DataHistoryTracking: React.FC = () => {
   const filteredHistory = history.filter(record => {
     const matchesSearch = 
       record.table_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      record.record_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      record.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
       record.user_email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      record.action.toLowerCase().includes(searchTerm.toLowerCase());
+      record.operation.toLowerCase().includes(searchTerm.toLowerCase());
     
     return matchesSearch;
   });
@@ -276,7 +272,7 @@ const DataHistoryTracking: React.FC = () => {
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Created</p>
               <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                {history.filter(h => h.action === 'INSERT').length}
+                {history.filter(h => h.operation === 'INSERT').length}
               </p>
             </div>
           </div>
@@ -287,7 +283,7 @@ const DataHistoryTracking: React.FC = () => {
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Updated</p>
               <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                {history.filter(h => h.action === 'UPDATE').length}
+                {history.filter(h => h.operation === 'UPDATE').length}
               </p>
             </div>
           </div>
@@ -298,7 +294,7 @@ const DataHistoryTracking: React.FC = () => {
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Deleted</p>
               <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                {history.filter(h => h.action === 'DELETE').length}
+                {history.filter(h => h.operation === 'DELETE').length}
               </p>
             </div>
           </div>
@@ -341,14 +337,14 @@ const DataHistoryTracking: React.FC = () => {
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Action
+              Operation
             </label>
             <select
-              value={filters.action}
-              onChange={(e) => setFilters({...filters, action: e.target.value})}
+              value={filters.operation}
+              onChange={(e) => setFilters({...filters, operation: e.target.value})}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
-              {actionOptions.map(option => (
+              {operationOptions.map(option => (
                 <option key={option.value} value={option.value}>
                   {option.label}
                 </option>
@@ -387,7 +383,7 @@ const DataHistoryTracking: React.FC = () => {
                   Table
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  Action
+                  Operation
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                   Record ID
@@ -405,7 +401,7 @@ const DataHistoryTracking: React.FC = () => {
             </thead>
             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
               {filteredHistory.map((record) => {
-                const ActionIcon = actionIcons[record.action];
+                const OperationIcon = operationIcons[record.operation];
                 const TableIcon = tableIcons[record.table_name] || Package;
                 
                 return (
@@ -415,10 +411,10 @@ const DataHistoryTracking: React.FC = () => {
                         <Clock className="h-4 w-4 text-gray-400 mr-2" />
                         <div>
                           <div className="text-sm text-gray-900 dark:text-white">
-                            {new Date(record.timestamp).toLocaleDateString()}
+                            {new Date(record.created_at).toLocaleDateString()}
                           </div>
                           <div className="text-sm text-gray-500 dark:text-gray-400">
-                            {new Date(record.timestamp).toLocaleTimeString()}
+                            {new Date(record.created_at).toLocaleTimeString()}
                           </div>
                         </div>
                       </div>
@@ -432,14 +428,14 @@ const DataHistoryTracking: React.FC = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${actionColors[record.action]}`}>
-                        <ActionIcon className="h-3 w-3 mr-1" />
-                        {record.action.toLowerCase()}
+                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${operationColors[record.operation]}`}>
+                        <OperationIcon className="h-3 w-3 mr-1" />
+                        {record.operation.toLowerCase()}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="text-sm font-mono text-gray-900 dark:text-white">
-                        {record.record_id.substring(0, 8)}...
+                        {record.id.substring(0, 8)}...
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -489,10 +485,10 @@ const DataHistoryTracking: React.FC = () => {
                 <h4 className="font-medium text-gray-900 dark:text-white mb-2">Basic Information</h4>
                 <div className="space-y-2 text-sm">
                   <div><span className="font-medium">Table:</span> {selectedRecord.table_name}</div>
-                  <div><span className="font-medium">Action:</span> {selectedRecord.action}</div>
-                  <div><span className="font-medium">Record ID:</span> {selectedRecord.record_id}</div>
+                  <div><span className="font-medium">Operation:</span> {selectedRecord.operation}</div>
+                  <div><span className="font-medium">Record ID:</span> {selectedRecord.id}</div>
                   <div><span className="font-medium">User:</span> {selectedRecord.user_email || 'Unknown'}</div>
-                  <div><span className="font-medium">Timestamp:</span> {new Date(selectedRecord.timestamp).toLocaleString()}</div>
+                  <div><span className="font-medium">Timestamp:</span> {new Date(selectedRecord.created_at).toLocaleString()}</div>
                   {selectedRecord.ip_address && (
                     <div><span className="font-medium">IP Address:</span> {selectedRecord.ip_address}</div>
                   )}
@@ -502,7 +498,7 @@ const DataHistoryTracking: React.FC = () => {
               <div>
                 <h4 className="font-medium text-gray-900 dark:text-white mb-2">Changes</h4>
                 <div className="text-sm max-h-96 overflow-y-auto">
-                  {selectedRecord.action === 'INSERT' && selectedRecord.new_data && (
+                  {selectedRecord.operation === 'INSERT' && selectedRecord.new_data && (
                     <div>
                       <span className="font-medium text-green-600">New Record:</span>
                       <pre className="mt-2 p-3 bg-gray-100 dark:bg-gray-700 rounded text-xs overflow-x-auto">
@@ -511,7 +507,7 @@ const DataHistoryTracking: React.FC = () => {
                     </div>
                   )}
                   
-                  {selectedRecord.action === 'UPDATE' && selectedRecord.changed_fields && (
+                  {selectedRecord.operation === 'UPDATE' && selectedRecord.changed_fields && (
                     <div>
                       {selectedRecord.changed_fields.map((field) => {
                         const oldValue = selectedRecord.old_data?.[field];
@@ -521,7 +517,7 @@ const DataHistoryTracking: React.FC = () => {
                     </div>
                   )}
                   
-                  {selectedRecord.action === 'DELETE' && selectedRecord.old_data && (
+                  {selectedRecord.operation === 'DELETE' && selectedRecord.old_data && (
                     <div>
                       <span className="font-medium text-red-600">Deleted Record:</span>
                       <pre className="mt-2 p-3 bg-gray-100 dark:bg-gray-700 rounded text-xs overflow-x-auto">

@@ -1050,7 +1050,7 @@ export const useBusinessStore = create<BusinessStore>()(
           Math.abs(quantity), 
           reason,
           {
-            referenceNumber: reference,
+            referenceId: reference,
             referenceType: type || 'manual',
             userId,
             notes
@@ -1074,27 +1074,14 @@ export const useBusinessStore = create<BusinessStore>()(
         const stockChange = isNegative ? -quantity : quantity;
         const newStock = Math.max(0, previousStock + stockChange);
 
-        const movementData: Omit<ProductMovementHistory, 'id' | 'createdAt'> = {
+        const movementData = {
           productId,
-          productName: product.name,
-          productSku: product.sku,
+          change: stockChange,
           type,
-          quantity,
-          previousStock,
-          newStock,
-          unitCost: options.unitCost || product.cost,
-          totalValue: options.unitCost ? options.unitCost * quantity : product.cost * quantity,
+          referenceId: options.referenceId,
+          userId: options.userId,
           reason,
-          referenceNumber: options.referenceNumber,
-          referenceType: options.referenceType || 'manual',
-          locationId: options.locationId,
-          locationName: undefined, // Will be populated by API
-          batchNumber: options.batchNumber,
-          expiryDate: options.expiryDate,
-          performedBy: options.userId || '',
-          performedByName: 'System User', // Will be populated by API with actual user info
-          notes: options.notes,
-          status: 'completed'
+          resultingStock: newStock
         };
 
         try {
@@ -1331,7 +1318,23 @@ export const useBusinessStore = create<BusinessStore>()(
         const vatPayableAccount = accounts.find(a => a.code === '2100'); // VAT Payable
 
         if (!cashAccount || !salesRevenueAccount || !cogsAccount || !inventoryAccount) {
-          console.warn('Required accounts not found for journal entry creation');
+          console.warn('Required accounts not found for journal entry creation. Found accounts:', {
+            cashAccount: cashAccount?.name,
+            salesRevenueAccount: salesRevenueAccount?.name,
+            cogsAccount: cogsAccount?.name,
+            inventoryAccount: inventoryAccount?.name,
+            totalAccounts: accounts.length,
+            allAccountCodes: accounts.map(a => a.code)
+          });
+          
+          // Still proceed to show in the integration test what accounts are missing
+          const missingAccounts = [];
+          if (!cashAccount) missingAccounts.push('Cash Account (1000)');
+          if (!salesRevenueAccount) missingAccounts.push('Sales Revenue (4000)');
+          if (!cogsAccount) missingAccounts.push('COGS (5000)');
+          if (!inventoryAccount) missingAccounts.push('Inventory (1300)');
+          
+          console.error(`Cannot create journal entry. Missing accounts: ${missingAccounts.join(', ')}`);
           return;
         }
 

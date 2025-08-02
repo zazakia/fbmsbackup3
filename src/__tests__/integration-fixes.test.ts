@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { useBusinessStore } from '../store/businessStore';
-import type { Sale, PurchaseOrder, Product, Account } from '../types/business';
+import type { Sale, PurchaseOrder, Product } from '../types/business';
 
 // Mock data
 const mockProducts: Product[] = [
@@ -403,7 +403,6 @@ describe('Integration Fixes Tests', () => {
       const journalEntry = journalEntries[journalEntries.length - 1];
       
       const inventoryLine = journalEntry.lines.find(line => line.accountName === 'Inventory');
-      const expectedPartialValue = 60 * 10; // Only for received quantity
       
       // Should create entry only for received items
       expect(inventoryLine?.debit).toBeLessThan(2400); // Less than full PO value

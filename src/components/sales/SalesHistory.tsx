@@ -75,7 +75,7 @@ const SalesHistory: React.FC = () => {
 
   // Filter and search sales
   const filteredSales = useMemo(() => {
-    let filtered = sales.filter(sale => {
+    const filtered = sales.filter(sale => {
       // Search filter
       const matchesSearch = 
         sale.invoiceNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ||
