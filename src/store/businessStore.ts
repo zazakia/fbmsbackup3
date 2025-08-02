@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { Product, Category, Customer, Sale, CartItem, Supplier, PurchaseOrder, Expense, ExpenseCategory, Account, JournalEntry, Employee, PayrollPeriod, PayrollEntry, LeaveRecord, TimeRecord, PayrollSettings } from '../types/business';
 import { getCustomers as supaGetCustomers, createCustomer as supaCreateCustomer, updateCustomer as supaUpdateCustomer, deleteCustomer as supaDeleteCustomer } from '../api/customers';
+import { createSale as supaCreateSale, getSales as supaGetSales, updateSale as supaUpdateSale, deleteSale as supaDeleteSale, getNextInvoiceNumber } from '../api/sales';
 
 interface BusinessState {
   // Products
@@ -62,6 +63,9 @@ interface BusinessActions {
   deleteCustomer: (id: string) => Promise<void>;
   getCustomer: (id: string) => Customer | undefined;
   
+  // Sales actions with Supabase integration
+  fetchSales: () => Promise<void>;
+  
   // Cart actions
   addToCart: (product: Product, quantity: number) => void;
   updateCartItem: (productId: string, quantity: number) => void;
@@ -72,7 +76,7 @@ interface BusinessActions {
   getCartTax: () => number;
   
   // Sale actions
-  createSale: (sale: Omit<Sale, 'id' | 'createdAt'>) => void;
+  createSale: (sale: Omit<Sale, 'id' | 'createdAt'>) => Promise<void>;
   createSaleJournalEntry: (sale: Sale) => void;
   updateSale: (id: string, updates: Partial<Sale>) => void;
   getSale: (id: string) => Sale | undefined;
@@ -153,6 +157,14 @@ interface BusinessActions {
   // Utility actions
   clearError: () => void;
   setLoading: (loading: boolean) => void;
+  
+  // Test data cleanup actions
+  removeTestData: () => Promise<void>;
+  removeTestSales: () => Promise<void>;
+  removeTestJournalEntries: () => void;
+  
+  // Seed data cleanup actions
+  removeSeedProducts: () => void;
 }
 
 type BusinessStore = BusinessState & BusinessActions;
@@ -191,82 +203,7 @@ const initialCategories: Category[] = [
 ];
 
 const initialProducts: Product[] = [
-  {
-    id: '1',
-    name: 'San Miguel Beer 330ml',
-    description: 'San Miguel Pale Pilsen 330ml bottle',
-    sku: 'SMB-330',
-    barcode: '4800016644443',
-    category: '1',
-    categoryId: '1',
-    price: 45,
-    cost: 38,
-    stock: 120,
-    minStock: 20,
-    unit: 'bottle',
-    isActive: true,
-    tags: [],
-    images: [],
-    createdAt: new Date(),
-    updatedAt: new Date()
-  },
-  {
-    id: '2',
-    name: 'Lucky Me Instant Noodles',
-    description: 'Lucky Me Chicken Flavor 55g',
-    sku: 'LM-CHK-55',
-    barcode: '4800016001234',
-    category: '2',
-    categoryId: '2',
-    price: 12,
-    cost: 9,
-    stock: 200,
-    minStock: 50,
-    unit: 'pack',
-    isActive: true,
-    tags: [],
-    images: [],
-    createdAt: new Date(),
-    updatedAt: new Date()
-  },
-  {
-    id: '3',
-    name: 'Coca-Cola 355ml',
-    description: 'Coca-Cola Regular 355ml can',
-    sku: 'CC-355',
-    barcode: '4902430123456',
-    category: '1',
-    categoryId: '1',
-    price: 25,
-    cost: 20,
-    stock: 150,
-    minStock: 30,
-    unit: 'can',
-    isActive: true,
-    tags: [],
-    images: [],
-    createdAt: new Date(),
-    updatedAt: new Date()
-  },
-  {
-    id: '4',
-    name: 'Pantene Shampoo 170ml',
-    description: 'Pantene Pro-V Classic Clean 170ml',
-    sku: 'PAN-170',
-    barcode: '8001090123456',
-    category: '3',
-    categoryId: '3',
-    price: 89,
-    cost: 72,
-    stock: 45,
-    minStock: 10,
-    unit: 'bottle',
-    isActive: true,
-    tags: [],
-    images: [],
-    createdAt: new Date(),
-    updatedAt: new Date()
-  }
+  // Demo products removed as requested
 ];
 
 const initialCustomers: Customer[] = [
@@ -1089,11 +1026,14 @@ export const useBusinessStore = create<BusinessStore>()(
             if (product.id === productId) {
               const newStock = product.stock + quantity;
               
+              // Prevent negative stock (minimum 0)
+              const validatedStock = Math.max(0, newStock);
+              
               // Create stock movement record (in a real app, this would be async)
               // For now, we'll just update the product stock
               return { 
                 ...product, 
-                stock: newStock, 
+                stock: validatedStock, 
                 updatedAt: new Date() 
               };
             }
@@ -1236,29 +1176,74 @@ export const useBusinessStore = create<BusinessStore>()(
         return get().getCartSubtotal() + get().getCartTax();
       },
 
+      // Sales actions with Supabase integration
+      fetchSales: async () => {
+        try {
+          set({ isLoading: true, error: null });
+          const { data, error } = await supaGetSales();
+          
+          if (error) {
+            set({ error: error.message, isLoading: false });
+            return;
+          }
+          
+          if (data) {
+            set({ sales: data, isLoading: false });
+          }
+        } catch (err) {
+          set({ error: 'Failed to fetch sales', isLoading: false });
+        }
+      },
+
       // Sale actions
-      createSale: (saleData) => {
-        const sale: Sale = {
-          ...saleData,
-          id: generateId(),
-          invoiceNumber: saleData.invoiceNumber || generateInvoiceNumber(),
-          createdAt: new Date()
-        };
-        
-        set((state) => ({
-          sales: [...state.sales, sale]
-        }));
+      createSale: async (saleData) => {
+        try {
+          set({ isLoading: true, error: null });
+          
+          // Generate invoice number if not provided
+          let invoiceNumber = saleData.invoiceNumber;
+          if (!invoiceNumber) {
+            const { data: nextInvoiceNumber, error: invoiceError } = await getNextInvoiceNumber();
+            if (invoiceError || !nextInvoiceNumber) {
+              // Fallback to timestamp-based invoice number
+              invoiceNumber = `INV-${Date.now()}`;
+            } else {
+              invoiceNumber = nextInvoiceNumber;
+            }
+          }
+          
+          // Save to Supabase first
+          const { data: savedSale, error } = await supaCreateSale({
+            ...saleData,
+            invoiceNumber
+          });
+          
+          if (error) {
+            set({ error: error.message, isLoading: false });
+            return;
+          }
+          
+          if (savedSale) {
+            // Add to local store
+            set((state) => ({
+              sales: [...state.sales, savedSale],
+              isLoading: false
+            }));
 
-        // Update product stock
-        sale.items.forEach(item => {
-          get().updateStock(item.productId, -item.quantity);
-        });
+            // Update product stock
+            savedSale.items.forEach(item => {
+              get().updateStock(item.productId, -item.quantity);
+            });
 
-        // Create automatic journal entry for the sale
-        get().createSaleJournalEntry(sale);
+            // Create automatic journal entry for the sale
+            get().createSaleJournalEntry(savedSale);
 
-        // Clear cart after sale
-        get().clearCart();
+            // Clear cart after sale
+            get().clearCart();
+          }
+        } catch (err) {
+          set({ error: 'Failed to create sale', isLoading: false });
+        }
       },
 
       createSaleJournalEntry: (sale) => {
@@ -1855,6 +1840,82 @@ export const useBusinessStore = create<BusinessStore>()(
 
       setLoading: (loading) => {
         set({ isLoading: loading });
+      },
+
+      // Test data cleanup actions
+      removeTestData: async () => {
+        try {
+          set({ isLoading: true, error: null });
+          
+          // Remove test sales
+          await get().removeTestSales();
+          
+          // Remove test journal entries
+          get().removeTestJournalEntries();
+          
+          set({ isLoading: false });
+        } catch (error) {
+          set({ error: 'Failed to remove test data', isLoading: false });
+        }
+      },
+
+      removeTestSales: async () => {
+        const testSales = get().sales.filter(sale => 
+          sale.invoiceNumber?.startsWith('TEST-') ||
+          sale.customerName === 'Integration Test Customer' ||
+          sale.cashierId === 'test-user' ||
+          sale.notes?.includes('Integration test')
+        );
+
+        // Remove from Supabase first
+        for (const sale of testSales) {
+          try {
+            const { error } = await supaDeleteSale(sale.id);
+            if (error) {
+              console.warn(`Failed to delete test sale ${sale.id} from Supabase:`, error);
+            }
+          } catch (error) {
+            console.warn(`Error deleting test sale ${sale.id}:`, error);
+          }
+        }
+
+        // Remove from local store
+        set((state) => ({
+          sales: state.sales.filter(sale => 
+            !sale.invoiceNumber?.startsWith('TEST-') &&
+            sale.customerName !== 'Integration Test Customer' &&
+            sale.cashierId !== 'test-user' &&
+            !sale.notes?.includes('Integration test')
+          )
+        }));
+      },
+
+      removeTestJournalEntries: () => {
+        set((state) => ({
+          journalEntries: state.journalEntries.filter(entry => 
+            !entry.description?.includes('Integration test') &&
+            !entry.description?.includes('TEST-') &&
+            !entry.reference?.startsWith('TEST-')
+          )
+        }));
+      },
+
+      // Seed data cleanup actions
+      removeSeedProducts: () => {
+        const seedProductSKUs = [
+          'SMB-330',      // San Miguel Beer 330ml
+          'LM-CHK-55',    // Lucky Me Instant Noodles  
+          'CC-355',       // Coca-Cola 355ml
+          'PAN-170',      // Pantene Shampoo 170ml
+          'vvv',          // Test product vvvvv
+          'gdfg'          // Test product xdfg
+        ];
+
+        set((state) => ({
+          products: state.products.filter(product => 
+            !seedProductSKUs.includes(product.sku)
+          )
+        }));
       }
     }),
     {

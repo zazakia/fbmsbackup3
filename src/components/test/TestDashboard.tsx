@@ -14,7 +14,8 @@ import {
   Activity,
   BarChart3,
   PlayCircle,
-  Loader2
+  Loader2,
+  Trash2
 } from 'lucide-react';
 import CustomerCRUDTest from './CustomerCRUDTest';
 import ProductCRUDTest from './ProductCRUDTest';
@@ -24,6 +25,7 @@ import POSTest from './POSTest';
 import ReportsTest from './ReportsTest';
 import IntegrationTest from './IntegrationTest';
 import LiveIntegrationTest from './LiveIntegrationTest';
+import TestDataCleanup from './TestDataCleanup';
 
 interface TestSuite {
   id: string;
@@ -122,6 +124,16 @@ const TestDashboard: React.FC = () => {
       category: 'system',
       estimatedTime: '8-10 min',
       complexity: 'advanced'
+    },
+    {
+      id: 'test-data-cleanup',
+      name: 'Data Cleanup',
+      description: 'Remove test items and seed products from the system',
+      icon: Trash2,
+      component: TestDataCleanup,
+      category: 'system',
+      estimatedTime: '1-2 min',
+      complexity: 'basic'
     }
   ];
 

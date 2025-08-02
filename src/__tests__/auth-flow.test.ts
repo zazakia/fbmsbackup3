@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { createClient } from '@supabase/supabase-js';
@@ -81,7 +81,9 @@ describe('Authentication Flow Tests', () => {
       render(React.createElement(LoginForm, { onSwitchToRegister: () => {} }));
       
       const submitButton = screen.getByRole('button', { name: /sign in/i });
-      await user.click(submitButton);
+      await act(async () => {
+        await user.click(submitButton);
+      });
       
       expect(screen.getByText(/email is required/i)).toBeInTheDocument();
       expect(screen.getByText(/password is required/i)).toBeInTheDocument();
@@ -94,8 +96,10 @@ describe('Authentication Flow Tests', () => {
       const emailInput = screen.getByLabelText(/email address/i);
       const submitButton = screen.getByRole('button', { name: /sign in/i });
       
-      await user.type(emailInput, 'invalid-email');
-      await user.click(submitButton);
+      await act(async () => {
+        await user.type(emailInput, 'invalid-email');
+        await user.click(submitButton);
+      });
       
       expect(screen.getByText(/please enter a valid email address/i)).toBeInTheDocument();
     });

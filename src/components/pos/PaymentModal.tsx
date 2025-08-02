@@ -4,7 +4,7 @@ import { PaymentMethod } from '../../types/business';
 
 interface PaymentModalProps {
   total: number;
-  onPayment: (paymentMethod: PaymentMethod) => void;
+  onPayment: (paymentMethod: PaymentMethod) => void | Promise<void>;
   onClose: () => void;
 }
 
@@ -31,11 +31,18 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ total, onPayment, onClose }
 
     setIsProcessing(true);
     
-    // Simulate payment processing
-    setTimeout(() => {
-      onPayment(selectedMethod);
+    try {
+      // Handle both sync and async payment functions
+      const result = onPayment(selectedMethod);
+      if (result instanceof Promise) {
+        await result;
+      }
       setIsProcessing(false);
-    }, 1000);
+    } catch (error) {
+      console.error('Payment processing error:', error);
+      setIsProcessing(false);
+      // Could add error handling UI here
+    }
   };
 
   return (
@@ -139,7 +146,8 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ total, onPayment, onClose }
           <div className="flex space-x-3">
             <button
               onClick={onClose}
-              className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              disabled={isProcessing}
+              className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Cancel
             </button>

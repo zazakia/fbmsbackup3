@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Search, ShoppingCart, User, CreditCard, Calculator, Menu, X } from 'lucide-react';
 import { useBusinessStore } from '../../store/businessStore';
 import { useSupabaseAuthStore } from '../../store/supabaseAuthStore'; // UPDATED
+import { useToastStore } from '../../store/toastStore';
 import ProductGrid from './ProductGrid';
 import Cart from './Cart';
 import CustomerSelector from './CustomerSelector';
@@ -33,6 +34,7 @@ const POSSystem: React.FC = () => {
   } = useBusinessStore();
   
   const { user } = useSupabaseAuthStore(); // UPDATED
+  const { addToast } = useToastStore();
 
   // Load real customers from API
   const loadCustomers = useCallback(async () => {
@@ -72,39 +74,56 @@ const POSSystem: React.FC = () => {
       return matchesSearch && matchesCategory && product.isActive && product.stock > 0;
     }), [products, debouncedSearchTerm, selectedCategory]);
 
-  const handleCompleteSale = useCallback((paymentMethod: PaymentMethod) => {
+  const handleCompleteSale = useCallback(async (paymentMethod: PaymentMethod) => {
     if (cart.length === 0) return;
 
     const subtotal = getCartSubtotal();
     const tax = getCartTax();
     const total = getCartTotal();
 
-    createSale({
-      customerId: selectedCustomer?.id,
-      customerName: selectedCustomer ? `${selectedCustomer.firstName} ${selectedCustomer.lastName}` : 'Walk-in Customer',
-      items: cart.map(item => ({
-        id: item.product.id,
-        productId: item.product.id,
-        productName: item.product.name,
-        sku: item.product.sku,
-        quantity: item.quantity,
-        price: item.product.price,
-        total: item.total
-      })),
-      subtotal,
-      tax,
-      discount: 0,
-      total,
-      paymentMethod,
-      paymentStatus: 'paid',
-      status: 'completed',
-      cashierId: user?.id || '1',
-      notes: ''
-    });
+    try {
+      await createSale({
+        customerId: selectedCustomer?.id,
+        customerName: selectedCustomer ? `${selectedCustomer.firstName} ${selectedCustomer.lastName}` : 'Walk-in Customer',
+        items: cart.map(item => ({
+          id: item.product.id,
+          productId: item.product.id,
+          productName: item.product.name,
+          sku: item.product.sku,
+          quantity: item.quantity,
+          price: item.product.price,
+          total: item.total
+        })),
+        subtotal,
+        tax,
+        discount: 0,
+        total,
+        paymentMethod,
+        paymentStatus: 'paid',
+        status: 'completed',
+        cashierId: user?.id || '1',
+        notes: ''
+      });
 
-    setShowPaymentModal(false);
-    setSelectedCustomer(null);
-  }, [cart, selectedCustomer, getCartSubtotal, getCartTax, getCartTotal, createSale, user?.id]);
+      // Success - clear UI state (cart is cleared by business store)
+      setShowPaymentModal(false);
+      setSelectedCustomer(null);
+      
+      addToast({
+        type: 'success',
+        title: 'Sale Completed',
+        message: `Transaction completed successfully. Total: ₱${total.toFixed(2)}`
+      });
+
+    } catch (error) {
+      console.error('Error creating sale:', error);
+      addToast({
+        type: 'error',
+        title: 'Sale Failed',
+        message: 'Failed to process the sale. Please try again.'
+      });
+    }
+  }, [cart, selectedCustomer, getCartSubtotal, getCartTax, getCartTotal, createSale, addToast, user?.id]);
 
   // Use the selected customer directly
 

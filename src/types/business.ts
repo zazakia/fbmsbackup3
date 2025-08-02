@@ -503,3 +503,168 @@ export interface StockMovementLedger {
   resulting_stock: number;
   created_at: Date;
 }
+
+// Enhanced Product History Types
+export interface ProductMovementHistory {
+  id: string;
+  productId: string;
+  productName: string;
+  productSku: string;
+  type: ProductMovementType;
+  quantity: number;
+  previousStock: number;
+  newStock: number;
+  unitCost?: number;
+  totalValue?: number;
+  reason: string;
+  referenceNumber?: string;
+  referenceType?: 'sale' | 'purchase' | 'adjustment' | 'transfer' | 'return' | 'manual';
+  referenceId?: string;
+  locationId?: string;
+  locationName?: string;
+  fromLocationId?: string;
+  fromLocationName?: string;
+  toLocationId?: string;
+  toLocationName?: string;
+  batchNumber?: string;
+  expiryDate?: Date;
+  performedBy: string;
+  performedByName?: string;
+  approvedBy?: string;
+  approvedByName?: string;
+  notes?: string;
+  attachments?: string[];
+  status: MovementStatus;
+  createdAt: Date;
+  updatedAt?: Date;
+}
+
+export type ProductMovementType = 
+  | 'stock_in'           // Receiving inventory
+  | 'stock_out'          // Selling/issuing inventory
+  | 'adjustment_in'      // Positive adjustment
+  | 'adjustment_out'     // Negative adjustment
+  | 'transfer_out'       // Transfer to another location
+  | 'transfer_in'        // Receive from another location
+  | 'return_in'          // Customer/supplier return
+  | 'return_out'         // Return to supplier
+  | 'damage_out'         // Damaged goods removal
+  | 'expired_out'        // Expired goods removal
+  | 'recount'            // Physical count adjustment
+  | 'initial_stock';     // Initial stock entry
+
+export type MovementStatus = 'pending' | 'approved' | 'completed' | 'cancelled' | 'rejected';
+
+export interface TransferSlip {
+  id: string;
+  transferNumber: string;
+  fromLocationId: string;
+  fromLocationName: string;
+  toLocationId: string;
+  toLocationName: string;
+  items: TransferSlipItem[];
+  status: TransferStatus;
+  requestedBy: string;
+  requestedByName?: string;
+  approvedBy?: string;
+  approvedByName?: string;
+  issuedBy?: string;
+  issuedByName?: string;
+  receivedBy?: string;
+  receivedByName?: string;
+  transferDate: Date;
+  expectedDeliveryDate?: Date;
+  actualDeliveryDate?: Date;
+  issuedDate?: Date;
+  receivedDate?: Date;
+  vehicleInfo?: string;
+  driverInfo?: string;
+  notes?: string;
+  attachments?: string[];
+  totalItems: number;
+  totalQuantity: number;
+  totalValue: number;
+  createdAt: Date;
+  updatedAt?: Date;
+}
+
+export interface TransferSlipItem {
+  id: string;
+  productId: string;
+  productName: string;
+  productSku: string;
+  batchNumber?: string;
+  requestedQuantity: number;
+  approvedQuantity?: number;
+  issuedQuantity?: number;
+  receivedQuantity?: number;
+  unitCost: number;
+  totalValue: number;
+  condition?: 'good' | 'damaged' | 'expired';
+  notes?: string;
+  expiryDate?: Date;
+  serialNumbers?: string[];
+}
+
+export type TransferStatus = 
+  | 'draft'          // Being prepared
+  | 'pending'        // Awaiting approval
+  | 'approved'       // Approved for transfer
+  | 'issued'         // Items issued from source
+  | 'in_transit'     // In delivery
+  | 'partially_received' // Some items received
+  | 'received'       // All items received
+  | 'completed'      // Transfer completed
+  | 'cancelled'      // Transfer cancelled
+  | 'rejected';      // Transfer rejected
+
+export interface ProductHistoryFilter {
+  productId?: string;
+  productName?: string;
+  movementType?: ProductMovementType;
+  locationId?: string;
+  fromDate?: Date;
+  toDate?: Date;
+  performedBy?: string;
+  status?: MovementStatus;
+  batchNumber?: string;
+  referenceNumber?: string;
+  minQuantity?: number;
+  maxQuantity?: number;
+}
+
+export interface ProductStockSummary {
+  productId: string;
+  productName: string;
+  productSku: string;
+  currentStock: number;
+  totalStockIn: number;
+  totalStockOut: number;
+  totalAdjustments: number;
+  totalTransfersIn: number;
+  totalTransfersOut: number;
+  totalReturns: number;
+  totalDamaged: number;
+  lastMovementDate?: Date;
+  lastMovementType?: ProductMovementType;
+  averageCost: number;
+  totalValue: number;
+  movements: ProductMovementHistory[];
+}
+
+export interface LocationStockSummary {
+  locationId: string;
+  locationName: string;
+  totalProducts: number;
+  totalStock: number;
+  totalValue: number;
+  pendingTransfersIn: number;
+  pendingTransfersOut: number;
+  lastUpdateDate?: Date;
+  products: {
+    productId: string;
+    productName: string;
+    quantity: number;
+    value: number;
+  }[];
+}
