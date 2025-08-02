@@ -28,6 +28,9 @@ import { getProductMovements, getInventoryLocations } from '../../api/productHis
 import { useBusinessStore } from '../../store/businessStore';
 import { useToastStore } from '../../store/toastStore';
 import { useSupabaseAuthStore } from '../../store/supabaseAuthStore';
+import MovementDetails from './MovementDetails';
+import TransferSlip from './TransferSlip';
+import ProductMovementForm from './ProductMovementForm';
 
 interface ProductHistoryProps {
   selectedProductId?: string;
@@ -622,10 +625,40 @@ const ProductHistory: React.FC<ProductHistoryProps> = ({ selectedProductId }) =>
         </div>
       )}
 
-      {/* Modals will be added in separate components */}
       {/* Movement Details Modal */}
+      {showMovementDetails && selectedMovement && (
+        <MovementDetails
+          movement={selectedMovement}
+          onClose={() => {
+            setShowMovementDetails(false);
+            setSelectedMovement(null);
+          }}
+          showActions={selectedMovement.status === 'pending'}
+        />
+      )}
+
       {/* Transfer Slip Modal */}
+      {showTransferSlip && (
+        <TransferSlip
+          onClose={() => setShowTransferSlip(false)}
+          onSave={() => {
+            setShowTransferSlip(false);
+            loadMovements(); // Reload movements after creating transfer
+          }}
+          mode="create"
+        />
+      )}
+
       {/* Movement Form Modal */}
+      {showMovementForm && (
+        <ProductMovementForm
+          onClose={() => setShowMovementForm(false)}
+          onSave={() => {
+            setShowMovementForm(false);
+            loadMovements(); // Reload movements after creating movement
+          }}
+        />
+      )}
     </div>
   );
 };

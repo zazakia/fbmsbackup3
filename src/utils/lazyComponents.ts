@@ -67,3 +67,8 @@ export const LazyCloudBackup = lazy(() =>
 export const LazyElectronicReceipts = lazy(() => 
   import('../components/receipts/ElectronicReceipts')
 );
+
+// Product History
+export const LazyProductHistory = lazy(() => 
+  import('../components/inventory/ProductHistory')
+);
