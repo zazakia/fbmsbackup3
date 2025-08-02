@@ -1087,7 +1087,7 @@ export const useBusinessStore = create<BusinessStore>()(
         set((state) => {
           const updatedProducts = state.products.map(product => {
             if (product.id === productId) {
-              const newStock = quantity;
+              const newStock = product.stock + quantity;
               
               // Create stock movement record (in a real app, this would be async)
               // For now, we'll just update the product stock

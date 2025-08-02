@@ -23,6 +23,7 @@ import NavigationTest from './NavigationTest';
 import POSTest from './POSTest';
 import ReportsTest from './ReportsTest';
 import IntegrationTest from './IntegrationTest';
+import LiveIntegrationTest from './LiveIntegrationTest';
 
 interface TestSuite {
   id: string;
@@ -110,6 +111,16 @@ const TestDashboard: React.FC = () => {
       component: IntegrationTest,
       category: 'system',
       estimatedTime: '5-6 min',
+      complexity: 'advanced'
+    },
+    {
+      id: 'live-integration',
+      name: 'Live Visual Testing',
+      description: 'Watch integrations happen in real-time using actual forms and data monitoring',
+      icon: Activity,
+      component: LiveIntegrationTest,
+      category: 'system',
+      estimatedTime: '8-10 min',
       complexity: 'advanced'
     }
   ];
