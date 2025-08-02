@@ -162,7 +162,7 @@
   - Create performance tests to ensure sub-3-second load times
   - _Requirements: 7.1, 7.2, 7.3_
 
-- [ ] 19. Offline Functionality and Data Sync
+- [-] 19. Offline Functionality and Data Sync
   - Implement offline mode for critical POS operations
   - Add local storage backup for transaction data
   - Create data synchronization with conflict resolution
