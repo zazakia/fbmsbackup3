@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Save, Receipt, DollarSign, Calendar, Tag, User } from 'lucide-react';
 import { useBusinessStore } from '../../store/businessStore';
+import { useSupabaseAuthStore } from '../../store/supabaseAuthStore';
 
 interface ExpenseFormProps {
   expenseId?: string | null;
@@ -9,6 +10,7 @@ interface ExpenseFormProps {
 
 const ExpenseForm: React.FC<ExpenseFormProps> = ({ expenseId, onClose }) => {
   const { expenses, expenseCategories, addExpense, updateExpense, getExpense } = useBusinessStore();
+  const { user } = useSupabaseAuthStore();
   
   const [formData, setFormData] = useState({
     description: '',
@@ -91,7 +93,7 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ expenseId, onClose }) => {
       notes: formData.notes.trim() || undefined,
       isRecurring: formData.isRecurring,
       recurringInterval: formData.recurringInterval,
-      createdBy: '1' // TODO: Get from auth store
+      createdBy: user?.id || null
     };
 
     if (expenseId) {

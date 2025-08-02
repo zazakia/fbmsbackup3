@@ -258,7 +258,7 @@ export async function createPurchaseOrder(purchaseOrder: Omit<PurchaseOrder, 'id
       status: purchaseOrder.status,
       expected_date: purchaseOrder.expectedDate?.toISOString(),
       received_date: purchaseOrder.receivedDate?.toISOString(),
-      created_by: purchaseOrder.createdBy
+      created_by: purchaseOrder.createdBy || null // Handle null/undefined values properly
     }])
     .select(`
       id,

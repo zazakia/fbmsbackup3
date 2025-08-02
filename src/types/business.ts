@@ -161,7 +161,7 @@ export interface PurchaseOrder {
   status: PurchaseOrderStatus;
   expectedDate?: Date;
   receivedDate?: Date;
-  createdBy: string;
+  createdBy?: string; // Optional to handle cases where user is not authenticated
   createdAt: Date;
 }
 
@@ -198,7 +198,7 @@ export interface Expense {
   notes?: string;
   isRecurring?: boolean;
   recurringInterval?: 'weekly' | 'monthly' | 'quarterly' | 'yearly';
-  createdBy: string;
+  createdBy?: string;
   createdAt: Date;
 }
 

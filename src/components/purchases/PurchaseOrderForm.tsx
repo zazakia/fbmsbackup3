@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Save, FileText, Plus, Trash2, Package } from 'lucide-react';
 import { useBusinessStore } from '../../store/businessStore';
+import { useSupabaseAuthStore } from '../../store/supabaseAuthStore';
 import { PurchaseOrderItem, Supplier, PurchaseOrderStatus } from '../../types/business';
 import { getActiveSuppliers, createPurchaseOrder, updatePurchaseOrder as updatePO, getNextPONumber } from '../../api/purchases';
 
@@ -16,6 +17,8 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ poId, onClose }) 
     updatePurchaseOrder, 
     getPurchaseOrder
   } = useBusinessStore();
+  
+  const { user } = useSupabaseAuthStore();
   
   const [formData, setFormData] = useState({
     supplierId: '',
@@ -135,7 +138,7 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ poId, onClose }) 
           total,
           status: formData.status,
           expectedDate: formData.expectedDate ? new Date(formData.expectedDate) : undefined,
-          createdBy: '1' // TODO: Get from auth store
+          createdBy: user?.id || null // Use actual user ID or null if not authenticated
         };
         
         const { error } = await createPurchaseOrder(poData);
