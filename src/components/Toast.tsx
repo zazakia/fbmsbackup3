@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { X, CheckCircle, AlertCircle, Info, AlertTriangle } from 'lucide-react';
+import { useThemeStore } from '../store/themeStore';
 
 export type ToastType = 'success' | 'error' | 'warning' | 'info';
 
@@ -23,6 +24,7 @@ interface ToastComponentProps {
 const ToastComponent: React.FC<ToastComponentProps> = ({ toast, onClose }) => {
   const [isVisible, setIsVisible] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
+  const { isDark } = useThemeStore();
 
   const handleClose = useCallback(() => {
     setIsExiting(true);
@@ -44,41 +46,55 @@ const ToastComponent: React.FC<ToastComponentProps> = ({ toast, onClose }) => {
   }, [toast.duration, handleClose]);
 
   const getIcon = () => {
+    const iconClasses = "h-5 w-5";
     switch (toast.type) {
       case 'success':
-        return <CheckCircle className="h-5 w-5 text-green-500" />;
+        return <CheckCircle className={`${iconClasses} text-green-600 dark:text-green-400`} />;
       case 'error':
-        return <AlertCircle className="h-5 w-5 text-red-500" />;
+        return <AlertCircle className={`${iconClasses} text-red-600 dark:text-red-400`} />;
       case 'warning':
-        return <AlertTriangle className="h-5 w-5 text-yellow-500" />;
+        return <AlertTriangle className={`${iconClasses} text-yellow-600 dark:text-yellow-400`} />;
       case 'info':
-        return <Info className="h-5 w-5 text-blue-500" />;
+        return <Info className={`${iconClasses} text-blue-600 dark:text-blue-400`} />;
     }
   };
 
   const getBackgroundColor = () => {
     switch (toast.type) {
       case 'success':
-        return 'bg-green-50 border-green-200';
+        return 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 backdrop-blur-sm';
       case 'error':
-        return 'bg-red-50 border-red-200';
+        return 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 backdrop-blur-sm';
       case 'warning':
-        return 'bg-yellow-50 border-yellow-200';
+        return 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800 backdrop-blur-sm';
       case 'info':
-        return 'bg-blue-50 border-blue-200';
+        return 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 backdrop-blur-sm';
     }
   };
 
   const getTextColor = () => {
     switch (toast.type) {
       case 'success':
-        return 'text-green-800';
+        return 'text-green-900 dark:text-green-100';
       case 'error':
-        return 'text-red-800';
+        return 'text-red-900 dark:text-red-100';
       case 'warning':
-        return 'text-yellow-800';
+        return 'text-yellow-900 dark:text-yellow-100';
       case 'info':
-        return 'text-blue-800';
+        return 'text-blue-900 dark:text-blue-100';
+    }
+  };
+
+  const getActionButtonColor = () => {
+    switch (toast.type) {
+      case 'success':
+        return 'text-green-700 dark:text-green-300 hover:text-green-800 dark:hover:text-green-200';
+      case 'error':
+        return 'text-red-700 dark:text-red-300 hover:text-red-800 dark:hover:text-red-200';
+      case 'warning':
+        return 'text-yellow-700 dark:text-yellow-300 hover:text-yellow-800 dark:hover:text-yellow-200';
+      case 'info':
+        return 'text-blue-700 dark:text-blue-300 hover:text-blue-800 dark:hover:text-blue-200';
     }
   };
 
@@ -108,7 +124,7 @@ const ToastComponent: React.FC<ToastComponentProps> = ({ toast, onClose }) => {
               <div className="mt-3">
                 <button
                   onClick={toast.action.onClick}
-                  className={`text-sm font-medium ${getTextColor()} hover:opacity-75 transition-opacity`}
+                  className={`text-sm font-medium ${getActionButtonColor()} transition-colors underline hover:no-underline focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-current rounded`}
                 >
                   {toast.action.label}
                 </button>
