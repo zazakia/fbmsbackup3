@@ -27,6 +27,7 @@ import {
 import { useBusinessStore } from '../../store/businessStore';
 import { useToastStore } from '../../store/toastStore';
 import { formatDate, formatCurrency } from '../../utils/formatters';
+import EnhancedBackupButton from './EnhancedBackupButton';
 
 interface BackupJob {
   id: string;
@@ -255,13 +256,23 @@ const CloudBackup: React.FC = () => {
               <RefreshCw className={`h-4 w-4 ${syncStatus.status === 'syncing' ? 'animate-spin' : ''}`} />
               <span>Sync Now</span>
             </button>
-            <button
-              onClick={() => startBackup()}
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center space-x-2"
-            >
-              <Upload className="h-4 w-4" />
-              <span>Backup Now</span>
-            </button>
+            <EnhancedBackupButton
+              modules={selectedModules}
+              location="cloud"
+              onBackupStart={() => console.log('Backup started')}
+              onBackupComplete={(result) => {
+                console.log('Backup completed:', result);
+                setCloudStorage(prev => ({
+                  ...prev,
+                  usage: prev.usage + (result.size / 1024 / 1024), // Convert KB to GB
+                  lastBackup: result.timestamp
+                }));
+              }}
+              onBackupError={(error) => {
+                console.error('Backup failed:', error);
+                addToast('Backup failed: ' + error.message, 'error');
+              }}
+            />
           </div>
         </div>
 
