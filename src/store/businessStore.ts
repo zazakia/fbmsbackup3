@@ -91,6 +91,7 @@ interface BusinessActions {
   
   // Sale actions
   createSale: (sale: Omit<Sale, 'id' | 'createdAt'>) => Promise<void>;
+  createOfflineSale: (sale: Omit<Sale, 'id' | 'createdAt'>) => void;
   createSaleJournalEntry: (sale: Sale) => void;
   updateSale: (id: string, updates: Partial<Sale>) => void;
   getSale: (id: string) => Sale | undefined;
@@ -1352,6 +1353,66 @@ export const useBusinessStore = create<BusinessStore>()(
           }
         } catch (err) {
           set({ error: 'Failed to create sale', isLoading: false });
+        }
+      },
+
+      createOfflineSale: (saleData) => {
+        try {
+          // Generate offline sale with local ID
+          const offlineSale: Sale = {
+            ...saleData,
+            id: `offline-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            invoiceNumber: saleData.invoiceNumber || `INV-${Date.now()}`,
+            createdAt: new Date()
+          };
+
+          // Add to local store immediately
+          set((state) => ({
+            sales: [...state.sales, offlineSale]
+          }));
+
+          // Update product stock locally
+          for (const item of offlineSale.items) {
+            get().updateStock(item.productId, -item.quantity, 'sale', offlineSale.cashierId, offlineSale.invoiceNumber, `Offline sale to ${offlineSale.customerName}`);
+          }
+
+          // Update customer data if customer is selected
+          if (offlineSale.customerId) {
+            const customer = get().customers.find(c => c.id === offlineSale.customerId);
+            if (customer) {
+              const loyaltyPoints = Math.floor(offlineSale.total / 100); // 1 point per ₱100 spent
+              get().updateCustomer(offlineSale.customerId, {
+                totalPurchases: customer.totalPurchases + offlineSale.total,
+                loyaltyPoints: customer.loyaltyPoints + loyaltyPoints,
+                lastPurchase: new Date()
+              });
+            }
+          }
+
+          // Create automatic journal entry for the sale
+          get().createSaleJournalEntry(offlineSale);
+
+          // Generate receipt data for offline sale
+          try {
+            const customer = offlineSale.customerId ? get().customers.find(c => c.id === offlineSale.customerId) : undefined;
+            const receiptData = receiptService.createReceiptData(offlineSale, customer);
+            
+            // Store receipt data locally
+            localStorage.setItem(`receipt-${offlineSale.id}`, JSON.stringify(receiptData));
+            
+            console.log('Offline receipt generated:', receiptData.receiptNumber);
+          } catch (error) {
+            console.warn('Failed to generate offline receipt:', error);
+          }
+
+          // Clear cart after sale
+          get().clearCart();
+
+          return offlineSale;
+        } catch (error) {
+          console.error('Failed to create offline sale:', error);
+          set({ error: 'Failed to create offline sale' });
+          throw error;
         }
       },
 
