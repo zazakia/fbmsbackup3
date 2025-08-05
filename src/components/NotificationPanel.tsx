@@ -64,7 +64,7 @@ const NotificationPanel: React.FC<NotificationPanelProps> = ({ isOpen, onClose }
     <>
       {/* Backdrop */}
       <div 
-        className="fixed inset-0 bg-black/30 dark:bg-black/50 backdrop-blur-sm z-[60]" 
+        className="fixed inset-0 bg-black/50 dark:bg-black/70 backdrop-blur-sm z-[60]" 
         onClick={onClose}
         onKeyDown={(e) => e.key === 'Escape' && onClose()}
       />

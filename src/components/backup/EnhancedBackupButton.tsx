@@ -1,1 +1,356 @@
-import React, { useState, useCallback } from 'react';\nimport {\n  Upload,\n  RefreshCw,\n  Check,\n  AlertTriangle,\n  Download,\n  Clock,\n  HardDrive,\n  Cloud,\n  Wifi,\n  WifiOff,\n} from 'lucide-react';\nimport { useToastStore } from '../../store/toastStore';\nimport { useBusinessStore } from '../../store/businessStore';\n\nexport interface BackupResult {\n  success: boolean;\n  filename: string;\n  size: number;\n  timestamp: Date;\n  duration: number;\n  modules: string[];\n}\n\nexport interface BackupButtonProps {\n  onBackupStart?: () => void;\n  onBackupComplete?: (result: BackupResult) => void;\n  onBackupError?: (error: Error) => void;\n  disabled?: boolean;\n  variant?: 'primary' | 'secondary';\n  size?: 'sm' | 'md' | 'lg';\n  modules?: string[];\n  location?: 'local' | 'cloud';\n  className?: string;\n}\n\ninterface BackupState {\n  status: 'idle' | 'preparing' | 'backing-up' | 'completed' | 'failed';\n  progress: number;\n  currentModule?: string;\n  error?: string;\n  startTime?: Date;\n  estimatedTimeRemaining?: number;\n}\n\nconst EnhancedBackupButton: React.FC<BackupButtonProps> = ({\n  onBackupStart,\n  onBackupComplete,\n  onBackupError,\n  disabled = false,\n  variant = 'primary',\n  size = 'md',\n  modules = ['sales', 'inventory', 'customers', 'accounting', 'employees'],\n  location = 'cloud',\n  className = '',\n}) => {\n  const [backupState, setBackupState] = useState<BackupState>({\n    status: 'idle',\n    progress: 0,\n  });\n  const [isOnline, setIsOnline] = useState(navigator.onLine);\n  \n  const { addToast } = useToastStore();\n  const { products, customers, sales, employees } = useBusinessStore();\n\n  // Monitor online status\n  React.useEffect(() => {\n    const handleOnline = () => setIsOnline(true);\n    const handleOffline = () => setIsOnline(false);\n    \n    window.addEventListener('online', handleOnline);\n    window.addEventListener('offline', handleOffline);\n    \n    return () => {\n      window.removeEventListener('online', handleOnline);\n      window.removeEventListener('offline', handleOffline);\n    };\n  }, []);\n\n  const calculateDataSize = useCallback(() => {\n    let totalSize = 0;\n    \n    if (modules.includes('products')) {\n      totalSize += products.length * 0.5; // KB per product\n    }\n    if (modules.includes('customers')) {\n      totalSize += customers.length * 0.3; // KB per customer\n    }\n    if (modules.includes('sales')) {\n      totalSize += sales.length * 0.2; // KB per sale\n    }\n    if (modules.includes('employees')) {\n      totalSize += employees.length * 0.1; // KB per employee\n    }\n    \n    return totalSize; // Return size in KB\n  }, [modules, products, customers, sales, employees]);\n\n  const simulateBackupProgress = useCallback(async (totalModules: number) => {\n    const moduleNames = {\n      sales: 'Sales & Transactions',\n      inventory: 'Inventory & Products',\n      customers: 'Customer Data',\n      accounting: 'Accounting & Finance',\n      employees: 'Employee Records',\n    };\n\n    for (let i = 0; i < totalModules; i++) {\n      const moduleName = modules[i];\n      const moduleDisplayName = moduleNames[moduleName as keyof typeof moduleNames] || moduleName;\n      \n      setBackupState(prev => ({\n        ...prev,\n        currentModule: moduleDisplayName,\n        progress: Math.round(((i + 0.5) / totalModules) * 100),\n        estimatedTimeRemaining: (totalModules - i - 1) * 2, // 2 seconds per module\n      }));\n      \n      // Simulate module backup time (1-3 seconds)\n      const moduleTime = 1000 + Math.random() * 2000;\n      await new Promise(resolve => setTimeout(resolve, moduleTime));\n      \n      setBackupState(prev => ({\n        ...prev,\n        progress: Math.round(((i + 1) / totalModules) * 100),\n      }));\n    }\n  }, [modules]);\n\n  const performBackup = useCallback(async () => {\n    if (backupState.status !== 'idle' || disabled) {\n      return;\n    }\n\n    // Check online status for cloud backups\n    if (location === 'cloud' && !isOnline) {\n      const error = new Error('No internet connection available for cloud backup');\n      onBackupError?.(error);\n      addToast('Backup Failed', 'error', {\n        message: 'Internet connection required for cloud backup. Please check your connection and try again.',\n        duration: 6000,\n      });\n      return;\n    }\n\n    const startTime = new Date();\n    \n    try {\n      // Notify backup start\n      onBackupStart?.();\n      \n      setBackupState({\n        status: 'preparing',\n        progress: 0,\n        startTime,\n      });\n\n      addToast('Backup Started', 'info', {\n        message: `Starting ${location} backup of ${modules.length} modules...`,\n        duration: 3000,\n      });\n\n      // Preparation phase\n      await new Promise(resolve => setTimeout(resolve, 1000));\n      \n      setBackupState(prev => ({\n        ...prev,\n        status: 'backing-up',\n        progress: 5,\n      }));\n\n      // Simulate backup process\n      await simulateBackupProgress(modules.length);\n      \n      // Complete backup\n      const endTime = new Date();\n      const duration = endTime.getTime() - startTime.getTime();\n      const dataSize = calculateDataSize();\n      \n      const result: BackupResult = {\n        success: true,\n        filename: `fbms-backup-${endTime.toISOString().split('T')[0]}-${endTime.getTime()}.zip`,\n        size: dataSize,\n        timestamp: endTime,\n        duration,\n        modules,\n      };\n\n      setBackupState({\n        status: 'completed',\n        progress: 100,\n        startTime,\n      });\n\n      // Notify completion\n      onBackupComplete?.(result);\n      \n      addToast('Backup Completed', 'success', {\n        message: `Successfully backed up ${modules.length} modules (${(dataSize / 1024).toFixed(1)} MB) in ${Math.round(duration / 1000)}s`,\n        duration: 5000,\n        action: {\n          label: 'View Details',\n          onClick: () => {\n            console.log('Backup result:', result);\n          },\n        },\n      });\n\n      // Reset state after 3 seconds\n      setTimeout(() => {\n        setBackupState({ status: 'idle', progress: 0 });\n      }, 3000);\n      \n    } catch (error) {\n      const backupError = error instanceof Error ? error : new Error('Unknown backup error');\n      \n      setBackupState({\n        status: 'failed',\n        progress: 0,\n        error: backupError.message,\n        startTime,\n      });\n\n      onBackupError?.(backupError);\n      \n      addToast('Backup Failed', 'error', {\n        message: backupError.message,\n        duration: 8000,\n        action: {\n          label: 'Retry',\n          onClick: performBackup,\n        },\n      });\n\n      // Reset state after 5 seconds\n      setTimeout(() => {\n        setBackupState({ status: 'idle', progress: 0 });\n      }, 5000);\n    }\n  }, [backupState.status, disabled, location, isOnline, modules, onBackupStart, onBackupComplete, onBackupError, addToast, simulateBackupProgress, calculateDataSize]);\n\n  const getButtonVariant = () => {\n    const baseClasses = 'inline-flex items-center justify-center font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed';\n    \n    const sizeClasses = {\n      sm: 'px-3 py-1.5 text-sm',\n      md: 'px-4 py-2 text-sm',\n      lg: 'px-6 py-3 text-base',\n    };\n    \n    const variantClasses = {\n      primary: 'bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500 shadow-sm',\n      secondary: 'bg-gray-200 text-gray-900 hover:bg-gray-300 focus:ring-gray-500 border border-gray-300',\n    };\n    \n    return `${baseClasses} ${sizeClasses[size]} ${variantClasses[variant]}`;\n  };\n\n  const getButtonContent = () => {\n    switch (backupState.status) {\n      case 'preparing':\n        return (\n          <>\n            <RefreshCw className=\"h-4 w-4 mr-2 animate-spin\" />\n            Preparing...\n          </>\n        );\n      case 'backing-up':\n        return (\n          <>\n            <Upload className=\"h-4 w-4 mr-2\" />\n            {backupState.currentModule ? `Backing up ${backupState.currentModule}...` : 'Backing up...'}\n          </>\n        );\n      case 'completed':\n        return (\n          <>\n            <Check className=\"h-4 w-4 mr-2 text-green-500\" />\n            Completed\n          </>\n        );\n      case 'failed':\n        return (\n          <>\n            <AlertTriangle className=\"h-4 w-4 mr-2 text-red-500\" />\n            Failed\n          </>\n        );\n      default:\n        return (\n          <>\n            {location === 'cloud' ? (\n              <Cloud className=\"h-4 w-4 mr-2\" />\n            ) : (\n              <HardDrive className=\"h-4 w-4 mr-2\" />\n            )}\n            Backup Now\n          </>\n        );\n    }\n  };\n\n  const isButtonDisabled = disabled || backupState.status === 'preparing' || backupState.status === 'backing-up';\n\n  return (\n    <div className={`relative ${className}`}>\n      <button\n        onClick={performBackup}\n        disabled={isButtonDisabled}\n        className={getButtonVariant()}\n        aria-label={`Create ${location} backup`}\n        title={`Create ${location} backup of ${modules.join(', ')}`}\n      >\n        {getButtonContent()}\n      </button>\n      \n      {/* Connection Status Indicator */}\n      {location === 'cloud' && (\n        <div className=\"absolute -top-1 -right-1\">\n          {isOnline ? (\n            <Wifi className=\"h-3 w-3 text-green-500\" title=\"Online - Cloud backup available\" />\n          ) : (\n            <WifiOff className=\"h-3 w-3 text-red-500\" title=\"Offline - Cloud backup unavailable\" />\n          )}\n        </div>\n      )}\n      \n      {/* Progress Bar */}\n      {(backupState.status === 'preparing' || backupState.status === 'backing-up') && (\n        <div className=\"absolute -bottom-1 left-0 right-0 h-1 bg-gray-200 rounded-full overflow-hidden\">\n          <div \n            className=\"h-full bg-blue-500 transition-all duration-300 ease-out\"\n            style={{ width: `${backupState.progress}%` }}\n          />\n        </div>\n      )}\n      \n      {/* Status Tooltip */}\n      {backupState.status !== 'idle' && (\n        <div className=\"absolute top-full left-1/2 transform -translate-x-1/2 mt-2 px-3 py-1 bg-gray-900 text-white text-xs rounded-md whitespace-nowrap z-10\">\n          {backupState.status === 'preparing' && 'Preparing backup...'}\n          {backupState.status === 'backing-up' && (\n            <div className=\"flex items-center space-x-2\">\n              <span>{backupState.progress}% complete</span>\n              {backupState.estimatedTimeRemaining && (\n                <span className=\"flex items-center\">\n                  <Clock className=\"h-3 w-3 mr-1\" />\n                  {backupState.estimatedTimeRemaining}s\n                </span>\n              )}\n            </div>\n          )}\n          {backupState.status === 'completed' && 'Backup completed successfully!'}\n          {backupState.status === 'failed' && `Failed: ${backupState.error}`}\n        </div>\n      )}\n    </div>\n  );\n};\n\nexport default EnhancedBackupButton;"
+import React, { useState, useCallback } from 'react';
+import {
+  Upload,
+  RefreshCw,
+  Check,
+  AlertTriangle,
+  Download,
+  Clock,
+  HardDrive,
+  Cloud,
+  Wifi,
+  WifiOff,
+} from 'lucide-react';
+import { useToastStore } from '../../store/toastStore';
+import { useBusinessStore } from '../../store/businessStore';
+
+export interface BackupResult {
+  success: boolean;
+  filename: string;
+  size: number;
+  timestamp: Date;
+  duration: number;
+  modules: string[];
+}
+
+export interface BackupButtonProps {
+  onBackupStart?: () => void;
+  onBackupComplete?: (result: BackupResult) => void;
+  onBackupError?: (error: Error) => void;
+  disabled?: boolean;
+  variant?: 'primary' | 'secondary';
+  size?: 'sm' | 'md' | 'lg';
+  modules?: string[];
+  location?: 'local' | 'cloud';
+  className?: string;
+}
+
+interface BackupState {
+  status: 'idle' | 'preparing' | 'backing-up' | 'completed' | 'failed';
+  progress: number;
+  currentModule?: string;
+  error?: string;
+  startTime?: Date;
+  estimatedTimeRemaining?: number;
+}
+
+const EnhancedBackupButton: React.FC<BackupButtonProps> = ({
+  onBackupStart,
+  onBackupComplete,
+  onBackupError,
+  disabled = false,
+  variant = 'primary',
+  size = 'md',
+  modules = ['sales', 'inventory', 'customers', 'accounting', 'employees'],
+  location = 'cloud',
+  className = '',
+}) => {
+  const [backupState, setBackupState] = useState<BackupState>({
+    status: 'idle',
+    progress: 0,
+  });
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  
+  const { addToast } = useToastStore();
+  const { products, customers, sales, employees } = useBusinessStore();
+
+  // Monitor online status
+  React.useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  const calculateDataSize = useCallback(() => {
+    let totalSize = 0;
+    
+    if (modules.includes('products')) {
+      totalSize += products.length * 0.5; // KB per product
+    }
+    if (modules.includes('customers')) {
+      totalSize += customers.length * 0.3; // KB per customer
+    }
+    if (modules.includes('sales')) {
+      totalSize += sales.length * 0.2; // KB per sale
+    }
+    if (modules.includes('employees')) {
+      totalSize += employees.length * 0.1; // KB per employee
+    }
+    
+    return totalSize; // Return size in KB
+  }, [modules, products, customers, sales, employees]);
+
+  const simulateBackupProgress = useCallback(async (totalModules: number) => {
+    const moduleNames = {
+      sales: 'Sales & Transactions',
+      inventory: 'Inventory & Products',
+      customers: 'Customer Data',
+      accounting: 'Accounting & Finance',
+      employees: 'Employee Records',
+    };
+
+    for (let i = 0; i < totalModules; i++) {
+      const moduleName = modules[i];
+      const moduleDisplayName = moduleNames[moduleName as keyof typeof moduleNames] || moduleName;
+      
+      setBackupState(prev => ({
+        ...prev,
+        currentModule: moduleDisplayName,
+        progress: Math.round(((i + 0.5) / totalModules) * 100),
+        estimatedTimeRemaining: (totalModules - i - 1) * 2, // 2 seconds per module
+      }));
+      
+      // Simulate module backup time (1-3 seconds)
+      const moduleTime = 1000 + Math.random() * 2000;
+      await new Promise(resolve => setTimeout(resolve, moduleTime));
+      
+      setBackupState(prev => ({
+        ...prev,
+        progress: Math.round(((i + 1) / totalModules) * 100),
+      }));
+    }
+  }, [modules]);
+
+  const performBackup = useCallback(async () => {
+    if (backupState.status !== 'idle' || disabled) {
+      return;
+    }
+
+    // Check online status for cloud backups
+    if (location === 'cloud' && !isOnline) {
+      const error = new Error('No internet connection available for cloud backup');
+      onBackupError?.(error);
+      addToast({
+        type: 'error',
+        title: 'Backup Failed',
+        message: 'Internet connection required for cloud backup. Please check your connection and try again.',
+      });
+      return;
+    }
+
+    const startTime = new Date();
+    
+    try {
+      // Notify backup start
+      onBackupStart?.();
+      
+      setBackupState({
+        status: 'preparing',
+        progress: 0,
+        startTime,
+      });
+
+      addToast({
+        type: 'info',
+        title: 'Backup Started',
+        message: `Starting ${location} backup of ${modules.length} modules...`,
+      });
+
+      // Preparation phase
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      setBackupState(prev => ({
+        ...prev,
+        status: 'backing-up',
+        progress: 5,
+      }));
+
+      // Simulate backup process
+      await simulateBackupProgress(modules.length);
+      
+      // Complete backup
+      const endTime = new Date();
+      const duration = endTime.getTime() - startTime.getTime();
+      const dataSize = calculateDataSize();
+      
+      const result: BackupResult = {
+        success: true,
+        filename: `fbms-backup-${endTime.toISOString().split('T')[0]}-${endTime.getTime()}.zip`,
+        size: dataSize,
+        timestamp: endTime,
+        duration,
+        modules,
+      };
+
+      setBackupState({
+        status: 'completed',
+        progress: 100,
+        startTime,
+      });
+
+      // Notify completion
+      onBackupComplete?.(result);
+      
+      addToast({
+        type: 'success',
+        title: 'Backup Completed',
+        message: `Successfully backed up ${modules.length} modules (${(dataSize / 1024).toFixed(1)} MB) in ${Math.round(duration / 1000)}s`,
+      });
+
+      // Reset state after 3 seconds
+      setTimeout(() => {
+        setBackupState({ status: 'idle', progress: 0 });
+      }, 3000);
+      
+    } catch (error) {
+      const backupError = error instanceof Error ? error : new Error('Unknown backup error');
+      
+      setBackupState({
+        status: 'failed',
+        progress: 0,
+        error: backupError.message,
+        startTime,
+      });
+
+      onBackupError?.(backupError);
+      
+      addToast({
+        type: 'error',
+        title: 'Backup Failed',
+        message: backupError.message,
+      });
+
+      // Reset state after 5 seconds
+      setTimeout(() => {
+        setBackupState({ status: 'idle', progress: 0 });
+      }, 5000);
+    }
+  }, [backupState.status, disabled, location, isOnline, modules, onBackupStart, onBackupComplete, onBackupError, addToast, simulateBackupProgress, calculateDataSize]);
+
+  const getButtonVariant = () => {
+    const baseClasses = 'inline-flex items-center justify-center font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed';
+    
+    const sizeClasses = {
+      sm: 'px-3 py-1.5 text-sm',
+      md: 'px-4 py-2 text-sm',
+      lg: 'px-6 py-3 text-base',
+    };
+    
+    const variantClasses = {
+      primary: 'bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500 shadow-sm',
+      secondary: 'bg-gray-200 text-gray-900 hover:bg-gray-300 focus:ring-gray-500 border border-gray-300',
+    };
+    
+    return `${baseClasses} ${sizeClasses[size]} ${variantClasses[variant]}`;
+  };
+
+  const getButtonContent = () => {
+    switch (backupState.status) {
+      case 'preparing':
+        return (
+          <>
+            <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+            Preparing...
+          </>
+        );
+      case 'backing-up':
+        return (
+          <>
+            <Upload className="h-4 w-4 mr-2" />
+            {backupState.currentModule ? `Backing up ${backupState.currentModule}...` : 'Backing up...'}
+          </>
+        );
+      case 'completed':
+        return (
+          <>
+            <Check className="h-4 w-4 mr-2 text-green-500" />
+            Completed
+          </>
+        );
+      case 'failed':
+        return (
+          <>
+            <AlertTriangle className="h-4 w-4 mr-2 text-red-500" />
+            Failed
+          </>
+        );
+      default:
+        return (
+          <>
+            {location === 'cloud' ? (
+              <Cloud className="h-4 w-4 mr-2" />
+            ) : (
+              <HardDrive className="h-4 w-4 mr-2" />
+            )}
+            Backup Now
+          </>
+        );
+    }
+  };
+
+  const isButtonDisabled = disabled || backupState.status === 'preparing' || backupState.status === 'backing-up';
+
+  return (
+    <div className={`relative ${className}`}>
+      <button
+        onClick={performBackup}
+        disabled={isButtonDisabled}
+        className={getButtonVariant()}
+        aria-label={`Create ${location} backup`}
+        title={`Create ${location} backup of ${modules.join(', ')}`}
+      >
+        {getButtonContent()}
+      </button>
+      
+      {/* Connection Status Indicator */}
+      {location === 'cloud' && (
+        <div className="absolute -top-1 -right-1">
+          {isOnline ? (
+            <Wifi className="h-3 w-3 text-green-500" title="Online - Cloud backup available" />
+          ) : (
+            <WifiOff className="h-3 w-3 text-red-500" title="Offline - Cloud backup unavailable" />
+          )}
+        </div>
+      )}
+      
+      {/* Progress Bar */}
+      {(backupState.status === 'preparing' || backupState.status === 'backing-up') && (
+        <div className="absolute -bottom-1 left-0 right-0 h-1 bg-gray-200 rounded-full overflow-hidden">
+          <div 
+            className="h-full bg-blue-500 transition-all duration-300 ease-out"
+            style={{ width: `${backupState.progress}%` }}
+          />
+        </div>
+      )}
+      
+      {/* Status Tooltip */}
+      {backupState.status !== 'idle' && (
+        <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 px-3 py-1 bg-gray-900 text-white text-xs rounded-md whitespace-nowrap z-10">
+          {backupState.status === 'preparing' && 'Preparing backup...'}
+          {backupState.status === 'backing-up' && (
+            <div className="flex items-center space-x-2">
+              <span>{backupState.progress}% complete</span>
+              {backupState.estimatedTimeRemaining && (
+                <span className="flex items-center">
+                  <Clock className="h-3 w-3 mr-1" />
+                  {backupState.estimatedTimeRemaining}s
+                </span>
+              )}
+            </div>
+          )}
+          {backupState.status === 'completed' && 'Backup completed successfully!'}
+          {backupState.status === 'failed' && `Failed: ${backupState.error}`}
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default EnhancedBackupButton;

@@ -562,6 +562,46 @@ const EnhancedPOSSystem: React.FC = () => {
             </div>
           </div>
 
+          {/* Mobile Customer Selection */}
+          <div className="lg:hidden mb-4">
+            <button
+              onClick={() => setShowCustomerSelector(true)}
+              className="w-full px-3 py-2 text-left border border-gray-300 dark:border-dark-600 rounded-lg bg-white dark:bg-dark-800 text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-dark-700 transition-colors"
+            >
+              {selectedCustomer ? (
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <div className="font-medium text-sm">{selectedCustomer.firstName} {selectedCustomer.lastName}</div>
+                    <div className="flex items-center space-x-1">
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                        {selectedCustomer.customerType}
+                      </span>
+                      {selectedCustomer.discountPercentage > 0 && (
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                          {selectedCustomer.discountPercentage}% OFF
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+                    <div className="flex items-center space-x-2">
+                      <span className="text-purple-600 dark:text-purple-400">⭐ {selectedCustomer.loyaltyPoints || 0}</span>
+                      {selectedCustomer.currentBalance > 0 && (
+                        <span className="text-orange-600 dark:text-orange-400">₱{selectedCustomer.currentBalance.toFixed(2)}</span>
+                      )}
+                    </div>
+                    <span className="text-gray-400">Total: ₱{selectedCustomer.totalPurchases.toFixed(2)}</span>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center justify-center text-gray-500 dark:text-gray-400 text-sm py-2">
+                  <User className="h-4 w-4 mr-2" />
+                  Select Customer
+                </div>
+              )}
+            </button>
+          </div>
+
           {/* Search and Barcode */}
           <div className="space-y-2 sm:space-y-0 sm:flex sm:space-x-4">
             <div className="flex-1 relative">
@@ -692,11 +732,66 @@ const EnhancedPOSSystem: React.FC = () => {
                 className="flex-1 px-3 py-2 text-left border border-gray-300 dark:border-dark-600 rounded-lg bg-white dark:bg-dark-800 text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-dark-700 transition-colors min-h-[44px]"
               >
                 {selectedCustomer ? (
-                  <div>
-                    <div className="font-medium text-sm">{selectedCustomer.firstName} {selectedCustomer.lastName}</div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400">
-                      {selectedCustomer.email} • {selectedCustomer.loyaltyPoints || 0} points
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <div className="font-medium text-sm">{selectedCustomer.firstName} {selectedCustomer.lastName}</div>
+                      <div className="flex items-center space-x-2">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                          {selectedCustomer.customerType}
+                        </span>
+                        {selectedCustomer.discountPercentage > 0 && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                            {selectedCustomer.discountPercentage}% OFF
+                          </span>
+                        )}
+                      </div>
                     </div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                      {selectedCustomer.email && (
+                        <div className="flex items-center space-x-1">
+                          <span>📧</span>
+                          <span>{selectedCustomer.email}</span>
+                        </div>
+                      )}
+                      {selectedCustomer.phone && (
+                        <div className="flex items-center space-x-1">
+                          <span>📞</span>
+                          <span>{selectedCustomer.phone}</span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex items-center justify-between text-xs">
+                      <div className="flex items-center space-x-3">
+                        <span className="text-purple-600 dark:text-purple-400 font-medium">
+                          ⭐ {selectedCustomer.loyaltyPoints || 0} points
+                        </span>
+                        {selectedCustomer.currentBalance > 0 && (
+                          <span className="text-orange-600 dark:text-orange-400 font-medium">
+                            Balance: ₱{selectedCustomer.currentBalance.toFixed(2)}
+                          </span>
+                        )}
+                        {selectedCustomer.creditLimit > 0 && (
+                          <span className="text-blue-600 dark:text-blue-400 font-medium">
+                            Credit: ₱{selectedCustomer.creditLimit.toFixed(2)}
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-gray-400">
+                        Total: ₱{selectedCustomer.totalPurchases.toFixed(2)}
+                      </span>
+                    </div>
+                    {selectedCustomer.businessName && (
+                      <div className="text-xs text-gray-600 dark:text-gray-400">
+                        🏢 {selectedCustomer.businessName}
+                      </div>
+                    )}
+                    {selectedCustomer.address && (
+                      <div className="text-xs text-gray-500 dark:text-gray-400">
+                        📍 {selectedCustomer.address}
+                        {selectedCustomer.city && `, ${selectedCustomer.city}`}
+                        {selectedCustomer.province && `, ${selectedCustomer.province}`}
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div className="text-gray-500 dark:text-gray-400 text-sm">Select customer</div>
@@ -759,6 +854,87 @@ const EnhancedPOSSystem: React.FC = () => {
             )}
           </div>
         </div>
+
+        {/* Customer Info Panel in Cart */}
+        {selectedCustomer && (
+          <div className="px-2 sm:px-4 py-2 border-b border-gray-200 dark:border-dark-700">
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg p-3 border border-blue-200 dark:border-blue-800">
+              <div className="flex items-start justify-between mb-2">
+                <div className="flex-1">
+                  <div className="flex items-center space-x-2 mb-1">
+                    <h3 className="font-medium text-sm text-blue-900 dark:text-blue-100">
+                      {selectedCustomer.firstName} {selectedCustomer.lastName}
+                    </h3>
+                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                      {selectedCustomer.customerType}
+                    </span>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-600 dark:text-gray-400">Loyalty Points:</span>
+                        <span className="font-medium text-purple-600 dark:text-purple-400">
+                          ⭐ {selectedCustomer.loyaltyPoints || 0}
+                        </span>
+                      </div>
+                      {selectedCustomer.discountPercentage > 0 && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-gray-600 dark:text-gray-400">Customer Discount:</span>
+                          <span className="font-medium text-green-600 dark:text-green-400">
+                            {selectedCustomer.discountPercentage}%
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-600 dark:text-gray-400">Total Purchases:</span>
+                        <span className="font-medium text-gray-700 dark:text-gray-300">
+                          ₱{selectedCustomer.totalPurchases.toFixed(2)}
+                        </span>
+                      </div>
+                      {selectedCustomer.currentBalance > 0 && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-gray-600 dark:text-gray-400">Balance:</span>
+                          <span className="font-medium text-orange-600 dark:text-orange-400">
+                            ₱{selectedCustomer.currentBalance.toFixed(2)}
+                          </span>
+                        </div>
+                      )}
+                      {selectedCustomer.creditLimit > 0 && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-gray-600 dark:text-gray-400">Credit Limit:</span>
+                          <span className="font-medium text-blue-600 dark:text-blue-400">
+                            ₱{selectedCustomer.creditLimit.toFixed(2)}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {(selectedCustomer.email || selectedCustomer.phone) && (
+                    <div className="mt-2 pt-2 border-t border-blue-200 dark:border-blue-700">
+                      <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-600 dark:text-gray-400">
+                        {selectedCustomer.email && (
+                          <span className="flex items-center">
+                            📧 {selectedCustomer.email}
+                          </span>
+                        )}
+                        {selectedCustomer.phone && (
+                          <span className="flex items-center">
+                            📞 {selectedCustomer.phone}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Cart Items */}
         <div className="flex-1 overflow-y-auto">

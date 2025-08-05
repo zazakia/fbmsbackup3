@@ -62,13 +62,13 @@ const ToastComponent: React.FC<ToastComponentProps> = ({ toast, onClose }) => {
   const getBackgroundColor = () => {
     switch (toast.type) {
       case 'success':
-        return 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 backdrop-blur-sm';
+        return 'bg-green-50 dark:bg-green-900/90 border-green-200 dark:border-green-700 backdrop-blur-sm';
       case 'error':
-        return 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 backdrop-blur-sm';
+        return 'bg-red-50 dark:bg-red-900/90 border-red-200 dark:border-red-700 backdrop-blur-sm';
       case 'warning':
-        return 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800 backdrop-blur-sm';
+        return 'bg-yellow-50 dark:bg-yellow-900/90 border-yellow-200 dark:border-yellow-700 backdrop-blur-sm';
       case 'info':
-        return 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 backdrop-blur-sm';
+        return 'bg-blue-50 dark:bg-blue-900/90 border-blue-200 dark:border-blue-700 backdrop-blur-sm';
     }
   };
 
@@ -116,7 +116,7 @@ const ToastComponent: React.FC<ToastComponentProps> = ({ toast, onClose }) => {
               {toast.title}
             </p>
             {toast.message && (
-              <p className={`mt-1 text-sm ${getTextColor()} opacity-75 break-words`}>
+              <p className={`mt-1 text-sm ${getTextColor()} opacity-90 break-words`}>
                 {toast.message}
               </p>
             )}

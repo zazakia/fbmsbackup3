@@ -60,11 +60,6 @@ import {
 } from './components/admin/LazyAdminComponents';
 import {
   LazyDashboard,
-  LazyPOSSystem,
-  LazyInventoryManagement,
-  LazyPurchaseManagement,
-  LazyAccountingManagement,
-  LazyReportsDashboard,
   LazyEnhancedPOSSystem,
   LazyEnhancedInventoryManagement,
   LazyEnhancedPurchaseManagement,
@@ -91,7 +86,7 @@ const App: React.FC = () => {
   const { toasts, removeToast } = useToastStore();
   const { initializeTheme } = useThemeStore();
   const { user } = useSupabaseAuthStore();
-  const { enhancedVersions, menuVisibility } = useSettingsStore();
+  const { menuVisibility } = useSettingsStore();
   const { securityStatus } = useSecurity();
   console.log('Security status:', securityStatus); // TODO: Use security status in UI
 
@@ -231,7 +226,7 @@ const App: React.FC = () => {
       case 'sales':
         return (
           <PermissionGuard module="pos">
-            {enhancedVersions.sales ? <LazyEnhancedPOSSystem /> : <LazyPOSSystem />}
+            <LazyEnhancedPOSSystem />
           </PermissionGuard>
         );
       case 'sales-history':
@@ -243,7 +238,7 @@ const App: React.FC = () => {
       case 'inventory':
         return (
           <PermissionGuard module="inventory">
-            {enhancedVersions.inventory ? <LazyEnhancedInventoryManagement /> : <LazyInventoryManagement />}
+            <LazyEnhancedInventoryManagement />
           </PermissionGuard>
         );
       case 'product-history':
@@ -255,7 +250,7 @@ const App: React.FC = () => {
       case 'purchases':
         return (
           <PermissionGuard module="purchases">
-            {enhancedVersions.purchases ? <LazyEnhancedPurchaseManagement /> : <LazyPurchaseManagement />}
+            <LazyEnhancedPurchaseManagement />
           </PermissionGuard>
         );
       case 'customers':
@@ -291,13 +286,13 @@ const App: React.FC = () => {
       case 'accounting':
         return (
           <PermissionGuard module="accounting">
-            {enhancedVersions.accounting ? <LazyEnhancedAccountingManagement /> : <LazyAccountingManagement />}
+            <LazyEnhancedAccountingManagement />
           </PermissionGuard>
         );
       case 'reports':
         return (
           <PermissionGuard module="reports">
-            {enhancedVersions.reports ? <LazyEnhancedReportsDashboard /> : <LazyReportsDashboard />}
+            <LazyEnhancedReportsDashboard />
           </PermissionGuard>
         );
       case 'bir':

@@ -21,7 +21,7 @@ import { useToastStore } from '../../store/toastStore';
 import type { Product, Sale, PurchaseOrder, JournalEntry, Account, CartItem } from '../../types/business';
 
 // Import the actual forms we'll test
-import POSSystem from '../pos/POSSystem';
+import EnhancedPOSSystem from '../pos/EnhancedPOSSystem';
 import PurchaseOrderForm from '../purchases/PurchaseOrderForm';
 
 // Import monitoring components
@@ -254,7 +254,7 @@ const LiveIntegrationTest: React.FC = () => {
       case 'sales-accounting':
         return (
           <div className="h-full">
-            <POSSystem />
+            <EnhancedPOSSystem />
           </div>
         );
       case 'purchase-inventory':
