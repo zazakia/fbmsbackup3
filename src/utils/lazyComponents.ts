@@ -3,14 +3,7 @@ import { lazy } from 'react';
 // Lazy load heavy components to improve initial load time
 export const LazyDashboard = lazy(() => import('../components/Dashboard'));
 
-// Standard versions
-export const LazyPOSSystem = lazy(() => import('../components/pos/POSSystem'));
-export const LazyInventoryManagement = lazy(() => import('../components/inventory/InventoryManagement'));
-export const LazyPurchaseManagement = lazy(() => import('../components/purchases/PurchaseManagement'));
-export const LazyAccountingManagement = lazy(() => import('../components/accounting/AccountingManagement'));
-export const LazyReportsDashboard = lazy(() => import('../components/reports/ReportsDashboard'));
-
-// Enhanced versions
+// Enhanced versions (formerly standard and enhanced, now just enhanced)
 export const LazyEnhancedPOSSystem = lazy(() => import('../components/pos/EnhancedPOSSystem'));
 export const LazyEnhancedInventoryManagement = lazy(() => import('../components/inventory/EnhancedInventoryManagement'));
 export const LazyEnhancedPurchaseManagement = lazy(() => import('../components/purchases/EnhancedPurchaseManagement'));

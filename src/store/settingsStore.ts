@@ -1,14 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-interface EnhancedVersions {
-  sales: boolean;
-  inventory: boolean;
-  accounting: boolean;
-  purchases: boolean;
-  reports: boolean;
-}
-
 interface MainModuleSettings {
   enabled: boolean;
 }
@@ -39,24 +31,13 @@ interface MenuVisibilitySettings {
 }
 
 interface SettingsStore {
-  enhancedVersions: EnhancedVersions;
   mainModule: MainModuleSettings;
   menuVisibility: MenuVisibilitySettings;
-  setEnhancedVersion: (module: string, isEnhanced: boolean) => void;
   setMainModuleEnabled: (enabled: boolean) => void;
   setMenuVisibility: (menuId: string, visible: boolean) => void;
   toggleAllMenus: (visible: boolean) => void;
   resetToDefaults: () => void;
-  toggleAllEnhanced: (enabled: boolean) => void;
 }
-
-const defaultEnhancedVersions: EnhancedVersions = {
-  sales: true,      // Enhanced by default
-  inventory: true,  // Enhanced by default
-  accounting: true, // Enhanced by default
-  purchases: true,  // Enhanced by default
-  reports: true     // Enhanced by default
-};
 
 const defaultMainModuleSettings: MainModuleSettings = {
   enabled: true  // Main module enabled by default
@@ -90,18 +71,8 @@ const defaultMenuVisibilitySettings: MenuVisibilitySettings = {
 export const useSettingsStore = create<SettingsStore>()(
   persist(
     (set, get) => ({
-      enhancedVersions: defaultEnhancedVersions,
       mainModule: defaultMainModuleSettings,
       menuVisibility: defaultMenuVisibilitySettings,
-
-      setEnhancedVersion: (module: string, isEnhanced: boolean) => {
-        set((state) => ({
-          enhancedVersions: {
-            ...state.enhancedVersions,
-            [module]: isEnhanced
-          }
-        }));
-      },
 
       setMainModuleEnabled: (enabled: boolean) => {
         set((state) => ({
@@ -133,19 +104,8 @@ export const useSettingsStore = create<SettingsStore>()(
 
       resetToDefaults: () => {
         set({ 
-          enhancedVersions: defaultEnhancedVersions,
           mainModule: defaultMainModuleSettings,
           menuVisibility: defaultMenuVisibilitySettings
-        });
-      },
-
-      toggleAllEnhanced: (enabled: boolean) => {
-        set((state) => {
-          const newVersions: EnhancedVersions = {} as EnhancedVersions;
-          Object.keys(state.enhancedVersions).forEach(key => {
-            newVersions[key as keyof EnhancedVersions] = enabled;
-          });
-          return { enhancedVersions: newVersions };
         });
       }
     }),

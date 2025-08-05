@@ -1,13 +1,13 @@
 # Implementation Plan
 
-- [x] 1. Fix backup button functionality and user feedback
+- [-] 1. Fix backup button functionality and user feedback
   - Identify and resolve backup button event handling issues
   - Implement proper loading states and progress indicators
   - Add comprehensive error handling with user-friendly messages
   - Ensure backup operations don't block the UI thread
   - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5_
 
-- [x] 2. Enhance notification visibility and theme support
+- [-] 2. Enhance notification visibility and theme support
   - Fix notification transparency and opacity issues
   - Implement proper background colors for light and dark themes
   - Ensure sufficient text contrast ratios (4.5:1 minimum)
