@@ -1,1 +1,168 @@
-import React, { useState } from 'react';\nimport { Download, RefreshCw, Check, AlertTriangle, Cloud, HardDrive } from 'lucide-react';\nimport { useToastStore } from '../../store/toastStore';\nimport { useBusinessStore } from '../../store/businessStore';\n\ninterface SimpleBackupButtonProps {\n  className?: string;\n  variant?: 'primary' | 'secondary';\n  size?: 'sm' | 'md' | 'lg';\n  location?: 'local' | 'cloud';\n}\n\nconst SimpleBackupButton: React.FC<SimpleBackupButtonProps> = ({\n  className = '',\n  variant = 'primary',\n  size = 'md',\n  location = 'cloud'\n}) => {\n  const [isBackingUp, setIsBackingUp] = useState(false);\n  const [backupStatus, setBackupStatus] = useState<'idle' | 'success' | 'error'>('idle');\n  const { addToast } = useToastStore();\n  const { products, customers, sales } = useBusinessStore();\n\n  const handleBackup = async () => {\n    if (isBackingUp) return;\n\n    setIsBackingUp(true);\n    setBackupStatus('idle');\n\n    try {\n      // Show starting toast\n      addToast({\n        type: 'info',\n        title: 'Backup Started',\n        message: `Creating ${location} backup of your business data...`,\n        duration: 3000\n      });\n\n      // Simulate backup process\n      await new Promise(resolve => setTimeout(resolve, 3000));\n\n      // Calculate data size\n      const dataSize = (products.length * 0.5 + customers.length * 0.3 + sales.length * 0.2) / 1024; // MB\n      const timestamp = new Date().toISOString().split('T')[0];\n      const filename = `fbms-backup-${timestamp}.zip`;\n\n      setBackupStatus('success');\n      \n      // Show success toast\n      addToast({\n        type: 'success',\n        title: 'Backup Completed',\n        message: `Successfully created ${filename} (${dataSize.toFixed(1)} MB)`,\n        duration: 5000\n      });\n\n      // Reset status after delay\n      setTimeout(() => {\n        setBackupStatus('idle');\n      }, 3000);\n\n    } catch (error) {\n      setBackupStatus('error');\n      \n      addToast({\n        type: 'error',\n        title: 'Backup Failed',\n        message: error instanceof Error ? error.message : 'An unexpected error occurred during backup',\n        duration: 7000\n      });\n\n      // Reset status after delay\n      setTimeout(() => {\n        setBackupStatus('idle');\n      }, 5000);\n    } finally {\n      setIsBackingUp(false);\n    }\n  };\n\n  const getSizeClasses = () => {\n    switch (size) {\n      case 'sm':\n        return 'px-3 py-1.5 text-sm';\n      case 'lg':\n        return 'px-6 py-3 text-base';\n      default:\n        return 'px-4 py-2 text-sm';\n    }\n  };\n\n  const getVariantClasses = () => {\n    if (backupStatus === 'success') {\n      return 'bg-green-600 text-white hover:bg-green-700 border-green-600';\n    }\n    if (backupStatus === 'error') {\n      return 'bg-red-600 text-white hover:bg-red-700 border-red-600';\n    }\n    \n    switch (variant) {\n      case 'secondary':\n        return 'bg-white text-gray-700 hover:bg-gray-50 border-gray-300 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700 dark:border-gray-600';\n      default:\n        return 'bg-blue-600 text-white hover:bg-blue-700 border-blue-600 dark:bg-blue-500 dark:hover:bg-blue-600';\n    }\n  };\n\n  const getButtonContent = () => {\n    if (isBackingUp) {\n      return (\n        <>\n          <RefreshCw className=\"h-4 w-4 mr-2 animate-spin\" />\n          Creating Backup...\n        </>\n      );\n    }\n\n    if (backupStatus === 'success') {\n      return (\n        <>\n          <Check className=\"h-4 w-4 mr-2\" />\n          Backup Complete\n        </>\n      );\n    }\n\n    if (backupStatus === 'error') {\n      return (\n        <>\n          <AlertTriangle className=\"h-4 w-4 mr-2\" />\n          Backup Failed\n        </>\n      );\n    }\n\n    return (\n      <>\n        {location === 'cloud' ? (\n          <Cloud className=\"h-4 w-4 mr-2\" />\n        ) : (\n          <HardDrive className=\"h-4 w-4 mr-2\" />\n        )}\n        Create Backup\n      </>\n    );\n  };\n\n  return (\n    <button\n      onClick={handleBackup}\n      disabled={isBackingUp}\n      className={`\n        inline-flex items-center justify-center font-medium rounded-lg border transition-all duration-200\n        focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500\n        disabled:opacity-50 disabled:cursor-not-allowed\n        ${getSizeClasses()}\n        ${getVariantClasses()}\n        ${className}\n      `}\n      title={`Create ${location} backup of business data`}\n      aria-label={`Create ${location} backup`}\n    >\n      {getButtonContent()}\n    </button>\n  );\n};\n\nexport default SimpleBackupButton;"
+import React, { useState } from 'react';
+import { Download, RefreshCw, Check, AlertTriangle, Cloud, HardDrive } from 'lucide-react';
+import { useToastStore } from '../../store/toastStore';
+import { useBusinessStore } from '../../store/businessStore';
+
+interface SimpleBackupButtonProps {
+  className?: string;
+  variant?: 'primary' | 'secondary';
+  size?: 'sm' | 'md' | 'lg';
+  location?: 'local' | 'cloud';
+}
+
+const SimpleBackupButton: React.FC<SimpleBackupButtonProps> = ({
+  className = '',
+  variant = 'primary',
+  size = 'md',
+  location = 'cloud'
+}) => {
+  const [isBackingUp, setIsBackingUp] = useState(false);
+  const [backupStatus, setBackupStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const { addToast } = useToastStore();
+  const { products, customers, sales } = useBusinessStore();
+
+  const handleBackup = async () => {
+    if (isBackingUp) return;
+
+    setIsBackingUp(true);
+    setBackupStatus('idle');
+
+    try {
+      // Show starting toast
+      addToast({
+        type: 'info',
+        title: 'Backup Started',
+        message: `Creating ${location} backup of your business data...`,
+        duration: 3000
+      });
+
+      // Simulate backup process
+      await new Promise(resolve => setTimeout(resolve, 3000));
+
+      // Calculate data size
+      const dataSize = (products.length * 0.5 + customers.length * 0.3 + sales.length * 0.2) / 1024; // MB
+      const timestamp = new Date().toISOString().split('T')[0];
+      const filename = `fbms-backup-${timestamp}.zip`;
+
+      setBackupStatus('success');
+      
+      // Show success toast
+      addToast({
+        type: 'success',
+        title: 'Backup Completed',
+        message: `Successfully created ${filename} (${dataSize.toFixed(1)} MB)`,
+        duration: 5000
+      });
+
+      // Reset status after delay
+      setTimeout(() => {
+        setBackupStatus('idle');
+      }, 3000);
+
+    } catch (error) {
+      setBackupStatus('error');
+      
+      addToast({
+        type: 'error',
+        title: 'Backup Failed',
+        message: error instanceof Error ? error.message : 'An unexpected error occurred during backup',
+        duration: 7000
+      });
+
+      // Reset status after delay
+      setTimeout(() => {
+        setBackupStatus('idle');
+      }, 5000);
+    } finally {
+      setIsBackingUp(false);
+    }
+  };
+
+  const getSizeClasses = () => {
+    switch (size) {
+      case 'sm':
+        return 'px-3 py-1.5 text-sm';
+      case 'lg':
+        return 'px-6 py-3 text-base';
+      default:
+        return 'px-4 py-2 text-sm';
+    }
+  };
+
+  const getVariantClasses = () => {
+    if (backupStatus === 'success') {
+      return 'bg-green-600 text-white hover:bg-green-700 border-green-600';
+    }
+    if (backupStatus === 'error') {
+      return 'bg-red-600 text-white hover:bg-red-700 border-red-600';
+    }
+    
+    switch (variant) {
+      case 'secondary':
+        return 'bg-white text-gray-700 hover:bg-gray-50 border-gray-300 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700 dark:border-gray-600';
+      default:
+        return 'bg-blue-600 text-white hover:bg-blue-700 border-blue-600 dark:bg-blue-500 dark:hover:bg-blue-600';
+    }
+  };
+
+  const getButtonContent = () => {
+    if (isBackingUp) {
+      return (
+        <>
+          <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+          Creating Backup...
+        </>
+      );
+    }
+
+    if (backupStatus === 'success') {
+      return (
+        <>
+          <Check className="h-4 w-4 mr-2" />
+          Backup Complete
+        </>
+      );
+    }
+
+    if (backupStatus === 'error') {
+      return (
+        <>
+          <AlertTriangle className="h-4 w-4 mr-2" />
+          Backup Failed
+        </>
+      );
+    }
+
+    return (
+      <>
+        {location === 'cloud' ? (
+          <Cloud className="h-4 w-4 mr-2" />
+        ) : (
+          <HardDrive className="h-4 w-4 mr-2" />
+        )}
+        Create Backup
+      </>
+    );
+  };
+
+  return (
+    <button
+      onClick={handleBackup}
+      disabled={isBackingUp}
+      className={`
+        inline-flex items-center justify-center font-medium rounded-lg border transition-all duration-200
+        focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500
+        disabled:opacity-50 disabled:cursor-not-allowed
+        ${getSizeClasses()}
+        ${getVariantClasses()}
+        ${className}
+      `}
+      title={`Create ${location} backup of business data`}
+      aria-label={`Create ${location} backup`}
+    >
+      {getButtonContent()}
+    </button>
+  );
+};
+
+export default SimpleBackupButton;

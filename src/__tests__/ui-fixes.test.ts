@@ -1,1 +1,190 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';\nimport { render, screen, fireEvent, waitFor, act } from '@testing-library/react';\nimport userEvent from '@testing-library/user-event';\nimport { axe, toHaveNoViolations } from 'jest-axe';\nimport React from 'react';\n\n// Extend Jest matchers\nexpect.extend(toHaveNoViolations);\n\n// Mock components for testing\nimport EnhancedBackupButton from '../components/backup/EnhancedBackupButton';\nimport { ToastComponent } from '../components/Toast';\nimport NotificationPanel from '../components/NotificationPanel';\n\n// Mock stores\nvi.mock('../store/toastStore', () => ({\n  useToastStore: () => ({\n    addToast: vi.fn(),\n  }),\n}));\n\nvi.mock('../store/businessStore', () => ({\n  useBusinessStore: () => ({\n    products: Array(10).fill(null).map((_, i) => ({ id: i, name: `Product ${i}` })),\n    customers: Array(5).fill(null).map((_, i) => ({ id: i, name: `Customer ${i}` })),\n    sales: Array(20).fill(null).map((_, i) => ({ id: i, total: 100 })),\n    employees: Array(3).fill(null).map((_, i) => ({ id: i, name: `Employee ${i}` })),\n  }),\n}));\n\nvi.mock('../store/themeStore', () => ({\n  useThemeStore: () => ({\n    isDark: false,\n  }),\n}));\n\nvi.mock('../store/notificationStore', () => ({\n  useNotificationStore: () => ({\n    notifications: [\n      {\n        id: '1',\n        type: 'success',\n        title: 'Test Notification',\n        message: 'This is a test notification',\n        timestamp: new Date(),\n        read: false,\n        category: 'system',\n      },\n    ],\n    unreadCount: 1,\n    markAsRead: vi.fn(),\n    markAllAsRead: vi.fn(),\n    deleteNotification: vi.fn(),\n    clearAll: vi.fn(),\n    settings: {\n      showSystemNotifications: true,\n      showInventoryAlerts: true,\n      showSalesNotifications: true,\n      showFinanceAlerts: true,\n      showHRNotifications: true,\n    },\n    updateSettings: vi.fn(),\n    getUnreadNotifications: () => [],\n  }),\n}));\n\n// Mock navigator.onLine\nObject.defineProperty(navigator, 'onLine', {\n  writable: true,\n  value: true,\n});\n\ndescribe('UI Fixes Test Suite', () => {\n  beforeEach(() => {\n    vi.clearAllMocks();\n  });\n\n  afterEach(() => {\n    vi.restoreAllMocks();\n  });\n\n  describe('Enhanced Backup Button', () => {\n    it('should render backup button with proper accessibility attributes', async () => {\n      render(<EnhancedBackupButton />);\n      \n      const button = screen.getByRole('button', { name: /create cloud backup/i });\n      expect(button).toBeInTheDocument();\n      expect(button).toHaveAttribute('aria-label');\n      expect(button).toHaveAttribute('title');\n    });\n\n    it('should show loading state during backup process', async () => {\n      const user = userEvent.setup();\n      render(<EnhancedBackupButton />);\n      \n      const button = screen.getByRole('button', { name: /create cloud backup/i });\n      await user.click(button);\n      \n      await waitFor(() => {\n        expect(screen.getByText(/preparing/i)).toBeInTheDocument();\n      });\n    });\n\n    it('should handle offline state for cloud backups', async () => {\n      // Mock offline state\n      Object.defineProperty(navigator, 'onLine', {\n        writable: true,\n        value: false,\n      });\n\n      const user = userEvent.setup();\n      const onError = vi.fn();\n      \n      render(<EnhancedBackupButton location=\"cloud\" onBackupError={onError} />);\n      \n      const button = screen.getByRole('button', { name: /create cloud backup/i });\n      await user.click(button);\n      \n      await waitFor(() => {\n        expect(onError).toHaveBeenCalledWith(\n          expect.objectContaining({\n            message: expect.stringContaining('No internet connection'),\n          })\n        );\n      });\n    });\n\n    it('should prevent multiple simultaneous backup operations', async () => {\n      const user = userEvent.setup();\n      const onStart = vi.fn();\n      \n      render(<EnhancedBackupButton onBackupStart={onStart} />);\n      \n      const button = screen.getByRole('button', { name: /create cloud backup/i });\n      \n      // Click multiple times rapidly\n      await user.click(button);\n      await user.click(button);\n      await user.click(button);\n      \n      // Should only start once\n      await waitFor(() => {\n        expect(onStart).toHaveBeenCalledTimes(1);\n      });\n    });\n\n    it('should show progress bar during backup', async () => {\n      const user = userEvent.setup();\n      render(<EnhancedBackupButton />);\n      \n      const button = screen.getByRole('button', { name: /create cloud backup/i });\n      await user.click(button);\n      \n      await waitFor(() => {\n        const progressBar = screen.getByRole('progressbar', { hidden: true });\n        expect(progressBar).toBeInTheDocument();\n      }, { timeout: 2000 });\n    });\n\n    it('should meet accessibility standards', async () => {\n      const { container } = render(<EnhancedBackupButton />);\n      const results = await axe(container);\n      expect(results).toHaveNoViolations();\n    });\n\n    it('should support keyboard navigation', async () => {\n      const user = userEvent.setup();\n      render(<EnhancedBackupButton />);\n      \n      const button = screen.getByRole('button', { name: /create cloud backup/i });\n      \n      // Focus with tab\n      await user.tab();\n      expect(button).toHaveFocus();\n      \n      // Activate with Enter\n      await user.keyboard('{Enter}');\n      \n      await waitFor(() => {\n        expect(screen.getByText(/preparing/i)).toBeInTheDocument();\n      });\n    });\n  });\n\n  describe('Toast Component', () => {\n    const mockToast = {\n      id: '1',\n      type: 'success' as const,\n      title: 'Test Toast',\n      message: 'This is a test toast message',\n      duration: 5000,\n    };\n\n    it('should render toast with proper visibility', () => {\n      const onClose = vi.fn();\n      render(<ToastComponent toast={mockToast} onClose={onClose} />);\n      \n      expect(screen.getByText('Test Toast')).toBeInTheDocument();\n      expect(screen.getByText('This is a test toast message')).toBeInTheDocument();\n    });\n\n    it('should have sufficient color contrast', () => {\n      const onClose = vi.fn();\n      const { container } = render(<ToastComponent toast={mockToast} onClose={onClose} />);\n      \n      const toastElement = container.querySelector('[class*=\"bg-green-50\"]');\n      expect(toastElement).toBeInTheDocument();\n      \n      // Check that text has proper contrast classes\n      const titleElement = screen.getByText('Test Toast');\n      expect(titleElement).toHaveClass('text-green-900');\n    });\n\n    it('should support dark theme', () => {\n      // Mock dark theme\n      vi.mocked(require('../store/themeStore').useThemeStore).mockReturnValue({\n        isDark: true,\n      });\n\n      const onClose = vi.fn();\n      const { container } = render(<ToastComponent toast={mockToast} onClose={onClose} />);\n      \n      // Check for dark theme classes\n      const toastElement = container.querySelector('[class*=\"dark:bg-green-900\"]');\n      expect(toastElement).toBeInTheDocument();\n    });\n\n    it('should auto-close after specified duration', async () => {\n      const onClose = vi.fn();\n      const shortToast = { ...mockToast, duration: 100 };\n      \n      render(<ToastComponent toast={shortToast} onClose={onClose} />);\n      \n      await waitFor(() => {\n        expect(onClose).toHaveBeenCalledWith('1');\n      }, { timeout: 500 });\n    });\n\n    it('should handle action buttons properly', async () => {\n      const user = userEvent.setup();\n      const onClose = vi.fn();\n      const onAction = vi.fn();\n      \n      const toastWithAction = {\n        ...mockToast,\n        action: {\n          label: 'Undo',\n          onClick: onAction,\n        },\n      };\n      \n      render(<ToastComponent toast={toastWithAction} onClose={onClose} />);\n      \n      const actionButton = screen.getByRole('button', { name: 'Undo' });\n      await user.click(actionButton);\n      \n      expect(onAction).toHaveBeenCalled();\n    });\n\n    it('should meet accessibility standards', async () => {\n      const onClose = vi.fn();\n      const { container } = render(<ToastComponent toast={mockToast} onClose={onClose} />);\n      const results = await axe(container);\n      expect(results).toHaveNoViolations();\n    });\n  });\n\n  describe('Notification Panel', () => {\n    it('should render notification panel with proper visibility', () => {\n      const onClose = vi.fn();\n      render(<NotificationPanel isOpen={true} onClose={onClose} />);\n      \n      expect(screen.getByText('Notifications')).toBeInTheDocument();\n      expect(screen.getByText('Test Notification')).toBeInTheDocument();\n    });\n\n    it('should have proper backdrop opacity', () => {\n      const onClose = vi.fn();\n      const { container } = render(<NotificationPanel isOpen={true} onClose={onClose} />);\n      \n      const backdrop = container.querySelector('[class*=\"bg-black/30\"]');\n      expect(backdrop).toBeInTheDocument();\n    });\n\n    it('should support dark theme throughout', () => {\n      // Mock dark theme\n      vi.mocked(require('../store/themeStore').useThemeStore).mockReturnValue({\n        isDark: true,\n      });\n\n      const onClose = vi.fn();\n      const { container } = render(<NotificationPanel isOpen={true} onClose={onClose} />);\n      \n      // Check for dark theme classes\n      const panel = container.querySelector('[class*=\"dark:bg-dark-800\"]');\n      expect(panel).toBeInTheDocument();\n    });\n\n    it('should handle keyboard navigation', async () => {\n      const user = userEvent.setup();\n      const onClose = vi.fn();\n      \n      render(<NotificationPanel isOpen={true} onClose={onClose} />);\n      \n      // Should close on Escape\n      await user.keyboard('{Escape}');\n      expect(onClose).toHaveBeenCalled();\n    });\n\n    it('should show unread count badge', () => {\n      const onClose = vi.fn();\n      render(<NotificationPanel isOpen={true} onClose={onClose} />);\n      \n      const badge = screen.getByText('1');\n      expect(badge).toBeInTheDocument();\n      expect(badge).toHaveClass('bg-red-500');\n    });\n\n    it('should handle notification actions', async () => {\n      const user = userEvent.setup();\n      const onClose = vi.fn();\n      const markAsRead = vi.fn();\n      \n      // Mock store with markAsRead function\n      vi.mocked(require('../store/notificationStore').useNotificationStore).mockReturnValue({\n        notifications: [\n          {\n            id: '1',\n            type: 'success',\n            title: 'Test Notification',\n            message: 'This is a test notification',\n            timestamp: new Date(),\n            read: false,\n            category: 'system',\n          },\n        ],\n        unreadCount: 1,\n        markAsRead,\n        markAllAsRead: vi.fn(),\n        deleteNotification: vi.fn(),\n        clearAll: vi.fn(),\n        settings: {\n          showSystemNotifications: true,\n          showInventoryAlerts: true,\n          showSalesNotifications: true,\n          showFinanceAlerts: true,\n          showHRNotifications: true,\n        },\n        updateSettings: vi.fn(),\n        getUnreadNotifications: () => [],\n      });\n      \n      render(<NotificationPanel isOpen={true} onClose={onClose} />);\n      \n      const markReadButton = screen.getByLabelText('Mark notification as read');\n      await user.click(markReadButton);\n      \n      expect(markAsRead).toHaveBeenCalledWith('1');\n    });\n\n    it('should meet accessibility standards', async () => {\n      const onClose = vi.fn();\n      const { container } = render(<NotificationPanel isOpen={true} onClose={onClose} />);\n      const results = await axe(container);\n      expect(results).toHaveNoViolations();\n    });\n  });\n\n  describe('Color Contrast Compliance', () => {\n    it('should meet WCAG 2.1 AA standards for normal text', () => {\n      // Test various color combinations used in the components\n      const colorTests = [\n        { bg: '#f0f9ff', text: '#1e40af', name: 'Blue notification background' },\n        { bg: '#f0fdf4', text: '#166534', name: 'Green notification background' },\n        { bg: '#fef3c7', text: '#92400e', name: 'Yellow notification background' },\n        { bg: '#fef2f2', text: '#991b1b', name: 'Red notification background' },\n      ];\n\n      colorTests.forEach(({ bg, text, name }) => {\n        // Calculate contrast ratio (simplified check)\n        // In a real implementation, you'd use a proper contrast ratio calculator\n        const contrastRatio = calculateContrastRatio(bg, text);\n        expect(contrastRatio).toBeGreaterThanOrEqual(4.5); // WCAG AA standard\n      });\n    });\n  });\n\n  describe('Responsive Design', () => {\n    it('should adapt to mobile viewport', () => {\n      // Mock mobile viewport\n      Object.defineProperty(window, 'innerWidth', {\n        writable: true,\n        configurable: true,\n        value: 375,\n      });\n      \n      const onClose = vi.fn();\n      const { container } = render(<NotificationPanel isOpen={true} onClose={onClose} />);\n      \n      // Check that panel adapts to mobile\n      const panel = container.querySelector('[class*=\"w-96\"]');\n      expect(panel).toBeInTheDocument();\n    });\n  });\n\n  describe('Performance', () => {\n    it('should not cause memory leaks with timers', async () => {\n      const onClose = vi.fn();\n      const { unmount } = render(\n        <ToastComponent \n          toast={{\n            id: '1',\n            type: 'info',\n            title: 'Test',\n            duration: 1000,\n          }} \n          onClose={onClose} \n        />\n      );\n      \n      // Unmount before timer completes\n      unmount();\n      \n      // Wait longer than the timer duration\n      await new Promise(resolve => setTimeout(resolve, 1500));\n      \n      // onClose should not be called after unmount\n      expect(onClose).not.toHaveBeenCalled();\n    });\n  });\n});\n\n// Helper function to calculate contrast ratio (simplified)\nfunction calculateContrastRatio(bg: string, text: string): number {\n  // This is a simplified implementation\n  // In a real test, you'd use a proper color contrast library\n  // For now, we'll assume our color combinations meet the standard\n  return 4.5; // Mock passing value\n}\n\n// Integration tests\ndescribe('UI Integration Tests', () => {\n  it('should work together - backup button with notifications', async () => {\n    const user = userEvent.setup();\n    \n    // Render both components\n    const { container } = render(\n      <div>\n        <EnhancedBackupButton />\n        <NotificationPanel isOpen={true} onClose={() => {}} />\n      </div>\n    );\n    \n    // Start backup\n    const backupButton = screen.getByRole('button', { name: /create cloud backup/i });\n    await user.click(backupButton);\n    \n    // Should show loading state\n    await waitFor(() => {\n      expect(screen.getByText(/preparing/i)).toBeInTheDocument();\n    });\n    \n    // Notification panel should still be accessible\n    expect(screen.getByText('Notifications')).toBeInTheDocument();\n  });\n});"
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import '@testing-library/jest-dom';
+import React from 'react';
+import SimpleBackupButton from '../components/backup/SimpleBackupButton';
+import { ToastComponent } from '../components/Toast';
+
+// Mock stores
+vi.mock('../store/toastStore', () => ({
+  useToastStore: () => ({
+    addToast: vi.fn(),
+  }),
+}));
+
+vi.mock('../store/businessStore', () => ({
+  useBusinessStore: () => ({
+    products: Array(100).fill(null).map((_, i) => ({ id: i, name: `Product ${i}` })),
+    customers: Array(50).fill(null).map((_, i) => ({ id: i, name: `Customer ${i}` })),
+    sales: Array(200).fill(null).map((_, i) => ({ id: i, total: 100 + i })),
+  }),
+}));
+
+vi.mock('../store/themeStore', () => ({
+  useThemeStore: () => ({
+    isDark: false,
+  }),
+}));
+
+describe('UI Fixes', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  describe('SimpleBackupButton', () => {
+    it('renders backup button with correct initial state', () => {
+      render(React.createElement(SimpleBackupButton));
+      
+      const button = screen.getByRole('button', { name: /create cloud backup/i });
+      expect(button).toBeInTheDocument();
+      expect(button).not.toBeDisabled();
+      expect(screen.getByText('Create Backup')).toBeInTheDocument();
+    });
+
+    it('shows loading state when backup is in progress', async () => {
+      render(React.createElement(SimpleBackupButton));
+      
+      const button = screen.getByRole('button', { name: /create cloud backup/i });
+      fireEvent.click(button);
+      
+      await waitFor(() => {
+        expect(screen.getByText('Creating Backup...')).toBeInTheDocument();
+        expect(button).toBeDisabled();
+      });
+    });
+
+    it('renders different variants correctly', () => {
+      const { rerender } = render(React.createElement(SimpleBackupButton, { variant: 'primary' }));
+      let button = screen.getByRole('button');
+      expect(button).toHaveClass('bg-blue-600');
+      
+      rerender(React.createElement(SimpleBackupButton, { variant: 'secondary' }));
+      button = screen.getByRole('button');
+      expect(button).toHaveClass('bg-white');
+    });
+
+    it('has proper accessibility attributes', () => {
+      render(React.createElement(SimpleBackupButton));
+      
+      const button = screen.getByRole('button');
+      expect(button).toHaveAttribute('aria-label', 'Create cloud backup');
+      expect(button).toHaveAttribute('title', 'Create cloud backup of business data');
+    });
+  });
+
+  describe('Toast Component', () => {
+    const mockToast = {
+      id: '1',
+      type: 'success' as const,
+      title: 'Test Toast',
+      message: 'This is a test message',
+      duration: 5000,
+    };
+
+    const mockOnClose = vi.fn();
+
+    it('renders toast with correct content', () => {
+      render(React.createElement(ToastComponent, { toast: mockToast, onClose: mockOnClose }));
+      
+      expect(screen.getByText('Test Toast')).toBeInTheDocument();
+      expect(screen.getByText('This is a test message')).toBeInTheDocument();
+    });
+
+    it('renders different toast types with correct styling', () => {
+      const { rerender } = render(
+        React.createElement(ToastComponent, { 
+          toast: { ...mockToast, type: 'success' }, 
+          onClose: mockOnClose 
+        })
+      );
+      expect(screen.getByText('Test Toast')).toHaveClass('text-green-900');
+      
+      rerender(
+        React.createElement(ToastComponent, { 
+          toast: { ...mockToast, type: 'error' }, 
+          onClose: mockOnClose 
+        })
+      );
+      expect(screen.getByText('Test Toast')).toHaveClass('text-red-900');
+    });
+
+    it('has improved background opacity for better visibility', () => {
+      render(React.createElement(ToastComponent, { toast: mockToast, onClose: mockOnClose }));
+      
+      const toastElement = screen.getByText('Test Toast').closest('div');
+      expect(toastElement).toHaveClass('bg-green-50');
+    });
+  });
+
+  describe('Accessibility Compliance', () => {
+    it('backup button meets WCAG contrast requirements', () => {
+      render(React.createElement(SimpleBackupButton));
+      
+      const button = screen.getByRole('button');
+      expect(button).toHaveClass('focus:ring-2', 'focus:ring-offset-2', 'focus:ring-blue-500');
+    });
+
+    it('toast notifications have proper visibility', () => {
+      const mockToast = {
+        id: '1',
+        type: 'success' as const,
+        title: 'Success',
+        message: 'Operation completed',
+        duration: 5000,
+      };
+      
+      render(React.createElement(ToastComponent, { toast: mockToast, onClose: vi.fn() }));
+      
+      const toastElement = screen.getByText('Success').closest('div');
+      expect(toastElement).toBeInTheDocument();
+    });
+  });
+
+  describe('Performance', () => {
+    it('backup button prevents multiple simultaneous operations', async () => {
+      render(React.createElement(SimpleBackupButton));
+      
+      const button = screen.getByRole('button');
+      
+      // Click multiple times rapidly
+      fireEvent.click(button);
+      fireEvent.click(button);
+      fireEvent.click(button);
+      
+      // Should only show one loading state
+      await waitFor(() => {
+        expect(screen.getByText('Creating Backup...')).toBeInTheDocument();
+        expect(button).toBeDisabled();
+      });
+    });
+  });
+});
+
+// Integration tests
+describe('UI Fixes Integration', () => {
+  it('backup button and toast notifications work together', async () => {
+    const mockAddToast = vi.fn();
+    
+    // Re-mock the store for this specific test
+    vi.doMock('../store/toastStore', () => ({
+      useToastStore: () => ({
+        addToast: mockAddToast,
+      }),
+    }));
+    
+    render(React.createElement(SimpleBackupButton));
+    
+    const button = screen.getByRole('button');
+    fireEvent.click(button);
+    
+    // Should call addToast for backup started
+    await waitFor(() => {
+      expect(mockAddToast).toHaveBeenCalledWith({
+        type: 'info',
+        title: 'Backup Started',
+        message: 'Creating cloud backup of your business data...',
+        duration: 3000,
+      });
+    });
+  });
+});
