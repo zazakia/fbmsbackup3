@@ -13,7 +13,7 @@ import SecuritySettings from './SecuritySettings';
 import SystemSettings from './SystemSettings';
 import EnhancedVersionSettings from './EnhancedVersionSettings';
 import TopBarSettingsSection from './TopBarSettingsSection';
-import MainModuleSettings from './MainModuleSettings';
+
 import MenuVisibilitySettings from './MenuVisibilitySettings';
 
 interface SettingsSection {
@@ -52,12 +52,7 @@ const SettingsPage: React.FC = () => {
       icon: <User className="h-5 w-5" />,
       description: 'Personal settings and preferences'
     },
-    {
-      id: 'main-module',
-      title: 'Main Module Control',
-      icon: <Power className="h-5 w-5" />,
-      description: 'Enable or disable the main application module'
-    },
+
     {
       id: 'menu-visibility',
       title: 'Menu Visibility',
@@ -271,8 +266,6 @@ const SettingsPage: React.FC = () => {
 
   const renderContent = () => {
     switch (activeSection) {
-      case 'main-module':
-        return <MainModuleSettings />;
       case 'menu-visibility':
         return <MenuVisibilitySettings />;
       case 'topbar':

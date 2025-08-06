@@ -13,14 +13,11 @@ export interface UserSettings {
   reports: ReportSettings;
   inventory: InventorySettings;
   security: SecuritySettings;
-  mainModule: MainModuleSettings;
   createdAt: string;
   updatedAt: string;
 }
 
-export interface MainModuleSettings {
-  enabled: boolean;
-}
+
 
 export interface NotificationSettings {
   enabled: boolean;
@@ -228,9 +225,6 @@ export const defaultUserSettings: Omit<UserSettings, 'id' | 'userId' | 'createdA
   dateFormat: 'MM/dd/yyyy',
   timeFormat: '12h',
   currency: 'PHP',
-  mainModule: {
-    enabled: true,
-  },
   notifications: {
     enabled: true,
     email: true,

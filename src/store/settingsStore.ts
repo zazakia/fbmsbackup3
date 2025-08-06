@@ -1,9 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-interface MainModuleSettings {
-  enabled: boolean;
-}
+
 
 interface MenuVisibilitySettings {
   dashboard: boolean;
@@ -31,17 +29,13 @@ interface MenuVisibilitySettings {
 }
 
 interface SettingsStore {
-  mainModule: MainModuleSettings;
   menuVisibility: MenuVisibilitySettings;
-  setMainModuleEnabled: (enabled: boolean) => void;
   setMenuVisibility: (menuId: string, visible: boolean) => void;
   toggleAllMenus: (visible: boolean) => void;
   resetToDefaults: () => void;
 }
 
-const defaultMainModuleSettings: MainModuleSettings = {
-  enabled: true  // Main module enabled by default
-};
+
 
 const defaultMenuVisibilitySettings: MenuVisibilitySettings = {
   dashboard: true,
@@ -71,17 +65,7 @@ const defaultMenuVisibilitySettings: MenuVisibilitySettings = {
 export const useSettingsStore = create<SettingsStore>()(
   persist(
     (set, get) => ({
-      mainModule: defaultMainModuleSettings,
       menuVisibility: defaultMenuVisibilitySettings,
-
-      setMainModuleEnabled: (enabled: boolean) => {
-        set((state) => ({
-          mainModule: {
-            ...state.mainModule,
-            enabled
-          }
-        }));
-      },
 
       setMenuVisibility: (menuId: string, visible: boolean) => {
         set((state) => ({
@@ -104,14 +88,13 @@ export const useSettingsStore = create<SettingsStore>()(
 
       resetToDefaults: () => {
         set({ 
-          mainModule: defaultMainModuleSettings,
           menuVisibility: defaultMenuVisibilitySettings
         });
       }
     }),
     {
       name: 'fbms-settings-store',
-      version: 3
+      version: 4
     }
   )
 );
