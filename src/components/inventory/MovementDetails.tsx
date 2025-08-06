@@ -41,6 +41,8 @@ const MovementDetails: React.FC<MovementDetailsProps> = ({
   const movementTypeConfig = {
     stock_in: { label: 'Stock In', icon: TrendingUp, color: 'text-green-600', bg: 'bg-green-50', description: 'Items added to inventory' },
     stock_out: { label: 'Stock Out', icon: TrendingDown, color: 'text-red-600', bg: 'bg-red-50', description: 'Items removed from inventory' },
+    sale: { label: 'Sale', icon: TrendingDown, color: 'text-red-600', bg: 'bg-red-50', description: 'Sales transaction' },
+    purchase: { label: 'Purchase', icon: TrendingUp, color: 'text-green-600', bg: 'bg-green-50', description: 'Purchase order received' },
     adjustment_in: { label: 'Adjustment +', icon: Plus, color: 'text-blue-600', bg: 'bg-blue-50', description: 'Positive stock adjustment' },
     adjustment_out: { label: 'Adjustment -', icon: TrendingDown, color: 'text-orange-600', bg: 'bg-orange-50', description: 'Negative stock adjustment' },
     transfer_out: { label: 'Transfer Out', icon: Truck, color: 'text-purple-600', bg: 'bg-purple-50', description: 'Transfer to another location' },
@@ -49,6 +51,7 @@ const MovementDetails: React.FC<MovementDetailsProps> = ({
     return_out: { label: 'Return Out', icon: RefreshCw, color: 'text-red-600', bg: 'bg-red-50', description: 'Return to supplier' },
     damage_out: { label: 'Damaged', icon: TrendingDown, color: 'text-red-700', bg: 'bg-red-100', description: 'Damaged goods removal' },
     expired_out: { label: 'Expired', icon: TrendingDown, color: 'text-gray-600', bg: 'bg-gray-50', description: 'Expired goods removal' },
+    shrinkage: { label: 'Shrinkage', icon: TrendingDown, color: 'text-red-500', bg: 'bg-red-50', description: 'Inventory shrinkage' },
     recount: { label: 'Recount', icon: ArrowUpDown, color: 'text-yellow-600', bg: 'bg-yellow-50', description: 'Physical count adjustment' },
     initial_stock: { label: 'Initial Stock', icon: Package, color: 'text-gray-600', bg: 'bg-gray-50', description: 'Initial inventory setup' }
   };
@@ -60,7 +63,19 @@ const MovementDetails: React.FC<MovementDetailsProps> = ({
   };
 
   const formatQuantity = (type: ProductMovementType, quantity: number) => {
-    const isNegative = ['stock_out', 'adjustment_out', 'transfer_out', 'return_out', 'damage_out', 'expired_out'].includes(type);
+    // Stock decreasing operations (outbound)
+    const STOCK_OUT_TYPES = [
+      'sale',               // Sales transactions
+      'stock_out',          // General stock out
+      'adjustment_out',     // Negative adjustments
+      'transfer_out',       // Transfers to other locations
+      'return_out',         // Returns to suppliers
+      'damage_out',         // Damaged goods
+      'expired_out',        // Expired products
+      'shrinkage'           // Inventory shrinkage
+    ];
+    
+    const isNegative = STOCK_OUT_TYPES.includes(type);
     return isNegative ? `-${quantity}` : `+${quantity}`;
   };
 
