@@ -1,14 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import React from 'react';
 import { useBusinessStore } from '../store/businessStore';
-import { useSupabaseAuthStore } from '../store/supabaseAuthStore';
 import { receiptService } from '../services/receiptService';
-import POSSystem from '../components/pos/POSSystem';
-import EnhancedPOSSystem from '../components/pos/EnhancedPOSSystem';
-import InventoryManagement from '../components/inventory/InventoryManagement';
-import CustomerManagement from '../components/customers/CustomerManagement';
-import ExpenseTracking from '../components/expenses/ExpenseTracking';
 import { Product, Customer, Sale } from '../types/business';
 
 // Mock external dependencies
@@ -485,7 +477,7 @@ describe('Comprehensive System Tests', () => {
           tax: 12,
           discount: 0,
           total: 112,
-          paymentMethod: method as any,
+          paymentMethod: method as 'cash' | 'gcash' | 'paymaya' | 'bank_transfer' | 'credit_card',
           paymentStatus: 'paid',
           status: 'completed',
           cashierId: 'user-1',
@@ -540,7 +532,6 @@ describe('Comprehensive System Tests', () => {
 
       // Test approval process
       let currentStep = 1;
-      const totalSteps = requiredSteps.length;
 
       // Manager approval
       expect(currentStep).toBe(1);
@@ -555,11 +546,10 @@ describe('Comprehensive System Tests', () => {
 
   describe('Role-Based Access Control', () => {
     it('should enforce role-based permissions', () => {
-      const roles = ['admin', 'manager', 'cashier', 'accountant'];
       const modules = ['dashboard', 'pos', 'inventory', 'customers', 'accounting', 'reports'];
 
       // Test admin access (should have access to all modules)
-      const adminPermissions = modules.every(module => {
+      const adminPermissions = modules.every(() => {
         // Admin should have access to all modules
         return true;
       });

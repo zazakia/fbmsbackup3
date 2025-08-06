@@ -1487,7 +1487,7 @@ async function deliverConsolidatedAlerts(alerts: StockAlert[]) {
   }, {});
 
   let consolidatedCount = 0;
-  let originalAlertCount = alerts.length;
+  const originalAlertCount = alerts.length;
 
   for (const [key, groupAlerts] of Object.entries(groupedAlerts)) {
     if ((groupAlerts as any[]).length > 1) {

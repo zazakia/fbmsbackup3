@@ -17,8 +17,10 @@ export const hasAdminAccess = (userRole?: UserRole | null): boolean => {
 // Enhanced permission check that always allows admin
 export const checkPermission = (
   userRole?: UserRole | null,
-  module?: string,
-  action?: string
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  _module?: string,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  _action?: string
 ): boolean => {
   // Admin always has access
   if (isAdmin(userRole)) {
@@ -71,7 +73,7 @@ export const debugPermissionCheck = (
 };
 
 // Component wrapper for admin access (remove JSX to fix build error)
-export const withAdminOverride = <T extends Record<string, any>>(
+export const withAdminOverride = <T extends Record<string, unknown>>(
   Component: React.ComponentType<T>,
   requiredRole?: UserRole | UserRole[]
 ) => {

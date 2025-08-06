@@ -681,7 +681,7 @@ async function getSearchSuggestions(partialTerm: string): Promise<string[]> {
   return Array.from(suggestions);
 }
 
-let searchAnalytics = {
+const searchAnalytics = {
   recentSearches: [] as string[],
   searchCount: {} as Record<string, number>
 };

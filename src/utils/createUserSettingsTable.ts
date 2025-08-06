@@ -78,7 +78,7 @@ export const createUserSettingsTable = async (): Promise<{ success: boolean; mes
     }
 
     // Test if table was created successfully
-    const { data: _data, error: testError } = await supabase
+    const { error: testError } = await supabase
       .from('user_settings')
       .select('id')
       .limit(1);
