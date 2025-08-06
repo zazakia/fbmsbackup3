@@ -6,7 +6,8 @@
 set -e  # Exit on any error
 
 # Configuration
-PROJECT_NAME="fbms"
+APP_NAME="FBMS"
+ENVIRONMENT="production"
 BUILD_DIR="dist"
 BACKUP_DIR="backups"
 LOG_FILE="deployment.log"
@@ -40,212 +41,260 @@ warning() {
 check_prerequisites() {
     log "Checking prerequisites..."
     
-    # Check Node.js
+    # Check if Node.js is installed
     if ! command -v node &> /dev/null; then
-        error "Node.js is not installed"
+        error "Node.js is not installed. Please install Node.js 18+ before proceeding."
     fi
     
-    # Check npm/pnpm
-    if command -v pnpm &> /dev/null; then
-        PACKAGE_MANAGER="pnpm"
-    elif command -v npm &> /dev/null; then
-        PACKAGE_MANAGER="npm"
-    else
-        error "Neither npm nor pnpm is installed"
+    # Check if pnpm is installed
+    if ! command -v pnpm &> /dev/null; then
+        error "pnpm is not installed. Please install pnpm before proceeding."
     fi
     
-    # Check Git
-    if ! command -v git &> /dev/null; then
-        error "Git is not installed"
+    # Check if Netlify CLI is installed
+    if ! command -v netlify &> /dev/null; then
+        warning "Netlify CLI is not installed. Installing now..."
+        npm install -g netlify-cli
     fi
     
-    success "Prerequisites check passed"
+    # Check if Supabase CLI is installed
+    if ! command -v supabase &> /dev/null; then
+        warning "Supabase CLI is not installed. Installing now..."
+        npm install -g supabase
+    fi
+    
+    success "Prerequisites check completed"
+}
+
+# Validate environment variables
+validate_environment() {
+    log "Validating environment variables..."
+    
+    required_vars=(
+        "VITE_SUPABASE_URL"
+        "VITE_SUPABASE_ANON_KEY"
+        "NETLIFY_SITE_ID"
+        "NETLIFY_AUTH_TOKEN"
+    )
+    
+    missing_vars=()
+    
+    for var in "${required_vars[@]}"; do
+        if [ -z "${!var}" ]; then
+            missing_vars+=("$var")
+        fi
+    done
+    
+    if [ ${#missing_vars[@]} -ne 0 ]; then
+        error "Missing required environment variables: ${missing_vars[*]}"
+    fi
+    
+    success "Environment variables validated"
 }
 
 # Create backup
 create_backup() {
-    log "Creating backup..."
+    log "Creating backup of current deployment..."
     
+    mkdir -p $BACKUP_DIR
+    
+    # Create timestamp for backup
+    TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
+    BACKUP_NAME="fbms_backup_$TIMESTAMP"
+    
+    # Backup current build if it exists
     if [ -d "$BUILD_DIR" ]; then
-        mkdir -p "$BACKUP_DIR"
-        BACKUP_NAME="backup-$(date +'%Y%m%d-%H%M%S')"
-        cp -r "$BUILD_DIR" "$BACKUP_DIR/$BACKUP_NAME"
+        cp -r $BUILD_DIR "$BACKUP_DIR/$BACKUP_NAME"
         success "Backup created: $BACKUP_DIR/$BACKUP_NAME"
     else
-        warning "No existing build directory to backup"
+        warning "No existing build found to backup"
     fi
-}
-
-# Install dependencies
-install_dependencies() {
-    log "Installing dependencies..."
-    
-    if [ "$PACKAGE_MANAGER" = "pnpm" ]; then
-        pnpm install --frozen-lockfile
-    else
-        npm ci
-    fi
-    
-    success "Dependencies installed"
 }
 
 # Run tests
 run_tests() {
-    log "Running tests..."
+    log "Running test suite..."
     
-    if [ "$PACKAGE_MANAGER" = "pnpm" ]; then
-        pnpm test --run
-    else
-        npm run test -- --run
+    # Install dependencies if not already installed
+    if [ ! -d "node_modules" ]; then
+        log "Installing dependencies..."
+        pnpm install --frozen-lockfile
     fi
+    
+    # Run linting
+    log "Running ESLint..."
+    pnpm lint || error "Linting failed"
+    
+    # Run unit tests
+    log "Running unit tests..."
+    pnpm test --run || error "Unit tests failed"
+    
+    # Run type checking
+    log "Running TypeScript type checking..."
+    pnpm tsc --noEmit || error "Type checking failed"
     
     success "All tests passed"
 }
 
 # Build application
 build_application() {
-    log "Building application..."
+    log "Building application for production..."
     
     # Clean previous build
-    rm -rf "$BUILD_DIR"
+    if [ -d "$BUILD_DIR" ]; then
+        rm -rf $BUILD_DIR
+    fi
     
-    # Build
-    if [ "$PACKAGE_MANAGER" = "pnpm" ]; then
-        pnpm build
-    else
-        npm run build
+    # Set production environment
+    export NODE_ENV=production
+    
+    # Build the application
+    pnpm build || error "Build failed"
+    
+    # Verify build output
+    if [ ! -d "$BUILD_DIR" ]; then
+        error "Build directory not found after build"
+    fi
+    
+    # Check if index.html exists
+    if [ ! -f "$BUILD_DIR/index.html" ]; then
+        error "index.html not found in build directory"
     fi
     
     success "Application built successfully"
 }
 
-# Validate build
-validate_build() {
-    log "Validating build..."
+# Run database migrations
+run_migrations() {
+    log "Running database migrations..."
     
-    if [ ! -d "$BUILD_DIR" ]; then
-        error "Build directory not found"
+    # Check if Supabase is linked
+    if [ ! -f ".supabase/config.toml" ]; then
+        warning "Supabase not linked. Skipping migrations."
+        return
     fi
     
-    if [ ! -f "$BUILD_DIR/index.html" ]; then
-        error "index.html not found in build directory"
-    fi
+    # Run migrations
+    supabase db push --linked || error "Database migrations failed"
     
-    # Check for critical files
-    CRITICAL_FILES=("assets" "vite.svg")
-    for file in "${CRITICAL_FILES[@]}"; do
-        if [ ! -e "$BUILD_DIR/$file" ]; then
-            warning "Critical file/directory missing: $file"
-        fi
-    done
-    
-    success "Build validation passed"
+    success "Database migrations completed"
 }
 
 # Deploy to Netlify
-deploy_netlify() {
+deploy_to_netlify() {
     log "Deploying to Netlify..."
     
-    if ! command -v netlify &> /dev/null; then
-        error "Netlify CLI is not installed. Install with: npm install -g netlify-cli"
-    fi
+    # Deploy to production
+    netlify deploy --prod --dir=$BUILD_DIR || error "Netlify deployment failed"
     
-    # Deploy
-    netlify deploy --prod --dir="$BUILD_DIR"
-    
-    success "Deployed to Netlify"
+    success "Deployment to Netlify completed"
 }
 
-# Deploy to Vercel
-deploy_vercel() {
-    log "Deploying to Vercel..."
+# Verify deployment
+verify_deployment() {
+    log "Verifying deployment..."
     
-    if ! command -v vercel &> /dev/null; then
-        error "Vercel CLI is not installed. Install with: npm install -g vercel"
+    # Get site URL from Netlify
+    SITE_URL=$(netlify status --json | jq -r '.site.url')
+    
+    if [ "$SITE_URL" = "null" ] || [ -z "$SITE_URL" ]; then
+        error "Could not retrieve site URL from Netlify"
     fi
     
-    # Deploy
-    vercel --prod
+    log "Site URL: $SITE_URL"
     
-    success "Deployed to Vercel"
+    # Check if site is accessible
+    HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$SITE_URL")
+    
+    if [ "$HTTP_STATUS" != "200" ]; then
+        error "Site is not accessible. HTTP Status: $HTTP_STATUS"
+    fi
+    
+    # Check health endpoint if available
+    HEALTH_URL="$SITE_URL/health"
+    HEALTH_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$HEALTH_URL")
+    
+    if [ "$HEALTH_STATUS" = "200" ]; then
+        success "Health check passed"
+    else
+        warning "Health endpoint not available or failing"
+    fi
+    
+    success "Deployment verification completed"
 }
 
-# Cleanup old backups
-cleanup_backups() {
-    log "Cleaning up old backups..."
+# Send deployment notification
+send_notification() {
+    log "Sending deployment notification..."
     
+    # Get deployment info
+    SITE_URL=$(netlify status --json | jq -r '.site.url')
+    DEPLOY_ID=$(netlify status --json | jq -r '.site.deploy_id')
+    
+    # Create notification message
+    MESSAGE="🚀 FBMS Production Deployment Completed
+    
+Environment: $ENVIRONMENT
+Site URL: $SITE_URL
+Deploy ID: $DEPLOY_ID
+Timestamp: $(date)
+    
+Deployment was successful and site is accessible."
+    
+    # Log notification (in a real scenario, you might send to Slack, email, etc.)
+    echo "$MESSAGE" >> deployment_notifications.log
+    
+    success "Deployment notification sent"
+}
+
+# Cleanup function
+cleanup() {
+    log "Performing cleanup..."
+    
+    # Remove temporary files
+    rm -f .env.production.tmp
+    
+    # Clean up old backups (keep last 5)
     if [ -d "$BACKUP_DIR" ]; then
-        # Keep only last 5 backups
-        cd "$BACKUP_DIR"
+        cd $BACKUP_DIR
         ls -t | tail -n +6 | xargs -r rm -rf
         cd ..
-        success "Old backups cleaned up"
     fi
+    
+    success "Cleanup completed"
 }
 
 # Main deployment function
 main() {
-    log "Starting production deployment for $PROJECT_NAME"
+    log "Starting $APP_NAME production deployment..."
     
-    # Parse command line arguments
-    DEPLOY_TARGET="netlify"  # default
-    SKIP_TESTS=false
+    # Confirm production deployment
+    echo -e "${YELLOW}WARNING: This will deploy to PRODUCTION environment.${NC}"
+    read -p "Are you sure you want to continue? (yes/no): " -r
     
-    while [[ $# -gt 0 ]]; do
-        case $1 in
-            --target)
-                DEPLOY_TARGET="$2"
-                shift 2
-                ;;
-            --skip-tests)
-                SKIP_TESTS=true
-                shift
-                ;;
-            --help)
-                echo "Usage: $0 [--target netlify|vercel] [--skip-tests] [--help]"
-                echo "  --target: Deployment target (netlify or vercel)"
-                echo "  --skip-tests: Skip running tests"
-                echo "  --help: Show this help message"
-                exit 0
-                ;;
-            *)
-                error "Unknown option: $1"
-                ;;
-        esac
-    done
-    
-    # Execute deployment steps
-    check_prerequisites
-    create_backup
-    install_dependencies
-    
-    if [ "$SKIP_TESTS" = false ]; then
-        run_tests
-    else
-        warning "Skipping tests as requested"
+    if [[ ! $REPLY =~ ^[Yy][Ee][Ss]$ ]]; then
+        log "Deployment cancelled by user"
+        exit 0
     fi
     
+    # Run deployment steps
+    check_prerequisites
+    validate_environment
+    create_backup
+    run_tests
     build_application
-    validate_build
+    run_migrations
+    deploy_to_netlify
+    verify_deployment
+    send_notification
+    cleanup
     
-    # Deploy based on target
-    case $DEPLOY_TARGET in
-        netlify)
-            deploy_netlify
-            ;;
-        vercel)
-            deploy_vercel
-            ;;
-        *)
-            error "Unknown deployment target: $DEPLOY_TARGET"
-            ;;
-    esac
-    
-    cleanup_backups
-    
-    success "Production deployment completed successfully!"
-    log "Deployment log saved to: $LOG_FILE"
+    success "🎉 Production deployment completed successfully!"
+    log "Site is now live and accessible"
 }
 
-# Run main function with all arguments
+# Handle script interruption
+trap 'error "Deployment interrupted"' INT TERM
+
+# Run main function
 main "$@"
