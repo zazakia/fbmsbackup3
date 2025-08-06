@@ -5,21 +5,27 @@ import { Product, Category } from '../types/business';
 
 // CREATE product
 export async function createProduct(product: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>) {
+  const payload = {
+    name: product.name,
+    description: product.description,
+    sku: product.sku,
+    barcode: product.barcode,
+    category: product.category,
+    price: product.price,
+    cost: product.cost,
+    stock: product.stock,
+    min_stock: product.minStock,
+    unit: product.unit,
+    is_active: product.isActive
+  };
+
+  if (import.meta.env.DEV) {
+    console.debug('[persist][products.insert] payload', payload);
+  }
+
   const { data, error } = await supabase
     .from('products')
-    .insert([{
-      name: product.name,
-      description: product.description,
-      sku: product.sku,
-      barcode: product.barcode,
-      category: product.category,
-      price: product.price,
-      cost: product.cost,
-      stock: product.stock,
-      min_stock: product.minStock,
-      unit: product.unit,
-      is_active: product.isActive
-    }])
+    .insert([payload])
     .select(`
       id,
       name,
@@ -37,6 +43,13 @@ export async function createProduct(product: Omit<Product, 'id' | 'createdAt' | 
       updated_at
     `)
     .single();
+
+  if (error) {
+    console.error('[persist][products.insert] error', { code: (error as any)?.code, message: error.message, details: (error as any)?.details, hint: (error as any)?.hint });
+  }
+  if (data && import.meta.env.DEV) {
+    console.debug('[persist][products.insert] success', { id: data.id });
+  }
 
   if (data) {
     return {
@@ -181,6 +194,10 @@ export async function updateProduct(id: string, updates: Partial<Omit<Product, '
   if (updates.unit) updateData.unit = updates.unit;
   if (updates.isActive !== undefined) updateData.is_active = updates.isActive;
 
+  if (import.meta.env.DEV) {
+    console.debug('[persist][products.update] payload', { id, updateData });
+  }
+
   const { data, error } = await supabase
     .from('products')
     .update(updateData)
@@ -202,6 +219,13 @@ export async function updateProduct(id: string, updates: Partial<Omit<Product, '
       updated_at
     `)
     .single();
+
+  if (error) {
+    console.error('[persist][products.update] error', { id, code: (error as any)?.code, message: error.message, details: (error as any)?.details, hint: (error as any)?.hint });
+  }
+  if (data && import.meta.env.DEV) {
+    console.debug('[persist][products.update] success', { id: data.id });
+  }
 
   if (data) {
     return {
@@ -397,17 +421,30 @@ async function logStockMovement({
   userId?: string;
   reason?: string;
 }) {
-  return supabase.from('stock_movements').insert([
-    {
-      product_id: productId,
-      change,
-      type,
-      resulting_stock: resultingStock,
-      reference_id: referenceId,
-      user_id: userId,
-      reason
-    }
-  ]);
+  const payload = {
+    product_id: productId,
+    change,
+    type,
+    resulting_stock: resultingStock,
+    reference_id: referenceId,
+    user_id: userId,
+    reason
+  };
+
+  if (import.meta.env.DEV) {
+    console.debug('[persist][stock_movements.insert] payload', payload);
+  }
+
+  const result = await supabase.from('stock_movements').insert([payload]);
+
+  if ((result as any)?.error) {
+    const err = (result as any).error;
+    console.error('[persist][stock_movements.insert] error', { code: err.code, message: err.message, details: err.details, hint: err.hint });
+  } else if (import.meta.env.DEV) {
+    console.debug('[persist][stock_movements.insert] success', { product_id: productId, type, change });
+  }
+
+  return result;
 }
 
 // Update stock
@@ -477,13 +514,19 @@ export async function updateStock(id: string, quantity: number, operation: 'add'
 
 // CREATE category
 export async function createCategory(category: Omit<Category, 'id' | 'createdAt'>) {
+  const payload = {
+    name: category.name,
+    description: category.description,
+    is_active: category.isActive
+  };
+
+  if (import.meta.env.DEV) {
+    console.debug('[persist][categories.insert] payload', payload);
+  }
+
   const { data, error } = await supabase
     .from('categories')
-    .insert([{
-      name: category.name,
-      description: category.description,
-      is_active: category.isActive
-    }])
+    .insert([payload])
     .select(`
       id,
       name,
@@ -492,6 +535,13 @@ export async function createCategory(category: Omit<Category, 'id' | 'createdAt'
       created_at
     `)
     .single();
+
+  if (error) {
+    console.error('[persist][categories.insert] error', { code: (error as any)?.code, message: error.message, details: (error as any)?.details, hint: (error as any)?.hint });
+  }
+  if (data && import.meta.env.DEV) {
+    console.debug('[persist][categories.insert] success', { id: data.id });
+  }
 
   if (data) {
     return {
@@ -574,6 +624,10 @@ export async function updateCategory(id: string, updates: Partial<Omit<Category,
   if (updates.description !== undefined) updateData.description = updates.description;
   if (updates.isActive !== undefined) updateData.is_active = updates.isActive;
 
+  if (import.meta.env.DEV) {
+    console.debug('[persist][categories.update] payload', { id, updateData });
+  }
+
   const { data, error } = await supabase
     .from('categories')
     .update(updateData)
@@ -586,6 +640,13 @@ export async function updateCategory(id: string, updates: Partial<Omit<Category,
       created_at
     `)
     .single();
+
+  if (error) {
+    console.error('[persist][categories.update] error', { id, code: (error as any)?.code, message: error.message, details: (error as any)?.details, hint: (error as any)?.hint });
+  }
+  if (data && import.meta.env.DEV) {
+    console.debug('[persist][categories.update] success', { id: data.id });
+  }
 
   if (data) {
     return {

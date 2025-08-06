@@ -3,6 +3,7 @@ import { persist } from 'zustand/middleware';
 import { Product, Category, Customer, Sale, CartItem, Supplier, PurchaseOrder, Expense, ExpenseCategory, Account, JournalEntry, Employee, PayrollPeriod, PayrollEntry, LeaveRecord, TimeRecord, PayrollSettings, ProductMovementHistory, ProductMovementType } from '../types/business';
 import { getCustomers as supaGetCustomers, createCustomer as supaCreateCustomer, updateCustomer as supaUpdateCustomer, deleteCustomer as supaDeleteCustomer } from '../api/customers';
 import { createSale as supaCreateSale, getSales as supaGetSales, updateSale as supaUpdateSale, deleteSale as supaDeleteSale, getNextInvoiceNumber } from '../api/sales';
+import { createProduct as supaCreateProduct, updateProduct as supaUpdateProduct, deleteProduct as supaDeleteProduct } from '../api/products';
 import { createProductMovement } from '../api/productHistory';
 import { receiptService } from '../services/receiptService';
 import { 
@@ -56,9 +57,9 @@ interface BusinessState {
 
 interface BusinessActions {
   // Product actions
-  addProduct: (product: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>) => void;
-  updateProduct: (id: string, updates: Partial<Product>) => void;
-  deleteProduct: (id: string) => void;
+  addProduct: (product: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
+  updateProduct: (id: string, updates: Partial<Product>) => Promise<void>;
+  deleteProduct: (id: string) => Promise<void>;
   getProduct: (id: string) => Product | undefined;
   getProductsByCategoryId: (categoryId: string) => Product[];
   updateStock: (productId: string, quantity: number, type?: string, userId?: string, reference?: string, notes?: string) => Promise<StockValidationResult>;
@@ -1016,32 +1017,84 @@ export const useBusinessStore = create<BusinessStore>()(
       error: null,
 
       // Product actions
-      addProduct: (productData) => {
-        const product: Product = {
-          ...productData,
-          id: generateId(),
-          createdAt: new Date(),
-          updatedAt: new Date()
-        };
-        set((state) => ({
-          products: [...state.products, product]
-        }));
+      addProduct: async (productData) => {
+        set((state) => ({ ...state, isLoading: true, error: null }));
+        
+        try {
+          const { data: product, error } = await supaCreateProduct(productData);
+          
+          if (error || !product) {
+            throw new Error(error?.message || 'Failed to create product');
+          }
+          
+          set((state) => ({
+            products: [...state.products, product],
+            isLoading: false,
+            error: null
+          }));
+        } catch (error) {
+          console.error('Error adding product:', error);
+          set((state) => ({
+            ...state,
+            isLoading: false,
+            error: error instanceof Error ? error.message : 'Failed to add product'
+          }));
+          throw error;
+        }
       },
 
-      updateProduct: (id, updates) => {
-        set((state) => ({
-          products: state.products.map(product =>
-            product.id === id
-              ? { ...product, ...updates, updatedAt: new Date() }
-              : product
-          )
-        }));
+      updateProduct: async (id, updates) => {
+        set((state) => ({ ...state, isLoading: true, error: null }));
+        
+        try {
+          const { data: product, error } = await supaUpdateProduct(id, updates);
+          
+          if (error || !product) {
+            throw new Error(error?.message || 'Failed to update product');
+          }
+          
+          set((state) => ({
+            products: state.products.map(p =>
+              p.id === id ? product : p
+            ),
+            isLoading: false,
+            error: null
+          }));
+        } catch (error) {
+          console.error('Error updating product:', error);
+          set((state) => ({
+            ...state,
+            isLoading: false,
+            error: error instanceof Error ? error.message : 'Failed to update product'
+          }));
+          throw error;
+        }
       },
 
-      deleteProduct: (id) => {
-        set((state) => ({
-          products: state.products.filter(product => product.id !== id)
-        }));
+      deleteProduct: async (id) => {
+        set((state) => ({ ...state, isLoading: true, error: null }));
+        
+        try {
+          const { error } = await supaDeleteProduct(id);
+          
+          if (error) {
+            throw new Error(error.message || 'Failed to delete product');
+          }
+          
+          set((state) => ({
+            products: state.products.filter(product => product.id !== id),
+            isLoading: false,
+            error: null
+          }));
+        } catch (error) {
+          console.error('Error deleting product:', error);
+          set((state) => ({
+            ...state,
+            isLoading: false,
+            error: error instanceof Error ? error.message : 'Failed to delete product'
+          }));
+          throw error;
+        }
       },
 
       getProduct: (id) => {

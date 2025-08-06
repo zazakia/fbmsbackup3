@@ -88,7 +88,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ productId, onClose }) => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!validateForm()) {
@@ -112,13 +112,17 @@ const ProductForm: React.FC<ProductFormProps> = ({ productId, onClose }) => {
       images: []
     };
 
-    if (productId) {
-      updateProduct(productId, productData);
-    } else {
-      addProduct(productData);
+    try {
+      if (productId) {
+        await updateProduct(productId, productData);
+      } else {
+        await addProduct(productData);
+      }
+      onClose();
+    } catch (error) {
+      console.error('Error saving product:', error);
+      // Handle error (could show toast notification)
     }
-
-    onClose();
   };
 
   const handleInputChange = (field: string, value: string) => {
