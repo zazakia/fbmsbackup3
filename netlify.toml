@@ -10,8 +10,8 @@
 # Production environment settings
 [context.production.environment]
   VITE_APP_ENV = "production"
-  VITE_SUPABASE_URL = "https://your-production-supabase-url.supabase.co"
-  VITE_SUPABASE_ANON_KEY = "your-production-anon-key"
+  VITE_PUBLIC_SUPABASE_URL = "https://coqjcziquviehgyifhek.supabase.co"
+  VITE_PUBLIC_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNvcWpjemlxdXZpZWhneWlmaGVrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk0MDUzOTMsImV4cCI6MjA2NDk4MTM5M30.NSdUfHdeXLwBCcY9UO4s3LoSEBm4AuU0Jh5BLIcoQ5E"
 
 # Staging environment settings
 [context.deploy-preview.environment]

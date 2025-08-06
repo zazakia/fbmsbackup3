@@ -53,7 +53,7 @@ const Sidebar: React.FC<SidebarProps> = memo(({
               <BarChart3 className="h-5 w-5 text-white" />
             </div>
             <div>
-              <h1 className="text-lg font-bold text-gray-900 dark:text-gray-100">FBMS</h1>
+              <h1 className="text-lg font-bold text-gray-900 dark:text-gray-100">Jr & Mai Agrivet</h1>
               <p className="text-xs text-gray-500 dark:text-gray-400">Business Manager</p>
             </div>
           </div>
@@ -130,7 +130,7 @@ const Sidebar: React.FC<SidebarProps> = memo(({
               <BarChart3 className="h-5 w-5 text-white" />
             </div>
             <div>
-              <h1 className="text-lg font-bold text-gray-900 dark:text-gray-100">FBMS</h1>
+              <h1 className="text-lg font-bold text-gray-900 dark:text-gray-100">Jr & Mai Agrivet</h1>
               <p className="text-xs text-gray-500 dark:text-gray-400">Business Manager</p>
             </div>
           </div>

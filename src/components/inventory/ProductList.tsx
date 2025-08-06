@@ -12,9 +12,14 @@ const ProductList: React.FC<ProductListProps> = ({ products, onEdit }) => {
   const { deleteProduct, getCategory } = useBusinessStore();
   const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
 
-  const handleDelete = (productId: string) => {
+  const handleDelete = async (productId: string) => {
     if (window.confirm('Are you sure you want to delete this product?')) {
-      deleteProduct(productId);
+      try {
+        await deleteProduct(productId);
+      } catch (error) {
+        console.error('Error deleting product:', error);
+        // Handle error (could show toast notification)
+      }
     }
   };
 

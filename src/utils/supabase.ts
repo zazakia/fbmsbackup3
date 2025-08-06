@@ -62,6 +62,29 @@ export const supabase = createClient(
       autoRefreshToken: true,
       persistSession: true,
       detectSessionInUrl: true
+    },
+    global: {
+      // Surface detailed errors from PostgREST
+      fetch: async (input, init) => {
+        const res = await fetch(input as RequestInfo, init as RequestInit);
+        if (!res.ok && ENV.DEV) {
+          try {
+            const body = await res.clone().json().catch(() => null);
+            console.error('Supabase HTTP error', {
+              status: res.status,
+              statusText: res.statusText,
+              url: typeof input === 'string' ? input : (input as Request).url,
+              body
+            });
+          } catch {
+            // ignore
+          }
+        }
+        return res;
+      }
+    },
+    db: {
+      schema: 'public'
     }
   }
 );
