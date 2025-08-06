@@ -542,6 +542,7 @@ export interface ProductMovementHistory {
 export type ProductMovementType = 
   | 'stock_in'           // Receiving inventory
   | 'stock_out'          // Selling/issuing inventory
+  | 'sale'               // Sales transactions (stock decrease)
   | 'adjustment_in'      // Positive adjustment
   | 'adjustment_out'     // Negative adjustment
   | 'transfer_out'       // Transfer to another location
@@ -550,8 +551,10 @@ export type ProductMovementType =
   | 'return_out'         // Return to supplier
   | 'damage_out'         // Damaged goods removal
   | 'expired_out'        // Expired goods removal
+  | 'shrinkage'          // Inventory shrinkage
   | 'recount'            // Physical count adjustment
-  | 'initial_stock';     // Initial stock entry
+  | 'initial_stock'      // Initial stock entry
+  | 'purchase';          // Purchase orders (stock increase)
 
 export type MovementStatus = 'pending' | 'approved' | 'completed' | 'cancelled' | 'rejected';
 

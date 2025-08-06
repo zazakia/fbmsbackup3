@@ -5,6 +5,17 @@ import { getCustomers as supaGetCustomers, createCustomer as supaCreateCustomer,
 import { createSale as supaCreateSale, getSales as supaGetSales, updateSale as supaUpdateSale, deleteSale as supaDeleteSale, getNextInvoiceNumber } from '../api/sales';
 import { createProductMovement } from '../api/productHistory';
 import { receiptService } from '../services/receiptService';
+import { 
+  validateProductStock, 
+  validateCartStock, 
+  validateStockUpdate, 
+  StockValidationResult, 
+  StockValidationError,
+  StockUpdateOptions,
+  formatStockValidationErrors,
+  formatStockValidationSuggestions,
+  detectConcurrentStockIssues
+} from '../utils/stockValidation';
 
 interface BusinessState {
   // Products
@@ -50,7 +61,13 @@ interface BusinessActions {
   deleteProduct: (id: string) => void;
   getProduct: (id: string) => Product | undefined;
   getProductsByCategoryId: (categoryId: string) => Product[];
-  updateStock: (productId: string, quantity: number, type?: string, userId?: string, reference?: string, notes?: string) => void;
+  updateStock: (productId: string, quantity: number, type?: string, userId?: string, reference?: string, notes?: string) => Promise<StockValidationResult>;
+  
+  // Stock validation actions
+  validateProductStock: (productId: string, requestedQuantity: number, options?: StockUpdateOptions) => StockValidationResult;
+  validateCartStock: (options?: StockUpdateOptions) => StockValidationResult;
+  validateStockUpdate: (productId: string, quantityChange: number, options?: StockUpdateOptions) => StockValidationResult;
+  validateSaleStock: (cartItems: CartItem[]) => StockValidationResult;
   
   // Product History actions
   createMovementRecord: (productId: string, type: ProductMovementType, quantity: number, reason: string, options?: {
@@ -81,7 +98,7 @@ interface BusinessActions {
   fetchSales: () => Promise<void>;
   
   // Cart actions
-  addToCart: (product: Product, quantity: number) => void;
+  addToCart: (product: Product, quantity: number) => StockValidationResult;
   updateCartItem: (productId: string, quantity: number) => void;
   removeFromCart: (productId: string) => void;
   clearCart: () => void;
@@ -91,7 +108,7 @@ interface BusinessActions {
   
   // Sale actions
   createSale: (sale: Omit<Sale, 'id' | 'createdAt'>) => Promise<void>;
-  createOfflineSale: (sale: Omit<Sale, 'id' | 'createdAt'>) => void;
+  createOfflineSale: (sale: Omit<Sale, 'id' | 'createdAt'>) => Promise<Sale>;
   createSaleJournalEntry: (sale: Sale) => void;
   updateSale: (id: string, updates: Partial<Sale>) => void;
   getSale: (id: string) => Sale | undefined;
@@ -1035,8 +1052,20 @@ export const useBusinessStore = create<BusinessStore>()(
         return get().products.filter(product => product.category === categoryId && product.isActive);
       },
 
-      updateStock: (productId, quantity, type = 'adjustment_in', userId, reference, notes) => {
-        const { createMovementRecord } = get();
+      updateStock: async (productId, quantity, type = 'adjustment_in', userId, reference, notes) => {
+        const { createMovementRecord, products } = get();
+        const product = products.find(p => p.id === productId);
+        
+        // Validate stock update before proceeding
+        const validation = validateStockUpdate(product, quantity, { 
+          preventNegative: true,
+          validateBeforeUpdate: true 
+        });
+        
+        if (!validation.isValid) {
+          console.error('Stock update validation failed:', validation.errors);
+          return validation;
+        }
         
         // Determine movement type based on quantity direction if not specified
         let movementType: ProductMovementType = type as ProductMovementType;
@@ -1044,21 +1073,76 @@ export const useBusinessStore = create<BusinessStore>()(
           movementType = quantity >= 0 ? 'adjustment_in' : 'adjustment_out';
         }
 
-        // Create movement record automatically
-        const reason = notes || `Stock ${quantity >= 0 ? 'increase' : 'decrease'} via ${type}`;
-        createMovementRecord(
-          productId, 
-          movementType, 
-          Math.abs(quantity), 
-          reason,
-          {
-            referenceId: reference,
-            referenceType: type || 'manual',
-            userId,
-            notes
-          }
-        ).catch(error => {
+        try {
+          // Create movement record automatically
+          const reason = notes || `Stock ${quantity >= 0 ? 'increase' : 'decrease'} via ${type}`;
+          await createMovementRecord(
+            productId, 
+            movementType, 
+            Math.abs(quantity), 
+            reason,
+            {
+              referenceId: reference,
+              referenceType: type || 'manual',
+              userId,
+              notes
+            }
+          );
+          
+          return validation; // Return successful validation result
+        } catch (error) {
           console.error('Failed to create automatic movement record:', error);
+          return {
+            isValid: false,
+            errors: [{
+              code: 'NEGATIVE_STOCK' as const,
+              message: 'Failed to create stock movement record',
+              productId,
+              productName: product?.name || 'Unknown Product',
+              requestedQuantity: Math.abs(quantity),
+              availableStock: product?.stock || 0,
+              suggestions: ['Try the operation again', 'Check database connectivity']
+            }],
+            warnings: validation.warnings
+          };
+        }
+      },
+
+      // Stock validation actions
+      validateProductStock: (productId, requestedQuantity, options = {}) => {
+        const { products } = get();
+        const product = products.find(p => p.id === productId);
+        return validateProductStock(product, requestedQuantity, options);
+      },
+
+      validateCartStock: (options = {}) => {
+        const { cart, products } = get();
+        return validateCartStock(cart, products, options);
+      },
+
+      validateStockUpdate: (productId, quantityChange, options = {}) => {
+        const { products } = get();
+        const product = products.find(p => p.id === productId);
+        return validateStockUpdate(product, quantityChange, options);
+      },
+
+      validateSaleStock: (cartItems) => {
+        const { products } = get();
+        
+        // Check for concurrent stock issues first
+        const concurrentIssues = detectConcurrentStockIssues(cartItems, products);
+        if (concurrentIssues.length > 0) {
+          return {
+            isValid: false,
+            errors: concurrentIssues,
+            warnings: []
+          };
+        }
+        
+        // Validate each cart item
+        return validateCartStock(cartItems, products, { 
+          preventNegative: true,
+          validateBeforeUpdate: true 
         });
       },
 
@@ -1071,8 +1155,30 @@ export const useBusinessStore = create<BusinessStore>()(
           throw new Error('Product not found');
         }
 
+        // Comprehensive movement type constants for better maintainability
+        const STOCK_OUT_TYPES = [
+          'sale',               // Sales transactions (NEW)
+          'stock_out',          // General stock out
+          'adjustment_out',     // Negative adjustments
+          'transfer_out',       // Transfers to other locations
+          'return_out',         // Returns to suppliers
+          'damage_out',         // Damaged goods
+          'expired_out',        // Expired products
+          'shrinkage'           // Inventory shrinkage (NEW)
+        ];
+
+        const STOCK_IN_TYPES = [
+          'purchase',           // Purchase orders (NEW)
+          'stock_in',           // General stock in
+          'adjustment_in',      // Positive adjustments
+          'transfer_in',        // Transfers from other locations
+          'return_in',          // Customer returns
+          'initial_stock',      // Initial stock entry
+          'recount'             // Physical count adjustment
+        ];
+
         const previousStock = product.stock;
-        const isNegative = ['stock_out', 'adjustment_out', 'transfer_out', 'return_out', 'damage_out', 'expired_out'].includes(type);
+        const isNegative = STOCK_OUT_TYPES.includes(type);
         const stockChange = isNegative ? -quantity : quantity;
         const newStock = Math.max(0, previousStock + stockChange);
 
@@ -1180,6 +1286,23 @@ export const useBusinessStore = create<BusinessStore>()(
 
       // Cart actions
       addToCart: (product, quantity) => {
+        // Validate stock before adding to cart
+        const currentCartItem = get().cart.find(item => item.product.id === product.id);
+        const currentCartQuantity = currentCartItem ? currentCartItem.quantity : 0;
+        const totalRequestedQuantity = currentCartQuantity + quantity;
+        
+        // Use the product object directly for validation since we have it
+        const validation = validateProductStock(product, totalRequestedQuantity, {
+          preventNegative: true,
+          validateBeforeUpdate: true
+        });
+        
+        if (!validation.isValid) {
+          // Return validation result instead of throwing error
+          console.warn('Cannot add to cart:', validation.errors[0]?.message);
+          return validation;
+        }
+        
         set((state) => {
           const existingItem = state.cart.find(item => item.product.id === product.id);
           
@@ -1201,12 +1324,31 @@ export const useBusinessStore = create<BusinessStore>()(
             };
           }
         });
+        
+        return validation; // Return successful validation
       },
 
       updateCartItem: (productId, quantity) => {
         if (quantity <= 0) {
           get().removeFromCart(productId);
           return;
+        }
+        
+        // Validate stock before updating cart item
+        const { products } = get();
+        const product = products.find(p => p.id === productId);
+        
+        if (product) {
+          const validation = validateProductStock(product, quantity, {
+            preventNegative: true,
+            validateBeforeUpdate: true
+          });
+          
+          if (!validation.isValid) {
+            // Don't update cart if validation fails, but log the issue
+            console.warn('Cannot update cart item:', validation.errors[0]?.message);
+            return;
+          }
         }
         
         set((state) => ({
@@ -1265,6 +1407,21 @@ export const useBusinessStore = create<BusinessStore>()(
         try {
           set({ isLoading: true, error: null });
           
+          // Pre-sale stock validation to prevent overselling
+          const stockValidation = get().validateSaleStock(saleData.items);
+          if (!stockValidation.isValid) {
+            const errorMessages = formatStockValidationErrors(stockValidation.errors);
+            const suggestions = formatStockValidationSuggestions(stockValidation.errors);
+            
+            set({ 
+              error: `Cannot complete sale: ${errorMessages.join(', ')}. ${suggestions.length > 0 ? 'Suggestions: ' + suggestions.join(', ') : ''}`,
+              isLoading: false 
+            });
+            
+            // Return validation result for UI handling
+            throw new Error(`Stock validation failed: ${errorMessages.join(', ')}`);
+          }
+          
           // Generate invoice number if not provided
           let invoiceNumber = saleData.invoiceNumber;
           if (!invoiceNumber) {
@@ -1303,7 +1460,7 @@ export const useBusinessStore = create<BusinessStore>()(
               try {
                 await get().createMovementRecord(
                   item.productId,
-                  'out',
+                  'sale',
                   item.quantity,
                   'Sale transaction',
                   {
@@ -1356,8 +1513,21 @@ export const useBusinessStore = create<BusinessStore>()(
         }
       },
 
-      createOfflineSale: (saleData) => {
+      createOfflineSale: async (saleData) => {
         try {
+          // Pre-sale stock validation for offline sales
+          const stockValidation = get().validateSaleStock(saleData.items);
+          if (!stockValidation.isValid) {
+            const errorMessages = formatStockValidationErrors(stockValidation.errors);
+            const suggestions = formatStockValidationSuggestions(stockValidation.errors);
+            
+            const errorMessage = `Cannot complete offline sale: ${errorMessages.join(', ')}. ${suggestions.length > 0 ? 'Suggestions: ' + suggestions.join(', ') : ''}`;
+            set({ error: errorMessage });
+            
+            // Throw error to prevent sale creation
+            throw new Error(`Offline stock validation failed: ${errorMessages.join(', ')}`);
+          }
+          
           // Generate offline sale with local ID
           const offlineSale: Sale = {
             ...saleData,
@@ -1371,9 +1541,19 @@ export const useBusinessStore = create<BusinessStore>()(
             sales: [...state.sales, offlineSale]
           }));
 
-          // Update product stock locally
+          // Update product stock locally with validation
           for (const item of offlineSale.items) {
-            get().updateStock(item.productId, -item.quantity, 'sale', offlineSale.cashierId, offlineSale.invoiceNumber, `Offline sale to ${offlineSale.customerName}`);
+            try {
+              const stockResult = await get().updateStock(item.productId, -item.quantity, 'sale', offlineSale.cashierId, offlineSale.invoiceNumber, `Offline sale to ${offlineSale.customerName}`);
+              
+              if (!stockResult.isValid) {
+                console.error(`Failed to update stock for product ${item.productId}:`, stockResult.errors);
+                // Continue with other items but log the error
+              }
+            } catch (error) {
+              console.error(`Error updating stock for product ${item.productId}:`, error);
+              // Continue with other items but log the error
+            }
           }
 
           // Update customer data if customer is selected

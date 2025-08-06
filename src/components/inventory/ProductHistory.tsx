@@ -69,6 +69,8 @@ const ProductHistory: React.FC<ProductHistoryProps> = ({ selectedProductId }) =>
   const movementTypeConfig = {
     stock_in: { label: 'Stock In', icon: TrendingUp, color: 'text-green-600', bg: 'bg-green-50' },
     stock_out: { label: 'Stock Out', icon: TrendingDown, color: 'text-red-600', bg: 'bg-red-50' },
+    sale: { label: 'Sale', icon: TrendingDown, color: 'text-red-600', bg: 'bg-red-50' },
+    purchase: { label: 'Purchase', icon: TrendingUp, color: 'text-green-600', bg: 'bg-green-50' },
     adjustment_in: { label: 'Adjustment +', icon: Plus, color: 'text-blue-600', bg: 'bg-blue-50' },
     adjustment_out: { label: 'Adjustment -', icon: TrendingDown, color: 'text-orange-600', bg: 'bg-orange-50' },
     transfer_out: { label: 'Transfer Out', icon: Truck, color: 'text-purple-600', bg: 'bg-purple-50' },
@@ -77,6 +79,7 @@ const ProductHistory: React.FC<ProductHistoryProps> = ({ selectedProductId }) =>
     return_out: { label: 'Return Out', icon: RefreshCw, color: 'text-red-600', bg: 'bg-red-50' },
     damage_out: { label: 'Damaged', icon: TrendingDown, color: 'text-red-700', bg: 'bg-red-100' },
     expired_out: { label: 'Expired', icon: TrendingDown, color: 'text-gray-600', bg: 'bg-gray-50' },
+    shrinkage: { label: 'Shrinkage', icon: TrendingDown, color: 'text-red-500', bg: 'bg-red-50' },
     recount: { label: 'Recount', icon: ArrowUpDown, color: 'text-yellow-600', bg: 'bg-yellow-50' },
     initial_stock: { label: 'Initial Stock', icon: Package, color: 'text-gray-600', bg: 'bg-gray-50' }
   };
@@ -186,7 +189,19 @@ const ProductHistory: React.FC<ProductHistoryProps> = ({ selectedProductId }) =>
   };
 
   const formatQuantity = (type: ProductMovementType, quantity: number) => {
-    const isNegative = ['stock_out', 'adjustment_out', 'transfer_out', 'return_out', 'damage_out', 'expired_out'].includes(type);
+    // Stock decreasing operations (outbound)
+    const STOCK_OUT_TYPES = [
+      'sale',               // Sales transactions
+      'stock_out',          // General stock out
+      'adjustment_out',     // Negative adjustments
+      'transfer_out',       // Transfers to other locations
+      'return_out',         // Returns to suppliers
+      'damage_out',         // Damaged goods
+      'expired_out',        // Expired products
+      'shrinkage'           // Inventory shrinkage
+    ];
+    
+    const isNegative = STOCK_OUT_TYPES.includes(type);
     return isNegative ? `-${quantity}` : `+${quantity}`;
   };
 

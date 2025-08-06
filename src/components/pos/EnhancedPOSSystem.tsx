@@ -28,8 +28,10 @@ import { useToastStore } from '../../store/toastStore';
 import { useNotificationStore, createSystemNotification } from '../../store/notificationStore';
 import { Product, Customer, PaymentMethod, CartItem } from '../../types/business';
 import { formatCurrency } from '../../utils/formatters';
+import { StockValidationError } from '../../utils/stockValidation';
 import EnhancedPaymentModal from './EnhancedPaymentModal';
 import CustomerSelector from './CustomerSelector';
+import StockValidationAlert from './StockValidationAlert';
 
 interface POSMode {
   mode: 'retail' | 'wholesale' | 'quote';
@@ -73,6 +75,11 @@ const EnhancedPOSSystem: React.FC = () => {
   const [currentHold, setCurrentHold] = useState<string | null>(null);
   const [savedCarts, setSavedCarts] = useState<Array<{ id: string; name: string; items: CartItem[]; customer?: Customer }>>([]);
   
+  // Stock validation state
+  const [stockValidationErrors, setStockValidationErrors] = useState<StockValidationError[]>([]);
+  const [stockValidationWarnings, setStockValidationWarnings] = useState<StockValidationError[]>([]);
+  const [showStockValidation, setShowStockValidation] = useState(false);
+  
   // Barcode scanner
   const [barcodeInput, setBarcodeInput] = useState('');
   const barcodeRef = useRef<HTMLInputElement>(null);
@@ -96,8 +103,24 @@ const EnhancedPOSSystem: React.FC = () => {
     updateStock,
     getCustomer,
     fetchCustomers,
-    updateCustomer
+    updateCustomer,
+    validateSaleStock,
+    validateProductStock
   } = useBusinessStore();
+
+  // Continuous cart validation
+  useEffect(() => {
+    if (cart.length > 0) {
+      const validation = validateSaleStock(cart);
+      setStockValidationErrors(validation.errors);
+      setStockValidationWarnings(validation.warnings);
+      setShowStockValidation(validation.errors.length > 0 || validation.warnings.length > 0);
+    } else {
+      setStockValidationErrors([]);
+      setStockValidationWarnings([]);
+      setShowStockValidation(false);
+    }
+  }, [cart, validateSaleStock]);
   
   const { user } = useSupabaseAuthStore(); // UPDATED
   const { addToast } = useToastStore();
@@ -164,14 +187,34 @@ const EnhancedPOSSystem: React.FC = () => {
   // Barcode scanner functionality
   const handleBarcodeInput = (barcode: string) => {
     const product = products.find(p => p.barcode === barcode || p.sku === barcode);
-    if (product && product.isActive && product.stock > 0) {
-      addToCart(product, 1);
-      playSound('beep');
-      addToast({
-        type: 'success',
-        title: 'Product Added',
-        message: `${product.name} added to cart`
-      });
+    if (product && product.isActive) {
+      const validation = addToCart(product, 1);
+      
+      if (validation.isValid) {
+        playSound('beep');
+        addToast({
+          type: 'success',
+          title: 'Product Added',
+          message: `${product.name} added to cart`
+        });
+        
+        // Show warnings if any
+        validation.warnings.forEach(warning => {
+          addToast({
+            type: 'warning',
+            title: 'Stock Warning',
+            message: warning.message,
+            duration: 4000
+          });
+        });
+      } else {
+        playSound('error');
+        addToast({
+          type: 'error',
+          title: 'Cannot Add Product',
+          message: validation.errors[0]?.message || 'Stock validation failed'
+        });
+      }
     } else {
       playSound('error');
       addToast({
@@ -238,11 +281,41 @@ const EnhancedPOSSystem: React.FC = () => {
   const handleProductSelect = (product: Product) => {
     const existingItem = cart.find(item => item.product.id === product.id);
     if (existingItem) {
-      updateCartItem(product.id, existingItem.quantity + 1);
+      // Validate before updating cart item
+      const validation = validateProductStock(product, existingItem.quantity + 1, {
+        preventNegative: true,
+        validateBeforeUpdate: true
+      });
+      
+      if (validation.isValid) {
+        updateCartItem(product.id, existingItem.quantity + 1);
+        playSound('beep');
+        
+        // Show warnings if any
+        validation.warnings.forEach(warning => {
+          addToast({
+            type: 'warning',
+            title: 'Stock Warning',
+            message: warning.message,
+            duration: 4000
+          });
+        });
+      } else {
+        playSound('error');
+        addToast({
+          type: 'error',
+          title: 'Cannot Add Product',
+          message: validation.errors[0]?.message || 'Stock validation failed'
+        });
+      }
     } else {
-      addToCart(product, 1);
+      const validation = addToCart(product, 1);
+      if (validation.isValid) {
+        playSound('beep');
+      } else {
+        playSound('error');
+      }
     }
-    playSound('beep');
   };
 
   const handleQuantityChange = (productId: string, newQuantity: number) => {
@@ -250,14 +323,31 @@ const EnhancedPOSSystem: React.FC = () => {
       removeFromCart(productId);
     } else {
       const product = products.find(p => p.id === productId);
-      if (product && newQuantity <= product.stock) {
-        updateCartItem(productId, newQuantity);
-      } else {
-        addToast({
-          type: 'error',
-          title: 'Insufficient Stock',
-          message: `Only ${product?.stock} items available`
+      if (product) {
+        const validation = validateProductStock(product, newQuantity, {
+          preventNegative: true,
+          validateBeforeUpdate: true
         });
+        
+        if (validation.isValid) {
+          updateCartItem(productId, newQuantity);
+          
+          // Show warnings if any
+          validation.warnings.forEach(warning => {
+            addToast({
+              type: 'warning',
+              title: 'Stock Warning',
+              message: warning.message,
+              duration: 4000
+            });
+          });
+        } else {
+          addToast({
+            type: 'error',
+            title: 'Cannot Update Quantity',
+            message: validation.errors[0]?.message || 'Stock validation failed'
+          });
+        }
       }
     }
   };
@@ -371,16 +461,47 @@ const EnhancedPOSSystem: React.FC = () => {
       return;
     }
 
-    // Validate stock availability
-    for (const item of cart) {
-      if (item.product.stock < item.quantity) {
+    // Enhanced stock validation using the new validation system
+    const stockValidation = validateSaleStock(cart);
+    
+    if (!stockValidation.isValid) {
+      // Show detailed error messages for each stock issue
+      stockValidation.errors.forEach(error => {
         addToast({
           type: 'error',
-          title: 'Insufficient Stock',
-          message: `Not enough stock for ${item.product.name}. Available: ${item.product.stock}, Required: ${item.quantity}`
+          title: 'Stock Validation Error',
+          message: error.message,
+          duration: 8000 // Longer duration for stock errors
         });
-        return;
+      });
+
+      // Show suggestions if available
+      const suggestions = stockValidation.errors
+        .flatMap(error => error.suggestions || [])
+        .filter((suggestion, index, arr) => arr.indexOf(suggestion) === index); // Remove duplicates
+
+      if (suggestions.length > 0) {
+        addToast({
+          type: 'info',
+          title: 'Suggestions',
+          message: suggestions.slice(0, 3).join('. '), // Show up to 3 suggestions
+          duration: 10000
+        });
       }
+
+      return;
+    }
+
+    // Show warnings if any (low stock, etc.)
+    if (stockValidation.warnings.length > 0) {
+      stockValidation.warnings.forEach(warning => {
+        addToast({
+          type: 'warning',
+          title: 'Stock Warning',
+          message: warning.message,
+          duration: 6000
+        });
+      });
     }
 
     try {
@@ -933,6 +1054,18 @@ const EnhancedPOSSystem: React.FC = () => {
                 </div>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Stock Validation Alert */}
+        {showStockValidation && (
+          <div className="px-2 sm:px-4 py-2 border-b border-gray-200 dark:border-dark-700">
+            <StockValidationAlert
+              errors={stockValidationErrors}
+              warnings={stockValidationWarnings}
+              onClose={() => setShowStockValidation(false)}
+              className="text-xs"
+            />
           </div>
         )}
 
