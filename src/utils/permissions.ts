@@ -23,7 +23,8 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     { module: 'bir', actions: ['view', 'create', 'edit'] },
     { module: 'admin-dashboard', actions: ['view', 'monitor', 'manage'] },
     { module: 'system-monitoring', actions: ['view', 'configure'] },
-    { module: 'security', actions: ['view', 'manage'] }
+    { module: 'security', actions: ['view', 'manage'] },
+    { module: 'help', actions: ['view'] }
   ],
   manager: [
     { module: 'dashboard', actions: ['view'] },
@@ -37,14 +38,16 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     { module: 'reports', actions: ['view', 'export'] },
     { module: 'branches', actions: ['view'] },
     { module: 'users', actions: ['view'] },
-    { module: 'bir', actions: ['view'] }
+    { module: 'bir', actions: ['view'] },
+    { module: 'help', actions: ['view'] }
   ],
   cashier: [
     { module: 'dashboard', actions: ['view'] },
     { module: 'pos', actions: ['view', 'create'] },
     { module: 'inventory', actions: ['view'] },
     { module: 'customers', actions: ['view', 'create', 'edit'] },
-    { module: 'reports', actions: ['view'] }
+    { module: 'reports', actions: ['view'] },
+    { module: 'help', actions: ['view'] }
   ],
   accountant: [
     { module: 'dashboard', actions: ['view'] },
@@ -54,14 +57,16 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     { module: 'reports', actions: ['view', 'export'] },
     { module: 'bir', actions: ['view', 'create', 'edit'] },
     { module: 'purchases', actions: ['view'] },
-    { module: 'customers', actions: ['view'] }
+    { module: 'customers', actions: ['view'] },
+    { module: 'help', actions: ['view'] }
   ],
   employee: [
     { module: 'dashboard', actions: ['view'] },
     { module: 'inventory', actions: ['view'] },
     { module: 'customers', actions: ['view'] },
     { module: 'reports', actions: ['view'] },
-    { module: 'settings', actions: ['view'] }
+    { module: 'settings', actions: ['view'] },
+    { module: 'help', actions: ['view'] }
   ]
 };
 

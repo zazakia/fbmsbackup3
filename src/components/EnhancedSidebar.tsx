@@ -17,7 +17,7 @@ interface SidebarProps {
   onClose: () => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = memo(({ 
+const EnhancedSidebar: React.FC<SidebarProps> = memo(({ 
   isOpen, 
   menuItems, 
   activeModule, 
@@ -42,6 +42,7 @@ const Sidebar: React.FC<SidebarProps> = memo(({
   const confirmLogout = () => {
     setShowLogoutConfirm(true);
   };
+
   return (
     <>
       {/* Desktop Sidebar */}
@@ -108,13 +109,34 @@ const Sidebar: React.FC<SidebarProps> = memo(({
             </button>
           </div>
           
-          {/* Help Section */}
-          <div className="bg-gradient-to-r from-primary-500 to-primary-600 rounded-lg p-4 text-white">
-            <h3 className="font-semibold text-sm">Need Help?</h3>
-            <p className="text-xs mt-1 text-primary-100">Contact our support team</p>
-            <button className="mt-2 text-xs bg-white bg-opacity-20 px-3 py-1 rounded hover:bg-opacity-30 transition-all duration-200">
-              Get Support
+          {/* Enhanced Help Section */}
+          <div className="relative">
+            <button
+              onClick={() => setShowHelpMenu(!showHelpMenu)}
+              className="w-full bg-gradient-to-r from-primary-500 to-primary-600 rounded-lg p-4 text-white hover:from-primary-600 hover:to-primary-700 transition-all duration-200"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <HelpCircle className="h-5 w-5" />
+                  <div className="text-left">
+                    <h3 className="font-semibold text-sm">Help & Documentation</h3>
+                    <p className="text-xs text-primary-100">Guides, Training & Support</p>
+                  </div>
+                </div>
+                <div className={`transform transition-transform duration-200 ${showHelpMenu ? 'rotate-180' : ''}`}>
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+              </div>
             </button>
+            
+            {/* Help Menu Dropdown */}
+            {showHelpMenu && (
+              <div className="absolute bottom-full left-0 right-0 mb-2 z-50">
+                <HelpMenu />
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -191,13 +213,34 @@ const Sidebar: React.FC<SidebarProps> = memo(({
             </button>
           </div>
           
-          {/* Help Section */}
-          <div className="bg-gradient-to-r from-primary-500 to-primary-600 rounded-lg p-4 text-white">
-            <h3 className="font-semibold text-sm">Need Help?</h3>
-            <p className="text-xs mt-1 text-primary-100">Contact our support team</p>
-            <button className="mt-2 text-xs bg-white bg-opacity-20 px-3 py-1 rounded hover:bg-opacity-30 transition-all duration-200">
-              Get Support
+          {/* Enhanced Help Section - Mobile */}
+          <div className="relative">
+            <button
+              onClick={() => setShowHelpMenu(!showHelpMenu)}
+              className="w-full bg-gradient-to-r from-primary-500 to-primary-600 rounded-lg p-4 text-white hover:from-primary-600 hover:to-primary-700 transition-all duration-200"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <HelpCircle className="h-5 w-5" />
+                  <div className="text-left">
+                    <h3 className="font-semibold text-sm">Help & Docs</h3>
+                    <p className="text-xs text-primary-100">Guides & Training</p>
+                  </div>
+                </div>
+                <div className={`transform transition-transform duration-200 ${showHelpMenu ? 'rotate-180' : ''}`}>
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+              </div>
             </button>
+            
+            {/* Help Menu Dropdown - Mobile */}
+            {showHelpMenu && (
+              <div className="absolute bottom-full left-0 right-0 mb-2 z-50">
+                <HelpMenu />
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -244,10 +287,18 @@ const Sidebar: React.FC<SidebarProps> = memo(({
           </div>
         </div>
       )}
+
+      {/* Click outside to close help menu */}
+      {showHelpMenu && (
+        <div 
+          className="fixed inset-0 z-40" 
+          onClick={() => setShowHelpMenu(false)}
+        />
+      )}
     </>
   );
 });
 
-Sidebar.displayName = 'Sidebar';
+EnhancedSidebar.displayName = 'EnhancedSidebar';
 
-export default Sidebar;
+export default EnhancedSidebar;
