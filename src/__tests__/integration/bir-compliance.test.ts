@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useBusinessStore } from '../../store/businessStore';
-import { Product, Customer, Sale } from '../../types/business';
+import { Product, Customer } from '../../types/business';
 
 // Mock external dependencies
 vi.mock('../../api/sales', () => ({
@@ -222,7 +222,7 @@ describe('BIR Compliance Validation', () => {
       const { createSale } = await import('../../api/sales');
       let receiptCounter = 1;
 
-      (createSale as any).mockImplementation((saleData: any) => {
+      (createSale as ReturnType<typeof vi.fn>).mockImplementation((saleData: unknown) => {
         const receiptNumber = `RCP-${String(receiptCounter).padStart(8, '0')}`;
         receiptCounter++;
         
@@ -347,7 +347,7 @@ describe('BIR Compliance Validation', () => {
 
       // Mock successful sale creation
       const { createSale } = await import('../../api/sales');
-      (createSale as any).mockResolvedValue({
+      (createSale as ReturnType<typeof vi.fn>).mockResolvedValue({
         data: { ...saleData, id: 'journal-sale-1', createdAt: new Date() },
         error: null,
       });
@@ -526,7 +526,7 @@ describe('BIR Compliance Validation', () => {
 
       // Mock successful sale creation
       const { createSale } = await import('../../api/sales');
-      (createSale as any).mockImplementation((saleData: any) => 
+      (createSale as ReturnType<typeof vi.fn>).mockImplementation((saleData: unknown) => 
         Promise.resolve({
           data: { ...saleData, id: `bir-sale-${Date.now()}`, createdAt: new Date() },
           error: null,
@@ -693,7 +693,7 @@ describe('BIR Compliance Validation', () => {
 
       // Mock successful sale creation
       const { createSale } = await import('../../api/sales');
-      (createSale as any).mockResolvedValue({
+      (createSale as ReturnType<typeof vi.fn>).mockResolvedValue({
         data: { ...saleData, id: 'receipt-format-sale-1', createdAt: new Date() },
         error: null,
       });

@@ -100,7 +100,7 @@ export const emergencyAdminFix = async (userEmail: string = 'cybergada@gmail.com
     const authStore = useSupabaseAuthStore.getState();
     
     // Force refresh current session
-    const { data: session, error: sessionError } = await supabase.auth.getSession();
+    const { error: sessionError } = await supabase.auth.getSession();
     if (sessionError) {
       console.error('❌ Session refresh failed:', sessionError);
     } else {
@@ -184,7 +184,19 @@ export const clearAuthCache = async () => {
 
 // Add to window for console access
 if (typeof window !== 'undefined') {
-  (window as any).emergencyAdminFix = emergencyAdminFix;
-  (window as any).forcePageRefresh = forcePageRefresh;
-  (window as any).clearAuthCache = clearAuthCache;
+  (window as unknown as {
+    emergencyAdminFix: typeof emergencyAdminFix;
+    forcePageRefresh: typeof forcePageRefresh;
+    clearAuthCache: typeof clearAuthCache;
+  }).emergencyAdminFix = emergencyAdminFix;
+  (window as unknown as {
+    emergencyAdminFix: typeof emergencyAdminFix;
+    forcePageRefresh: typeof forcePageRefresh;
+    clearAuthCache: typeof clearAuthCache;
+  }).forcePageRefresh = forcePageRefresh;
+  (window as unknown as {
+    emergencyAdminFix: typeof emergencyAdminFix;
+    forcePageRefresh: typeof forcePageRefresh;
+    clearAuthCache: typeof clearAuthCache;
+  }).clearAuthCache = clearAuthCache;
 }

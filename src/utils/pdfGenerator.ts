@@ -94,7 +94,7 @@ export class BIRForm2550MGenerator {
     this.doc.setFont('helvetica', 'normal');
     let yPosition = 100;
     
-    rows.forEach((row, index) => {
+    rows.forEach((row) => {
       this.doc.rect(20, yPosition - 5, 170, 10);
       this.doc.text(row[0], 25, yPosition + 2);
       this.doc.text(row[1], 185, yPosition + 2, { align: 'right' });
@@ -293,7 +293,11 @@ export class BIRPDFGenerator {
   /**
    * Generate PDF from HTML element
    */
-  static async generateFromHTML(element: HTMLElement, filename: string): Promise<Blob> {
+  static async generateFromHTML(
+    element: HTMLElement,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    _filename: string
+  ): Promise<Blob> {
     const canvas = await html2canvas(element, {
       scale: 2,
       useCORS: true,

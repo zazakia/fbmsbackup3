@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useBusinessStore } from '../../store/businessStore';
 import { useOfflineStore } from '../../store/offlineStore';
-import { Product, Customer } from '../../types/business';
+import { Product } from '../../types/business';
 
 // Mock external dependencies
 vi.mock('../../api/sales', () => ({
@@ -105,7 +105,7 @@ describe('Quality Assurance - Core Business Workflows', () => {
 
       // Mock successful sale creation
       const { createSale } = await import('../../api/sales');
-      (createSale as any).mockResolvedValue({
+      (createSale as ReturnType<typeof vi.fn>).mockResolvedValue({
         data: {
           id: 'test-sale-1',
           subtotal: 2000,
@@ -271,7 +271,7 @@ describe('Quality Assurance - Core Business Workflows', () => {
 
       // Mock successful sale creation
       const { createSale } = await import('../../api/sales');
-      (createSale as any).mockResolvedValue({
+      (createSale as ReturnType<typeof vi.fn>).mockResolvedValue({
         data: {
           id: 'journal-sale',
           subtotal: 1000,
@@ -359,7 +359,7 @@ describe('Quality Assurance - Core Business Workflows', () => {
 
       // Mock successful customer creation
       const { createCustomer } = await import('../../api/customers');
-      (createCustomer as any).mockResolvedValue({
+      (createCustomer as ReturnType<typeof vi.fn>).mockResolvedValue({
         data: { ...customerData, id: 'test-customer-1', createdAt: new Date(), updatedAt: new Date() },
         error: null,
       });
@@ -565,7 +565,7 @@ describe('Quality Assurance - Core Business Workflows', () => {
 
       // Mock API failure
       const { createSale } = await import('../../api/sales');
-      (createSale as any).mockResolvedValue({
+      (createSale as ReturnType<typeof vi.fn>).mockResolvedValue({
         data: null,
         error: 'Network error',
       });

@@ -3,8 +3,7 @@
  * This works with your React application's Supabase client
  */
 
-import { supabase } from './supabase';
-import { useSupabaseAuthStore } from '../store/supabaseAuthStore';
+// Import dynamically within function to avoid unused import lint errors
 
 // Function that works in browser console
 async function emergencyAdminFixConsole() {
@@ -124,7 +123,9 @@ async function emergencyAdminFixConsole() {
 
 // Make it available globally
 if (typeof window !== 'undefined') {
-  (window as any).emergencyAdminFixConsole = emergencyAdminFixConsole;
+  (window as unknown as {
+    emergencyAdminFixConsole: typeof emergencyAdminFixConsole;
+  }).emergencyAdminFixConsole = emergencyAdminFixConsole;
 }
 
 export { emergencyAdminFixConsole };

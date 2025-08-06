@@ -117,7 +117,7 @@ export const fixCybergadaAdminAccess = async () => {
     // Step 5: Refresh session and re-check auth
     console.log('🔄 Step 5: Refreshing session...');
     
-    const { data: session, error: sessionError } = await supabase.auth.getSession();
+    const { error: sessionError } = await supabase.auth.getSession();
     if (sessionError) {
       console.error('❌ Session refresh failed:', sessionError);
     } else {
@@ -172,5 +172,7 @@ export const fixCybergadaAdminAccess = async () => {
 
 // Export for console access
 if (typeof window !== 'undefined') {
-  (window as any).fixCybergadaAdminAccess = fixCybergadaAdminAccess;
+  (window as unknown as {
+    fixCybergadaAdminAccess: typeof fixCybergadaAdminAccess;
+  }).fixCybergadaAdminAccess = fixCybergadaAdminAccess;
 }

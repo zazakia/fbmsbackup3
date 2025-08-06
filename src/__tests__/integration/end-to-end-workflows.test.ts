@@ -3,7 +3,7 @@ import { renderHook, act } from '@testing-library/react';
 import { useBusinessStore } from '../../store/businessStore';
 import { useSupabaseAuthStore } from '../../store/supabaseAuthStore';
 import { useOfflineStore } from '../../store/offlineStore';
-import { Product, Customer, Sale } from '../../types/business';
+import { Product, Customer } from '../../types/business';
 
 // Mock external dependencies
 vi.mock('../../api/sales', () => ({
@@ -106,7 +106,7 @@ describe('End-to-End Business Workflows', () => {
           firstName: 'Test',
           lastName: 'Cashier',
           role: 'cashier',
-        } as any;
+        } as typeof authStore.current.user;
       });
 
       // Step 1: Add product to store
@@ -162,7 +162,7 @@ describe('End-to-End Business Workflows', () => {
 
       // Mock successful sale creation
       const { createSale } = await import('../../api/sales');
-      (createSale as any).mockResolvedValue({
+      (createSale as ReturnType<typeof vi.fn>).mockResolvedValue({
         data: { ...saleData, id: 'sale-1', createdAt: new Date() },
         error: null,
       });
@@ -257,7 +257,7 @@ describe('End-to-End Business Workflows', () => {
 
       // Mock successful customer creation
       const { createCustomer } = await import('../../api/customers');
-      (createCustomer as any).mockResolvedValue({
+      (createCustomer as ReturnType<typeof vi.fn>).mockResolvedValue({
         data: { ...customerData, id: 'cust-2', createdAt: new Date(), updatedAt: new Date() },
         error: null,
       });
@@ -326,12 +326,12 @@ describe('End-to-End Business Workflows', () => {
       const { createSale } = await import('../../api/sales');
       const { updateCustomer } = await import('../../api/customers');
       
-      (createSale as any).mockResolvedValue({
+      (createSale as ReturnType<typeof vi.fn>).mockResolvedValue({
         data: { ...saleData, id: 'sale-2', createdAt: new Date() },
         error: null,
       });
       
-      (updateCustomer as any).mockResolvedValue({
+      (updateCustomer as ReturnType<typeof vi.fn>).mockResolvedValue({
         data: { ...customer, totalPurchases: 1120, loyaltyPoints: 11 },
         error: null,
       });
@@ -408,7 +408,7 @@ describe('End-to-End Business Workflows', () => {
 
       // Mock successful sale creation
       const { createSale } = await import('../../api/sales');
-      (createSale as any).mockResolvedValue({
+      (createSale as ReturnType<typeof vi.fn>).mockResolvedValue({
         data: { ...saleData, id: 'sale-3', createdAt: new Date() },
         error: null,
       });
@@ -465,7 +465,7 @@ describe('End-to-End Business Workflows', () => {
       });
 
       // Test different payment methods
-      const paymentMethods: Array<{ method: any; description: string }> = [
+      const paymentMethods: Array<{ method: 'cash' | 'gcash' | 'paymaya' | 'bank_transfer'; description: string }> = [
         { method: 'cash', description: 'Cash Payment' },
         { method: 'gcash', description: 'GCash Payment' },
         { method: 'paymaya', description: 'PayMaya Payment' },
@@ -499,7 +499,7 @@ describe('End-to-End Business Workflows', () => {
 
         // Mock successful sale creation
         const { createSale } = await import('../../api/sales');
-        (createSale as any).mockResolvedValue({
+        (createSale as ReturnType<typeof vi.fn>).mockResolvedValue({
           data: { ...saleData, id: `sale-${payment.method}`, createdAt: new Date() },
           error: null,
         });
@@ -588,7 +588,7 @@ describe('End-to-End Business Workflows', () => {
 
       // Mock successful sale creation
       const { createSale } = await import('../../api/sales');
-      (createSale as any).mockResolvedValue({
+      (createSale as ReturnType<typeof vi.fn>).mockResolvedValue({
         data: { ...saleData, id: 'sale-bir', createdAt: new Date() },
         error: null,
       });
@@ -686,7 +686,7 @@ describe('End-to-End Business Workflows', () => {
       };
 
       act(() => {
-        const offlineSale = businessStore.current.createOfflineSale(offlineSaleData);
+        businessStore.current.createOfflineSale(offlineSaleData);
         
         // Add to pending transactions
         offlineStore.current.addPendingTransaction({
@@ -771,7 +771,7 @@ describe('End-to-End Business Workflows', () => {
 
       // Mock API failure
       const { createSale } = await import('../../api/sales');
-      (createSale as any).mockResolvedValue({
+      (createSale as ReturnType<typeof vi.fn>).mockResolvedValue({
         data: null,
         error: 'Database connection failed',
       });
