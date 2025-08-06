@@ -60,3 +60,8 @@ export const LazyElectronicReceipts = lazy(() =>
 export const LazyProductHistory = lazy(() => 
   import('../components/inventory/ProductHistory')
 );
+
+// Help Module
+export const LazyHelpModule = lazy(() => 
+  import('../components/help/HelpModule')
+);

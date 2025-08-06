@@ -20,7 +20,8 @@ import {
   Shield,
   History,
   Truck,
-  UserCog
+  UserCog,
+  HelpCircle
 } from 'lucide-react';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
@@ -76,7 +77,8 @@ import {
   LazyLoyaltyPrograms,
   LazyCloudBackup,
   LazySalesHistory,
-  LazyProductHistory
+  LazyProductHistory,
+  LazyHelpModule
 } from './utils/lazyComponents';
 
 const App: React.FC = () => {
@@ -174,6 +176,7 @@ const App: React.FC = () => {
       { id: 'admin-dashboard', label: 'Admin Dashboard', icon: Shield, module: 'admin-dashboard' }, // Admin only
       { id: 'user-roles', label: 'User Role Management', icon: UserCog, module: 'admin-dashboard' }, // Admin only
       { id: 'data-history', label: 'Data History', icon: History, module: 'admin-dashboard' }, // Admin only
+      { id: 'help', label: 'Help & Documentation', icon: HelpCircle, module: 'help' }, // Available to all users
       { id: 'settings', label: 'Settings', icon: Settings, module: 'settings' }
     ];
 
@@ -355,6 +358,8 @@ const App: React.FC = () => {
             <LazyDataHistoryTracking />
           </PermissionGuard>
         );
+      case 'help':
+        return <LazyHelpModule />;
       case 'settings':
         return (
           <PermissionGuard module="settings">

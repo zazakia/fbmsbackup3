@@ -1,547 +1,349 @@
-import React, { useState, useEffect } from 'react';
-import {
-  HelpCircle,
-  Book,
+import React, { useState } from 'react';
+import { 
+  HelpCircle, 
+  Book, 
+  Users, 
+  Shield, 
+  Wrench, 
   FileText,
-  CheckSquare,
-  Keyboard,
-  MessageCircle,
-  Phone,
-  Mail,
   ExternalLink,
-  Search,
-  ChevronRight,
-  ChevronDown,
-  Info,
-  Lightbulb,
-  Settings,
-  Shield,
-  Zap,
-  Users,
-  Target,
-  Clipboard,
-  PlayCircle,
   Download,
-  Upload,
-  Code,
-  Bug,
-  AlertTriangle,
-  X,
-  Monitor,
-  Smartphone,
-  Tablet,
-  Globe,
-  Clock,
-  BarChart3,
-  DollarSign,
-  Package,
-  Receipt,
-  Building2,
+  ChevronDown,
+  ChevronRight,
+  User,
   UserCheck,
-  Wrench
+  Crown,
+  Database
 } from 'lucide-react';
+import { useSupabaseAuthStore } from '../../store/supabaseAuthStore';
 
-interface HelpSection {
+interface HelpMenuItem {
   id: string;
   title: string;
-  icon: React.ReactNode;
-  content: React.ReactNode;
-  category: 'getting-started' | 'features' | 'troubleshooting' | 'development' | 'support';
+  description: string;
+  icon: React.ComponentType<{ className?: string }>;
+  roles: string[];
+  type: 'internal' | 'external' | 'download';
+  url?: string;
+  children?: HelpMenuItem[];
 }
 
 const HelpMenu: React.FC = () => {
-  const [isOpen, setIsOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [activeSection, setActiveSection] = useState<string | null>(null);
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [todoContent, setTodoContent] = useState<string>('');
-  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
+  const { user } = useSupabaseAuthStore();
+  const [expandedItems, setExpandedItems] = useState<string[]>([]);
 
-  useEffect(() => {
-    // Load todo.md content
-    fetch('/todo.md')
-      .then(response => response.text())
-      .then(content => setTodoContent(content))
-      .catch(error => console.log('Todo.md not found in public folder'));
-  }, []);
+  const toggleExpanded = (itemId: string) => {
+    setExpandedItems(prev => 
+      prev.includes(itemId) 
+        ? prev.filter(id => id !== itemId)
+        : [...prev, itemId]
+    );
+  };
 
-  const categories = [
-    { id: 'all', label: 'All Topics', icon: <Book className="h-4 w-4" /> },
-    { id: 'getting-started', label: 'Getting Started', icon: <PlayCircle className="h-4 w-4" /> },
-    { id: 'features', label: 'Features', icon: <Zap className="h-4 w-4" /> },
-    { id: 'troubleshooting', label: 'Troubleshooting', icon: <Bug className="h-4 w-4" /> },
-    { id: 'development', label: 'Development', icon: <Code className="h-4 w-4" /> },
-    { id: 'support', label: 'Support', icon: <MessageCircle className="h-4 w-4" /> }
-  ];
-
-  const keyboardShortcuts = [
-    { key: 'Ctrl + K', description: 'Quick search' },
-    { key: 'Ctrl + N', description: 'New record' },
-    { key: 'Ctrl + S', description: 'Save current form' },
-    { key: 'Ctrl + E', description: 'Export current data' },
-    { key: 'Ctrl + D', description: 'Dashboard' },
-    { key: 'Ctrl + I', description: 'Inventory' },
-    { key: 'Ctrl + P', description: 'POS System' },
-    { key: 'Ctrl + R', description: 'Reports' },
-    { key: 'Esc', description: 'Close modal/menu' },
-    { key: 'Tab', description: 'Navigate between fields' },
-    { key: 'Enter', description: 'Submit form' },
-    { key: 'F1', description: 'Help menu' }
-  ];
-
-  const faqData = [
+  const helpMenuItems: HelpMenuItem[] = [
     {
-      question: "How do I reset my password?",
-      answer: "Go to Settings > Account > Security and click 'Change Password'. You'll need to enter your current password and a new password."
+      id: 'user-guides',
+      title: 'User Guides',
+      description: 'Complete documentation for all FBMS features',
+      icon: Book,
+      roles: ['admin', 'manager', 'cashier', 'accountant'],
+      type: 'internal',
+      children: [
+        {
+          id: 'getting-started',
+          title: 'Getting Started',
+          description: 'Basic introduction to FBMS',
+          icon: User,
+          roles: ['admin', 'manager', 'cashier', 'accountant'],
+          type: 'internal'
+        },
+        {
+          id: 'pos-system',
+          title: 'Point of Sale (POS)',
+          description: 'Complete POS system guide',
+          icon: FileText,
+          roles: ['admin', 'manager', 'cashier'],
+          type: 'internal'
+        },
+        {
+          id: 'inventory-management',
+          title: 'Inventory Management',
+          description: 'Managing products and stock levels',
+          icon: Database,
+          roles: ['admin', 'manager'],
+          type: 'internal'
+        },
+        {
+          id: 'customer-management',
+          title: 'Customer Management',
+          description: 'Managing customer database and relationships',
+          icon: Users,
+          roles: ['admin', 'manager', 'cashier'],
+          type: 'internal'
+        },
+        {
+          id: 'reports-analytics',
+          title: 'Reports & Analytics',
+          description: 'Business intelligence and reporting',
+          icon: FileText,
+          roles: ['admin', 'manager'],
+          type: 'internal'
+        }
+      ]
     },
     {
-      question: "Why is my data not syncing?",
-      answer: "Check your internet connection and ensure you're logged in. If issues persist, try refreshing the page or contact support."
+      id: 'training-materials',
+      title: 'Training Materials',
+      description: 'Role-specific training guides and tutorials',
+      icon: Users,
+      roles: ['admin', 'manager', 'cashier', 'accountant'],
+      type: 'internal',
+      children: [
+        {
+          id: 'cashier-training',
+          title: 'Cashier Training',
+          description: 'Complete training for cashier operations',
+          icon: UserCheck,
+          roles: ['admin', 'manager', 'cashier'],
+          type: 'download',
+          url: '/docs/training/CASHIER_TRAINING_GUIDE.md'
+        },
+        {
+          id: 'manager-training',
+          title: 'Manager Training',
+          description: 'Management operations and analytics training',
+          icon: Crown,
+          roles: ['admin', 'manager'],
+          type: 'download',
+          url: '/docs/training/MANAGER_TRAINING_GUIDE.md'
+        },
+        {
+          id: 'admin-training',
+          title: 'Administrator Training',
+          description: 'System administration and technical management',
+          icon: Shield,
+          roles: ['admin'],
+          type: 'download',
+          url: '/docs/training/ADMIN_TRAINING_GUIDE.md'
+        }
+      ]
     },
     {
-      question: "How do I generate BIR forms?",
-      answer: "Navigate to Reports > BIR Forms. Select the appropriate form type and date range, then click 'Generate PDF'."
-    },
-    {
-      question: "Can I use FBMS offline?",
-      answer: "Basic POS functionality works offline, but syncing requires an internet connection. Full offline mode is planned for future updates."
-    },
-    {
-      question: "How do I add new users?",
-      answer: "Only admins can add users. Go to Admin > User Management, click 'Add User', and assign appropriate roles."
-    },
-    {
-      question: "What payment methods are supported?",
-      answer: "Currently supports cash, GCash, and PayMaya. Additional payment methods are being integrated."
-    }
-  ];
-
-  const helpSections: HelpSection[] = [
-    {
-      id: 'quick-start',
-      title: 'Quick Start Guide',
-      icon: <PlayCircle className="h-5 w-5" />,
-      category: 'getting-started',
-      content: (
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="bg-blue-50 p-4 rounded-lg">
-              <h4 className="font-semibold text-blue-900 mb-2">1. Set Up Your Business</h4>
-              <p className="text-sm text-blue-800">Configure your business details, branches, and initial inventory.</p>
-            </div>
-            <div className="bg-green-50 p-4 rounded-lg">
-              <h4 className="font-semibold text-green-900 mb-2">2. Add Products</h4>
-              <p className="text-sm text-green-800">Import or manually add your products with pricing and stock levels.</p>
-            </div>
-            <div className="bg-purple-50 p-4 rounded-lg">
-              <h4 className="font-semibold text-purple-900 mb-2">3. Configure Users</h4>
-              <p className="text-sm text-purple-800">Set up user accounts with appropriate roles and permissions.</p>
-            </div>
-            <div className="bg-orange-50 p-4 rounded-lg">
-              <h4 className="font-semibold text-orange-900 mb-2">4. Start Selling</h4>
-              <p className="text-sm text-orange-800">Use the POS system to process sales and manage transactions.</p>
-            </div>
-          </div>
-        </div>
-      )
-    },
-    {
-      id: 'features-overview',
-      title: 'Features Overview',
-      icon: <Zap className="h-5 w-5" />,
-      category: 'features',
-      content: (
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-              <DollarSign className="h-6 w-6 text-green-600" />
-              <div>
-                <h4 className="font-medium">Point of Sale</h4>
-                <p className="text-sm text-gray-600">Complete POS system with receipt printing</p>
-              </div>
-            </div>
-            <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-              <Package className="h-6 w-6 text-blue-600" />
-              <div>
-                <h4 className="font-medium">Inventory Management</h4>
-                <p className="text-sm text-gray-600">Track stock levels and automate reordering</p>
-              </div>
-            </div>
-            <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-              <BarChart3 className="h-6 w-6 text-purple-600" />
-              <div>
-                <h4 className="font-medium">Analytics & Reports</h4>
-                <p className="text-sm text-gray-600">Detailed insights and BIR compliance</p>
-              </div>
-            </div>
-            <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-              <Receipt className="h-6 w-6 text-orange-600" />
-              <div>
-                <h4 className="font-medium">Accounting</h4>
-                <p className="text-sm text-gray-600">Financial management and tax reporting</p>
-              </div>
-            </div>
-            <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-              <Building2 className="h-6 w-6 text-red-600" />
-              <div>
-                <h4 className="font-medium">Multi-Branch</h4>
-                <p className="text-sm text-gray-600">Manage multiple locations from one system</p>
-              </div>
-            </div>
-            <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-              <UserCheck className="h-6 w-6 text-indigo-600" />
-              <div>
-                <h4 className="font-medium">User Management</h4>
-                <p className="text-sm text-gray-600">Role-based access control</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      )
-    },
-    {
-      id: 'keyboard-shortcuts',
-      title: 'Keyboard Shortcuts',
-      icon: <Keyboard className="h-5 w-5" />,
-      category: 'features',
-      content: (
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {keyboardShortcuts.map((shortcut, index) => (
-              <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <span className="font-medium">{shortcut.description}</span>
-                <kbd className="px-2 py-1 bg-gray-200 rounded text-sm font-mono">
-                  {shortcut.key}
-                </kbd>
-              </div>
-            ))}
-          </div>
-          <div className="bg-blue-50 p-4 rounded-lg">
-            <p className="text-sm text-blue-800">
-              <Info className="h-4 w-4 inline mr-1" />
-              Pro tip: Press F1 at any time to open this help menu quickly!
-            </p>
-          </div>
-        </div>
-      )
-    },
-    {
-      id: 'device-compatibility',
-      title: 'Device Compatibility',
-      icon: <Monitor className="h-5 w-5" />,
-      category: 'features',
-      content: (
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="text-center p-4 bg-green-50 rounded-lg">
-              <Monitor className="h-8 w-8 text-green-600 mx-auto mb-2" />
-              <h4 className="font-semibold text-green-900">Desktop</h4>
-              <p className="text-sm text-green-800">Fully optimized for desktop use</p>
-            </div>
-            <div className="text-center p-4 bg-blue-50 rounded-lg">
-              <Tablet className="h-8 w-8 text-blue-600 mx-auto mb-2" />
-              <h4 className="font-semibold text-blue-900">Tablet</h4>
-              <p className="text-sm text-blue-800">Perfect for mobile POS operations</p>
-            </div>
-            <div className="text-center p-4 bg-purple-50 rounded-lg">
-              <Smartphone className="h-8 w-8 text-purple-600 mx-auto mb-2" />
-              <h4 className="font-semibold text-purple-900">Mobile</h4>
-              <p className="text-sm text-purple-800">Essential features available on mobile</p>
-            </div>
-          </div>
-          <div className="bg-yellow-50 p-4 rounded-lg">
-            <h4 className="font-semibold text-yellow-900 mb-2">Browser Requirements</h4>
-            <ul className="text-sm text-yellow-800 space-y-1">
-              <li>• Chrome 90+ (Recommended)</li>
-              <li>• Firefox 88+</li>
-              <li>• Safari 14+ (macOS/iOS)</li>
-              <li>• Edge 90+</li>
-            </ul>
-          </div>
-        </div>
-      )
+      id: 'technical-docs',
+      title: 'Technical Documentation',
+      description: 'System administration and technical guides',
+      icon: Shield,
+      roles: ['admin'],
+      type: 'internal',
+      children: [
+        {
+          id: 'admin-guide',
+          title: 'Administrator Guide',
+          description: 'Complete system administration guide',
+          icon: Shield,
+          roles: ['admin'],
+          type: 'download',
+          url: '/docs/TECHNICAL_ADMINISTRATION_GUIDE.md'
+        },
+        {
+          id: 'backup-recovery',
+          title: 'Backup & Recovery',
+          description: 'Backup procedures and disaster recovery',
+          icon: Database,
+          roles: ['admin'],
+          type: 'download',
+          url: '/docs/BACKUP_RECOVERY_PROCEDURES.md'
+        },
+        {
+          id: 'deployment-guide',
+          title: 'Deployment Guide',
+          description: 'Production deployment procedures',
+          icon: FileText,
+          roles: ['admin'],
+          type: 'internal'
+        }
+      ]
     },
     {
       id: 'troubleshooting',
-      title: 'Common Issues',
-      icon: <Bug className="h-5 w-5" />,
-      category: 'troubleshooting',
-      content: (
-        <div className="space-y-4">
-          <div className="space-y-3">
-            <div className="border-l-4 border-red-500 pl-4">
-              <h4 className="font-semibold text-red-900">Login Issues</h4>
-              <p className="text-sm text-red-800">Clear browser cache, check internet connection, or contact admin for password reset.</p>
-            </div>
-            <div className="border-l-4 border-yellow-500 pl-4">
-              <h4 className="font-semibold text-yellow-900">Slow Performance</h4>
-              <p className="text-sm text-yellow-800">Close unnecessary tabs, check internet speed, or restart your browser.</p>
-            </div>
-            <div className="border-l-4 border-blue-500 pl-4">
-              <h4 className="font-semibold text-blue-900">Data Not Syncing</h4>
-              <p className="text-sm text-blue-800">Check internet connection and refresh the page. Data will sync automatically when connection is restored.</p>
-            </div>
-            <div className="border-l-4 border-green-500 pl-4">
-              <h4 className="font-semibold text-green-900">Print Issues</h4>
-              <p className="text-sm text-green-800">Check printer connection and ensure proper drivers are installed.</p>
-            </div>
-          </div>
-        </div>
-      )
+      title: 'Troubleshooting',
+      description: 'Common issues and solutions',
+      icon: Wrench,
+      roles: ['admin', 'manager', 'cashier', 'accountant'],
+      type: 'internal',
+      children: [
+        {
+          id: 'common-issues',
+          title: 'Common Issues',
+          description: 'Frequently encountered problems and solutions',
+          icon: HelpCircle,
+          roles: ['admin', 'manager', 'cashier', 'accountant'],
+          type: 'download',
+          url: '/docs/TROUBLESHOOTING_GUIDE.md'
+        },
+        {
+          id: 'pos-issues',
+          title: 'POS System Issues',
+          description: 'Point of sale troubleshooting',
+          icon: FileText,
+          roles: ['admin', 'manager', 'cashier'],
+          type: 'internal'
+        },
+        {
+          id: 'payment-issues',
+          title: 'Payment Problems',
+          description: 'Payment gateway and processing issues',
+          icon: FileText,
+          roles: ['admin', 'manager', 'cashier'],
+          type: 'internal'
+        }
+      ]
     },
     {
-      id: 'faq',
-      title: 'Frequently Asked Questions',
-      icon: <MessageCircle className="h-5 w-5" />,
-      category: 'support',
-      content: (
-        <div className="space-y-4">
-          {faqData.map((faq, index) => (
-            <div key={index} className="border rounded-lg p-4">
-              <h4 className="font-semibold text-gray-900 mb-2">{faq.question}</h4>
-              <p className="text-sm text-gray-600">{faq.answer}</p>
-            </div>
-          ))}
-        </div>
-      )
-    },
-    {
-      id: 'project-roadmap',
-      title: 'Project Roadmap & Todo',
-      icon: <Target className="h-5 w-5" />,
-      category: 'development',
-      content: (
-        <div className="space-y-4">
-          <div className="bg-blue-50 p-4 rounded-lg">
-            <h4 className="font-semibold text-blue-900 mb-2">Current Project Status: 92% Complete</h4>
-            <p className="text-sm text-blue-800">FBMS is nearing completion with most core features implemented.</p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="bg-green-50 p-4 rounded-lg">
-              <h4 className="font-semibold text-green-900 mb-2">✅ Recently Completed</h4>
-              <ul className="text-sm text-green-800 space-y-1">
-                <li>• Security enhancements</li>
-                <li>• BIR compliance forms</li>
-                <li>• Mobile optimization</li>
-                <li>• Performance improvements</li>
-              </ul>
-            </div>
-            <div className="bg-orange-50 p-4 rounded-lg">
-              <h4 className="font-semibold text-orange-900 mb-2">🔄 In Progress</h4>
-              <ul className="text-sm text-orange-800 space-y-1">
-                <li>• Database security (RLS)</li>
-                <li>• Advanced reporting</li>
-                <li>• Multi-branch features</li>
-                <li>• Testing coverage</li>
-              </ul>
-            </div>
-          </div>
-          <div className="bg-purple-50 p-4 rounded-lg">
-            <h4 className="font-semibold text-purple-900 mb-2">🔮 Upcoming Features</h4>
-            <ul className="text-sm text-purple-800 space-y-1">
-              <li>• Real payment integration (GCash, PayMaya)</li>
-              <li>• PWA offline functionality</li>
-              <li>• AI-powered insights</li>
-              <li>• Advanced analytics</li>
-            </ul>
-          </div>
-        </div>
-      )
-    },
-    {
-      id: 'security-guide',
-      title: 'Security Best Practices',
-      icon: <Shield className="h-5 w-5" />,
-      category: 'features',
-      content: (
-        <div className="space-y-4">
-          <div className="bg-red-50 p-4 rounded-lg">
-            <h4 className="font-semibold text-red-900 mb-2">🔒 Password Security</h4>
-            <ul className="text-sm text-red-800 space-y-1">
-              <li>• Use strong, unique passwords</li>
-              <li>• Enable two-factor authentication</li>
-              <li>• Change passwords regularly</li>
-              <li>• Never share login credentials</li>
-            </ul>
-          </div>
-          <div className="bg-yellow-50 p-4 rounded-lg">
-            <h4 className="font-semibold text-yellow-900 mb-2">🛡️ Data Protection</h4>
-            <ul className="text-sm text-yellow-800 space-y-1">
-              <li>• Regular data backups</li>
-              <li>• Secure network connections</li>
-              <li>• Log out when not in use</li>
-              <li>• Keep software updated</li>
-            </ul>
-          </div>
-          <div className="bg-blue-50 p-4 rounded-lg">
-            <h4 className="font-semibold text-blue-900 mb-2">👥 User Access</h4>
-            <ul className="text-sm text-blue-800 space-y-1">
-              <li>• Assign appropriate user roles</li>
-              <li>• Review user permissions regularly</li>
-              <li>• Remove inactive users</li>
-              <li>• Monitor user activity</li>
-            </ul>
-          </div>
-        </div>
-      )
-    },
-    {
-      id: 'contact-support',
-      title: 'Contact & Support',
-      icon: <Phone className="h-5 w-5" />,
-      category: 'support',
-      content: (
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="bg-blue-50 p-4 rounded-lg">
-              <Mail className="h-6 w-6 text-blue-600 mb-2" />
-              <h4 className="font-semibold text-blue-900">Email Support</h4>
-              <p className="text-sm text-blue-800">support@fbms.com</p>
-              <p className="text-xs text-blue-700 mt-1">Response within 24 hours</p>
-            </div>
-            <div className="bg-green-50 p-4 rounded-lg">
-              <Phone className="h-6 w-6 text-green-600 mb-2" />
-              <h4 className="font-semibold text-green-900">Phone Support</h4>
-              <p className="text-sm text-green-800">+63 2 1234 5678</p>
-              <p className="text-xs text-green-700 mt-1">Mon-Fri 9AM-6PM PHT</p>
-            </div>
-          </div>
-          <div className="bg-purple-50 p-4 rounded-lg">
-            <MessageCircle className="h-6 w-6 text-purple-600 mb-2" />
-            <h4 className="font-semibold text-purple-900">Live Chat</h4>
-            <p className="text-sm text-purple-800">Available during business hours for immediate assistance</p>
-            <button className="mt-2 text-sm text-purple-700 underline">Start Chat</button>
-          </div>
-          <div className="bg-gray-50 p-4 rounded-lg">
-            <Globe className="h-6 w-6 text-gray-600 mb-2" />
-            <h4 className="font-semibold text-gray-900">Documentation</h4>
-            <p className="text-sm text-gray-800">Comprehensive guides and API documentation</p>
-            <button className="mt-2 text-sm text-gray-700 underline">View Documentation</button>
-          </div>
-        </div>
-      )
+      id: 'quick-reference',
+      title: 'Quick Reference',
+      description: 'Cheat sheets and quick guides',
+      icon: FileText,
+      roles: ['admin', 'manager', 'cashier', 'accountant'],
+      type: 'internal',
+      children: [
+        {
+          id: 'keyboard-shortcuts',
+          title: 'Keyboard Shortcuts',
+          description: 'Speed up your workflow with shortcuts',
+          icon: FileText,
+          roles: ['admin', 'manager', 'cashier', 'accountant'],
+          type: 'internal'
+        },
+        {
+          id: 'feature-comparison',
+          title: 'Feature Comparison',
+          description: 'Standard vs Enhanced features',
+          icon: FileText,
+          roles: ['admin', 'manager'],
+          type: 'internal'
+        }
+      ]
     }
   ];
 
-  const toggleSection = (sectionId: string) => {
-    const newExpanded = new Set(expandedSections);
-    if (newExpanded.has(sectionId)) {
-      newExpanded.delete(sectionId);
-    } else {
-      newExpanded.add(sectionId);
-    }
-    setExpandedSections(newExpanded);
+  // Filter menu items based on user role
+  const filterMenuItems = (items: HelpMenuItem[]): HelpMenuItem[] => {
+    return items.filter(item => {
+      const hasAccess = item.roles.includes(user?.role || 'cashier');
+      if (hasAccess && item.children) {
+        item.children = filterMenuItems(item.children);
+      }
+      return hasAccess;
+    });
   };
 
-  const filteredSections = helpSections.filter(section => {
-    const matchesCategory = selectedCategory === 'all' || section.category === selectedCategory;
-    const matchesSearch = section.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         section.id.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesCategory && matchesSearch;
-  });
+  const filteredMenuItems = filterMenuItems(helpMenuItems);
 
-  if (!isOpen) {
+  const handleItemClick = (item: HelpMenuItem) => {
+    if (item.children && item.children.length > 0) {
+      toggleExpanded(item.id);
+    } else {
+      switch (item.type) {
+        case 'download':
+          if (item.url) {
+            // For documentation files, we'll open them in a new tab for viewing
+            window.open(item.url, '_blank');
+          }
+          break;
+        case 'external':
+          if (item.url) {
+            window.open(item.url, '_blank');
+          }
+          break;
+        case 'internal':
+          // Open documentation viewer in a modal or new page
+          // For now, we'll show an alert with the content type
+          alert(`Opening ${item.title} documentation...`);
+          break;
+      }
+    }
+  };
+
+  const renderMenuItem = (item: HelpMenuItem, level: number = 0) => {
+    const Icon = item.icon;
+    const isExpanded = expandedItems.includes(item.id);
+    const hasChildren = item.children && item.children.length > 0;
+
     return (
-      <button
-        onClick={() => setIsOpen(true)}
-        className="fixed bottom-4 right-4 bg-blue-600 text-white p-3 rounded-full shadow-lg hover:bg-blue-700 transition-colors z-50"
-        title="Help Menu (F1)"
-      >
-        <HelpCircle className="h-6 w-6" />
-      </button>
+      <div key={item.id} className={`${level > 0 ? 'ml-4' : ''}`}>
+        <button
+          onClick={() => handleItemClick(item)}
+          className="w-full flex items-center justify-between p-3 text-left hover:bg-gray-50 dark:hover:bg-dark-700 rounded-lg transition-colors group"
+        >
+          <div className="flex items-center space-x-3">
+            <Icon className="h-5 w-5 text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300" />
+            <div>
+              <div className="font-medium text-gray-900 dark:text-gray-100 group-hover:text-gray-700 dark:group-hover:text-gray-200">
+                {item.title}
+              </div>
+              <div className="text-xs text-gray-500 dark:text-gray-400">
+                {item.description}
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center space-x-2">
+            {item.type === 'download' && (
+              <Download className="h-4 w-4 text-gray-400" />
+            )}
+            {item.type === 'external' && (
+              <ExternalLink className="h-4 w-4 text-gray-400" />
+            )}
+            {hasChildren && (
+              <ChevronRight 
+                className={`h-4 w-4 text-gray-400 transition-transform ${
+                  isExpanded ? 'rotate-90' : ''
+                }`} 
+              />
+            )}
+          </div>
+        </button>
+        
+        {hasChildren && isExpanded && (
+          <div className="mt-2 space-y-1">
+            {item.children!.map(child => renderMenuItem(child, level + 1))}
+          </div>
+        )}
+      </div>
     );
-  }
+  };
 
   return (
-    <>
-      {/* Overlay */}
-      <div className="fixed inset-0 bg-black bg-opacity-50 z-40" onClick={() => setIsOpen(false)} />
+    <div className="bg-white dark:bg-dark-800 rounded-lg border border-gray-200 dark:border-dark-600 shadow-sm">
+      <div className="p-4 border-b border-gray-200 dark:border-dark-600">
+        <div className="flex items-center space-x-2">
+          <HelpCircle className="h-5 w-5 text-primary-600 dark:text-primary-400" />
+          <h3 className="font-semibold text-gray-900 dark:text-gray-100">
+            Help & Documentation
+          </h3>
+        </div>
+        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+          Access guides, training materials, and support resources
+        </p>
+      </div>
       
-      {/* Help Menu */}
-      <div className="fixed inset-4 bg-white rounded-lg shadow-xl z-50 flex flex-col max-h-[90vh]">
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b">
-          <div className="flex items-center space-x-3">
-            <HelpCircle className="h-6 w-6 text-blue-600" />
-            <h2 className="text-xl font-bold text-gray-900">FBMS Help Center</h2>
-          </div>
-          <button
-            onClick={() => setIsOpen(false)}
-            className="text-gray-400 hover:text-gray-600"
-          >
-            <X className="h-6 w-6" />
-          </button>
-        </div>
-
-        {/* Search and Categories */}
-        <div className="p-4 border-b">
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search help topics..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
-            <select
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              {categories.map(category => (
-                <option key={category.id} value={category.id}>
-                  {category.label}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto">
-          <div className="p-4 space-y-4">
-            {filteredSections.map(section => (
-              <div key={section.id} className="border rounded-lg">
-                <button
-                  onClick={() => toggleSection(section.id)}
-                  className="w-full flex items-center justify-between p-4 text-left hover:bg-gray-50"
-                >
-                  <div className="flex items-center space-x-3">
-                    <span className="text-blue-600">{section.icon}</span>
-                    <h3 className="font-semibold text-gray-900">{section.title}</h3>
-                  </div>
-                  {expandedSections.has(section.id) ? (
-                    <ChevronDown className="h-5 w-5 text-gray-400" />
-                  ) : (
-                    <ChevronRight className="h-5 w-5 text-gray-400" />
-                  )}
-                </button>
-                {expandedSections.has(section.id) && (
-                  <div className="p-4 border-t bg-gray-50">
-                    {section.content}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Footer */}
-        <div className="p-4 border-t bg-gray-50">
-          <div className="flex items-center justify-between text-sm text-gray-600">
-            <span>FBMS Help Center - Version 2.0</span>
-            <div className="flex items-center space-x-4">
-              <span>Press F1 for quick access</span>
-              <span>•</span>
-              <span>Last updated: {new Date().toLocaleDateString()}</span>
-            </div>
-          </div>
+      <div className="p-2 max-h-96 overflow-y-auto">
+        <div className="space-y-1">
+          {filteredMenuItems.map(item => renderMenuItem(item))}
         </div>
       </div>
-    </>
+      
+      <div className="p-4 border-t border-gray-200 dark:border-dark-600 bg-gray-50 dark:bg-dark-700">
+        <div className="text-center">
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+            Need additional help?
+          </p>
+          <button className="text-sm text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 font-medium">
+            Contact Support
+          </button>
+        </div>
+      </div>
+    </div>
   );
 };
 
