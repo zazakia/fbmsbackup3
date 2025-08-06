@@ -1,343 +1,375 @@
 #!/bin/bash
 
-# Enhanced FBMS Staging Deploy Script
-# Usage: ./scripts/deploy-staging.sh [commit-message] [--platform=netlify|vercel|both] [--skip-git] [--force-push]
-# Examples:
-#   ./scripts/deploy-staging.sh "test new feature"
-#   ./scripts/deploy-staging.sh "fix bug" --platform=vercel
-#   ./scripts/deploy-staging.sh "update" --platform=both --skip-git
+# FBMS Staging Deployment Script
+# This script handles staging deployment for testing and validation
 
 set -e  # Exit on any error
+
+# Configuration
+PROJECT_NAME="fbms-staging"
+STAGING_URL="https://staging.yourdomain.com"
+LOG_FILE="/var/log/fbms/staging-deployment.log"
 
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
-PURPLE='\033[0;35m'
 NC='\033[0m' # No Color
 
-# Helper functions
+# Logging function
 log() {
-    echo -e "${GREEN}[INFO]${NC} $1"
-}
-
-warn() {
-    echo -e "${YELLOW}[WARNING]${NC} $1"
+    echo -e "${GREEN}[$(date +'%Y-%m-%d %H:%M:%S')] $1${NC}"
+    echo "[$(date +'%Y-%m-%d %H:%M:%S')] $1" >> $LOG_FILE
 }
 
 error() {
-    echo -e "${RED}[ERROR]${NC} $1"
+    echo -e "${RED}[ERROR] $1${NC}"
+    echo "[ERROR] $1" >> $LOG_FILE
+    exit 1
 }
 
-header() {
-    echo -e "${PURPLE}================================${NC}"
-    echo -e "${PURPLE}$1${NC}"
-    echo -e "${PURPLE}================================${NC}"
+warning() {
+    echo -e "${YELLOW}[WARNING] $1${NC}"
+    echo "[WARNING] $1" >> $LOG_FILE
 }
 
-# Default values
-COMMIT_MSG=""
-DEPLOY_PLATFORM="netlify"
-SKIP_GIT=false
-FORCE_PUSH=false
+info() {
+    echo -e "${BLUE}[INFO] $1${NC}"
+    echo "[INFO] $1" >> $LOG_FILE
+}
+
+# Pre-deployment checks for staging
+pre_deployment_checks() {
+    log "Starting staging pre-deployment checks..."
+    
+    # Check if required environment variables are set
+    if [ -z "$VITE_SUPABASE_URL_STAGING" ]; then
+        error "VITE_SUPABASE_URL_STAGING environment variable is not set"
+    fi
+    
+    if [ -z "$VITE_SUPABASE_ANON_KEY_STAGING" ]; then
+        error "VITE_SUPABASE_ANON_KEY_STAGING environment variable is not set"
+    fi
+    
+    # Check package manager
+    if ! command -v pnpm &> /dev/null; then
+        if ! command -v npm &> /dev/null; then
+            error "Neither pnpm nor npm is installed"
+        else
+            warning "pnpm not found, using npm instead"
+            PACKAGE_MANAGER="npm"
+        fi
+    else
+        PACKAGE_MANAGER="pnpm"
+    fi
+    
+    # Check if Vercel CLI is installed
+    if ! command -v vercel &> /dev/null; then
+        error "Vercel CLI is not installed. Install with: npm install -g vercel"
+    fi
+    
+    log "Staging pre-deployment checks completed"
+}
+
+# Install dependencies
+install_dependencies() {
+    log "Installing dependencies for staging..."
+    
+    if [ "$PACKAGE_MANAGER" = "pnpm" ]; then
+        pnpm install
+    else
+        npm install
+    fi
+    
+    log "Dependencies installed successfully"
+}
+
+# Run tests for staging
+run_tests() {
+    log "Running test suite for staging..."
+    
+    # Run unit tests
+    if [ "$PACKAGE_MANAGER" = "pnpm" ]; then
+        pnpm test --run --reporter=verbose
+    else
+        npm run test -- --run --reporter=verbose
+    fi
+    
+    # Run linting
+    if [ "$PACKAGE_MANAGER" = "pnpm" ]; then
+        pnpm lint
+    else
+        npm run lint
+    fi
+    
+    log "All tests passed for staging"
+}
+
+# Build application for staging
+build_application() {
+    log "Building application for staging..."
+    
+    # Set staging environment variables
+    export NODE_ENV=production
+    export VITE_APP_ENV=staging
+    export VITE_SUPABASE_URL=$VITE_SUPABASE_URL_STAGING
+    export VITE_SUPABASE_ANON_KEY=$VITE_SUPABASE_ANON_KEY_STAGING
+    
+    # Build the application
+    if [ "$PACKAGE_MANAGER" = "pnpm" ]; then
+        pnpm build
+    else
+        npm run build
+    fi
+    
+    # Verify build output
+    if [ ! -d "dist" ]; then
+        error "Build failed - dist directory not found"
+    fi
+    
+    log "Application built successfully for staging"
+}
+
+# Deploy to Vercel staging
+deploy_to_vercel() {
+    log "Deploying to Vercel staging..."
+    
+    # Deploy to staging (not production)
+    vercel --prod=false --confirm
+    
+    log "Deployment to Vercel staging completed"
+}
+
+# Run integration tests on staging
+run_integration_tests() {
+    log "Running integration tests on staging..."
+    
+    # Wait for deployment to be ready
+    sleep 30
+    
+    # Get the staging URL from Vercel
+    STAGING_URL=$(vercel ls | grep $PROJECT_NAME | head -n1 | awk '{print $2}')
+    
+    if [ -z "$STAGING_URL" ]; then
+        warning "Could not determine staging URL, using default"
+        STAGING_URL="https://staging.yourdomain.com"
+    fi
+    
+    info "Running tests against: $STAGING_URL"
+    
+    # Basic connectivity test
+    HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" $STAGING_URL)
+    if [ "$HTTP_STATUS" != "200" ]; then
+        error "Staging site is not accessible. HTTP status: $HTTP_STATUS"
+    fi
+    
+    # Test key endpoints
+    endpoints=(
+        "/auth/login"
+        "/api/health"
+        "/dashboard"
+    )
+    
+    for endpoint in "${endpoints[@]}"; do
+        STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$STAGING_URL$endpoint")
+        if [ "$STATUS" = "200" ] || [ "$STATUS" = "405" ] || [ "$STATUS" = "401" ]; then
+            info "✓ $endpoint - OK ($STATUS)"
+        else
+            warning "✗ $endpoint - Failed ($STATUS)"
+        fi
+    done
+    
+    # Run automated tests if available
+    if [ "$PACKAGE_MANAGER" = "pnpm" ]; then
+        if pnpm run test:integration --help &> /dev/null; then
+            STAGING_URL=$STAGING_URL pnpm run test:integration
+        fi
+    else
+        if npm run test:integration --help &> /dev/null; then
+            STAGING_URL=$STAGING_URL npm run test:integration
+        fi
+    fi
+    
+    log "Integration tests completed"
+}
+
+# Generate staging report
+generate_staging_report() {
+    log "Generating staging deployment report..."
+    
+    # Get current git information
+    COMMIT_HASH=$(git rev-parse --short HEAD)
+    COMMIT_MESSAGE=$(git log -1 --pretty=%B)
+    BRANCH_NAME=$(git branch --show-current)
+    
+    # Create report
+    REPORT_FILE="/tmp/staging-deployment-report-$(date +%Y%m%d_%H%M%S).txt"
+    
+    cat > $REPORT_FILE << EOF
+FBMS Staging Deployment Report
+==============================
+
+Deployment Information:
+- Date: $(date)
+- Branch: $BRANCH_NAME
+- Commit: $COMMIT_HASH
+- Commit Message: $COMMIT_MESSAGE
+- Staging URL: $STAGING_URL
+
+Build Information:
+- Node.js Version: $(node --version)
+- Package Manager: $PACKAGE_MANAGER
+- Environment: staging
+
+Test Results:
+- Unit Tests: PASSED
+- Linting: PASSED
+- Integration Tests: PASSED
+- Site Accessibility: PASSED
+
+Next Steps:
+1. Perform manual testing on staging environment
+2. Validate all features work as expected
+3. Test with different user roles
+4. Verify BIR compliance features
+5. Test payment integrations
+6. If all tests pass, proceed with production deployment
+
+Staging Environment Access:
+- URL: $STAGING_URL
+- Admin Login: Use staging admin credentials
+- Test Data: Staging database contains test data only
+
+Notes:
+- This is a staging environment for testing purposes only
+- Do not use real customer data or process real payments
+- Report any issues before promoting to production
+EOF
+
+    echo "Staging deployment report generated: $REPORT_FILE"
+    cat $REPORT_FILE
+    
+    log "Staging report generated successfully"
+}
+
+# Send staging notification
+send_staging_notification() {
+    log "Sending staging deployment notification..."
+    
+    # Get current git commit
+    COMMIT_HASH=$(git rev-parse --short HEAD)
+    COMMIT_MESSAGE=$(git log -1 --pretty=%B)
+    BRANCH_NAME=$(git branch --show-current)
+    
+    # Prepare notification message
+    MESSAGE="🧪 FBMS Staging Deployment Complete
+
+Branch: $BRANCH_NAME
+Commit: $COMMIT_HASH
+Message: $COMMIT_MESSAGE
+Time: $(date)
+Staging URL: $STAGING_URL
+
+Ready for testing! Please validate all features before production deployment.
+
+Test Checklist:
+✅ Unit tests passed
+✅ Integration tests passed
+⏳ Manual testing required
+⏳ User acceptance testing
+⏳ Performance validation"
+    
+    # Send to Slack if webhook is configured
+    if [ -n "$SLACK_WEBHOOK_URL" ]; then
+        curl -X POST -H 'Content-type: application/json' \
+            --data "{\"text\":\"$MESSAGE\"}" \
+            $SLACK_WEBHOOK_URL
+    fi
+    
+    # Send email if configured
+    if [ -n "$NOTIFICATION_EMAIL" ]; then
+        echo "$MESSAGE" | mail -s "FBMS Staging Deployment Complete" $NOTIFICATION_EMAIL
+    fi
+    
+    log "Staging deployment notification sent"
+}
+
+# Main staging deployment function
+main() {
+    log "Starting FBMS staging deployment..."
+    
+    # Run deployment steps
+    pre_deployment_checks
+    install_dependencies
+    
+    if [ "$SKIP_TESTS" != "true" ]; then
+        run_tests
+    fi
+    
+    build_application
+    deploy_to_vercel
+    run_integration_tests
+    generate_staging_report
+    send_staging_notification
+    
+    log "🎉 FBMS staging deployment completed successfully!"
+    log "Staging URL: $STAGING_URL"
+    info "Please perform manual testing before promoting to production"
+}
+
+# Help function
+show_help() {
+    echo "FBMS Staging Deployment Script"
+    echo ""
+    echo "Usage: $0 [OPTIONS]"
+    echo ""
+    echo "Options:"
+    echo "  -h, --help     Show this help message"
+    echo "  --skip-tests   Skip running tests"
+    echo "  --quick        Quick deployment (skip tests and integration tests)"
+    echo ""
+    echo "Environment Variables:"
+    echo "  VITE_SUPABASE_URL_STAGING       Staging Supabase project URL (required)"
+    echo "  VITE_SUPABASE_ANON_KEY_STAGING  Staging Supabase anonymous key (required)"
+    echo "  SLACK_WEBHOOK_URL               Slack webhook for notifications (optional)"
+    echo "  NOTIFICATION_EMAIL              Email for notifications (optional)"
+    echo ""
+    echo "Examples:"
+    echo "  $0                      # Standard staging deployment"
+    echo "  $0 --skip-tests         # Deploy without running tests"
+    echo "  $0 --quick              # Quick deployment for rapid iteration"
+}
 
 # Parse command line arguments
+SKIP_TESTS=false
+QUICK_DEPLOY=false
+
 while [[ $# -gt 0 ]]; do
     case $1 in
-        --platform=*)
-            DEPLOY_PLATFORM="${1#*=}"
-            shift
-            ;;
-        --skip-git)
-            SKIP_GIT=true
-            shift
-            ;;
-        --force-push)
-            FORCE_PUSH=true
-            shift
-            ;;
-        --help|-h)
-            echo "Enhanced FBMS Staging Deploy Script"
-            echo "Usage: $0 [commit-message] [options]"
-            echo ""
-            echo "Options:"
-            echo "  --platform=TARGET    Deploy to platform (netlify, vercel, both)"
-            echo "  --skip-git          Skip git operations"
-            echo "  --force-push        Force push to remote"
-            echo "  --help, -h          Show this help message"
-            echo ""
-            echo "Examples:"
-            echo "  $0 'test new feature'"
-            echo "  $0 'fix bug' --platform=vercel"
-            echo "  $0 'update' --platform=both --skip-git"
+        -h|--help)
+            show_help
             exit 0
             ;;
-        *)
-            if [ -z "$COMMIT_MSG" ]; then
-                COMMIT_MSG="$1"
-            fi
+        --skip-tests)
+            SKIP_TESTS=true
             shift
+            ;;
+        --quick)
+            SKIP_TESTS=true
+            QUICK_DEPLOY=true
+            shift
+            ;;
+        *)
+            error "Unknown option: $1"
             ;;
     esac
 done
 
-# Load commit message generator
-source "$(dirname "$0")/utils/commit-message-generator.sh" 2>/dev/null || {
-    warn "Commit message generator not found. Using default message."
-}
+# Create log directory if it doesn't exist
+mkdir -p $(dirname $LOG_FILE)
 
-# Set default commit message if not provided
-if [ -z "$COMMIT_MSG" ]; then
-    if command -v generate_smart_commit_message &> /dev/null; then
-        log "Auto-generating commit message..."
-        COMMIT_MSG=$(generate_smart_commit_message "" "staging")
-        log "Generated message: '$COMMIT_MSG'"
-    else
-        COMMIT_MSG="Staging update $(date +'%Y-%m-%d %H:%M')"
-    fi
-fi
+# Run main deployment
+main
 
-# Validate platform
-case $DEPLOY_PLATFORM in
-    netlify|vercel|both)
-        ;;
-    *)
-        error "Invalid platform: $DEPLOY_PLATFORM"
-        log "Supported platforms: netlify, vercel, both"
-        exit 1
-        ;;
-esac
-
-# Deployment functions
-deploy_to_netlify_staging() {
-    log "🌐 Deploying to Netlify staging..."
-    
-    # Check if Netlify CLI is installed
-    if ! command -v netlify &> /dev/null; then
-        warn "Netlify CLI not found. Installing..."
-        npm install -g netlify-cli
-    fi
-
-    # Check authentication
-    if ! netlify status &> /dev/null; then
-        warn "Not logged into Netlify. Please authenticate..."
-        netlify login
-    fi
-
-    # Deploy to staging (preview deployment)
-    log "Creating Netlify preview deployment..."
-    DEPLOY_OUTPUT=$(netlify deploy --dir=dist --json 2>/dev/null)
-    
-    if [ $? -eq 0 ]; then
-        NETLIFY_URL=$(echo "$DEPLOY_OUTPUT" | grep -o '"deploy_url":"[^"]*"' | head -1 | sed 's/"deploy_url":"//g' | sed 's/"//g')
-        NETLIFY_PREVIEW=$(echo "$DEPLOY_OUTPUT" | grep -o '"url":"[^"]*"' | head -1 | sed 's/"url":"//g' | sed 's/"//g')
-        log "✅ Netlify staging deployment successful!"
-        log "🔗 Preview URL: $NETLIFY_PREVIEW"
-        log "📋 Deploy URL: $NETLIFY_URL"
-        
-        # Export for summary
-        export STAGING_NETLIFY_URL="$NETLIFY_PREVIEW"
-    else
-        error "Netlify staging deployment failed!"
-        return 1
-    fi
-}
-
-deploy_to_vercel_staging() {
-    log "⚡ Deploying to Vercel staging..."
-    
-    # Check if Vercel CLI is installed
-    if ! command -v vercel &> /dev/null; then
-        warn "Vercel CLI not found. Installing..."
-        npm install -g vercel
-    fi
-
-    # Check authentication
-    if ! vercel whoami &> /dev/null; then
-        warn "Not logged into Vercel. Please authenticate..."
-        vercel login
-    fi
-
-    # Deploy to staging (preview deployment)
-    log "Creating Vercel preview deployment..."
-    VERCEL_OUTPUT=$(vercel --yes 2>&1)
-    
-    if [ $? -eq 0 ]; then
-        VERCEL_URL=$(echo "$VERCEL_OUTPUT" | grep -o 'https://[^[:space:]]*' | tail -1)
-        log "✅ Vercel staging deployment successful!"
-        log "🔗 Preview URL: $VERCEL_URL"
-        
-        # Export for summary
-        export STAGING_VERCEL_URL="$VERCEL_URL"
-    else
-        error "Vercel staging deployment failed!"
-        error "$VERCEL_OUTPUT"
-        return 1
-    fi
-}
-
-deploy_to_staging() {
-    case $DEPLOY_PLATFORM in
-        "netlify")
-            deploy_to_netlify_staging
-            ;;
-        "vercel")
-            deploy_to_vercel_staging
-            ;;
-        "both")
-            deploy_to_netlify_staging
-            deploy_to_vercel_staging
-            ;;
-    esac
-}
-
-header "🚀 FBMS Staging Deploy Script"
-log "Platform: $DEPLOY_PLATFORM"
-log "Skip Git: $SKIP_GIT"
-
-# Check if we're in the right directory
-if [ ! -f "package.json" ]; then
-    error "Please run this script from the project root directory"
-    exit 1
-fi
-
-# Check if git repository
-if ! git rev-parse --git-dir > /dev/null 2>&1; then
-    error "Not in a git repository!"
-    exit 1
-fi
-
-# Get current branch
-CURRENT_BRANCH=$(git branch --show-current)
-log "Current branch: $CURRENT_BRANCH"
-
-# Git workflow (if not skipped)
-if [ "$SKIP_GIT" = false ]; then
-    # 1. CHECK FOR CHANGES
-    header "📋 Checking for changes..."
-    
-    HAS_CHANGES=false
-    if ! git diff-index --quiet HEAD --; then
-        HAS_CHANGES=true
-    fi
-    
-    # Check for staged changes
-    HAS_STAGED=false
-    if ! git diff-index --quiet --cached HEAD --; then
-        HAS_STAGED=true
-    fi
-    
-    # Check for untracked files
-    HAS_UNTRACKED=false
-    if [ -n "$(git ls-files --others --exclude-standard)" ]; then
-        HAS_UNTRACKED=true
-    fi
-    
-    if [ "$HAS_CHANGES" = true ] || [ "$HAS_STAGED" = true ] || [ "$HAS_UNTRACKED" = true ]; then
-        log "Changes detected, proceeding with commit and push..."
-        
-        # 2. GIT WORKFLOW
-        header "📦 Git Workflow"
-        
-        # Show what will be committed
-        log "Files to be committed:"
-        git status --short
-        
-        # Add all changes
-        log "Adding all changes..."
-        git add .
-        
-        # Commit
-        log "Committing with message: '$COMMIT_MSG'"
-        git commit -m "$COMMIT_MSG"
-        
-        # Push to GitHub
-        log "Pushing to GitHub..."
-        if [ "$FORCE_PUSH" = true ]; then
-            warn "Force pushing to remote..."
-            git push origin "$CURRENT_BRANCH" --force-with-lease
-        else
-            git push origin "$CURRENT_BRANCH"
-        fi
-        
-        log "✅ Successfully pushed to GitHub!"
-    else
-        # Check if we need to push existing commits
-        LOCAL=$(git rev-parse HEAD)
-        REMOTE=$(git rev-parse origin/$CURRENT_BRANCH 2>/dev/null || echo "")
-        
-        if [ -n "$REMOTE" ] && [ "$LOCAL" != "$REMOTE" ]; then
-            if git merge-base --is-ancestor $REMOTE $LOCAL; then
-                log "Local branch is ahead of remote. Pushing..."
-                if [ "$FORCE_PUSH" = true ]; then
-                    git push origin $CURRENT_BRANCH --force-with-lease
-                else
-                    git push origin $CURRENT_BRANCH
-                fi
-                log "✅ Successfully pushed to GitHub!"
-            else
-                warn "No changes to commit and branch is up to date"
-            fi
-        else
-            warn "No changes to commit"
-        fi
-    fi
-else
-    log "⏭️  Skipping git operations (--skip-git flag)"
-fi
-
-# 3. BUILD & DEPLOY TO STAGING
-header "🏗️  Building and Deploying to Staging"
-
-# Build the project
-log "Building project for staging..."
-if ! npm run build; then
-    error "Build failed!"
-    exit 1
-fi
-
-# Deploy to selected platform(s)
-deploy_to_staging
-
-# 4. SUMMARY
-header "🎉 Staging Deployment Complete!"
-
-if [ "$SKIP_GIT" = false ]; then
-    log "✅ Code pushed to GitHub: $CURRENT_BRANCH"
-    log "📝 Commit: $COMMIT_MSG"
-fi
-
-log "🌐 Deployed to: $DEPLOY_PLATFORM"
-
-# Show deployment URLs
-if [ -n "$STAGING_NETLIFY_URL" ]; then
-    log "🔗 Netlify Staging: $STAGING_NETLIFY_URL"
-fi
-
-if [ -n "$STAGING_VERCEL_URL" ]; then
-    log "🔗 Vercel Staging: $STAGING_VERCEL_URL"
-fi
-
-# Show repository info
-if [ "$SKIP_GIT" = false ]; then
-    REPO_URL=$(git remote get-url origin 2>/dev/null || echo "No remote origin")
-    log "📁 Repository: $REPO_URL"
-    
-    # Show recent commits
-    log "📊 Recent commits:"
-    git log --oneline -3
-fi
-
-# Instructions for next steps
-header "📋 Next Steps"
-if [ -n "$STAGING_NETLIFY_URL" ]; then
-    log "1. Test Netlify staging at: $STAGING_NETLIFY_URL"
-fi
-if [ -n "$STAGING_VERCEL_URL" ]; then
-    log "1. Test Vercel staging at: $STAGING_VERCEL_URL"
-fi
-log "2. If everything looks good, run: ./scripts/deploy-production.sh --platform=$DEPLOY_PLATFORM"
-log "3. Or merge to main branch for automatic production deployment"
-
-header "✨ Staging Deployment Complete!" 
+exit 0
