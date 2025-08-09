@@ -89,8 +89,16 @@ Key modules have both standard and enhanced versions:
 - **Sales & POS**: Standard vs Enhanced (barcode scanning, advanced discounts)
 - **Inventory**: Standard vs Enhanced (multi-location, automated reorder)
 - **Accounting**: Standard vs Enhanced (advanced financial metrics)
-- **Purchases**: Standard vs Enhanced (supplier analytics)
+- **Purchases**: Standard vs Enhanced (supplier analytics, workflow configuration)
 - **Reports**: Standard vs Enhanced (interactive dashboards)
+
+### Purchase Order Workflow Configuration System
+The enhanced purchases module includes a comprehensive workflow configuration system:
+- **Configurable Approval Thresholds**: Set approval requirements based on amount and user roles
+- **Email Notification Templates**: Customizable templates for all workflow events
+- **Receiving Tolerance Settings**: Control over/under delivery handling
+- **Workflow Automation**: Business rules, validation rules, and automation triggers
+- **Audit & Compliance**: Complete audit trails and compliance reporting
 
 ### Philippine Business Context
 This is a business management system specifically designed for Philippine SMEs:
@@ -144,6 +152,14 @@ This is a business management system specifically designed for Philippine SMEs:
 - `src/utils/supabase.ts`: Supabase client configuration and utilities
 - `src/utils/validation.ts`: Input validation and sanitization
 - `src/contexts/NavigationContext.tsx`: Navigation state management
+
+### Purchase Order Workflow Files
+- `src/types/purchaseOrderConfig.ts`: Workflow configuration type definitions
+- `src/services/purchaseOrderWorkflowConfigService.ts`: Main configuration service
+- `src/services/approvalThresholdService.ts`: Approval request management
+- `src/services/receivingToleranceService.ts`: Goods receiving validation
+- `src/services/workflowNotificationService.ts`: Enhanced email notifications
+- `src/components/purchases/WorkflowConfigurationPanel.tsx`: Configuration UI
 
 ## Environment Setup
 
@@ -246,3 +262,10 @@ cd supabase && supabase db push   # Apply migrations
 - Role-based access is enforced at component level
 - Enhanced versions are toggleable via settings
 - Mobile-responsive design with bottom navigation for small screens
+
+## Steering Documents
+These documents provide specific guidance for working with this codebase:
+
+- `.claude/steering/product.md`: Product purpose, features, and business rules
+- `.claude/steering/tech.md`: Tech stack, build system, and development commands
+- `.claude/steering/structure.md`: Project organization and key file locations

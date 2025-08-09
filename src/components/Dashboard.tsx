@@ -14,11 +14,29 @@ import QuickActions from './QuickActions';
 import SalesChart from './SalesChart';
 import TopProducts from './TopProducts';
 import BusinessAnalytics from './dashboard/BusinessAnalytics';
+import PurchasesStatsCards from './dashboard/PurchasesStatsCards';
+import SimplePurchasesStatsCards from './dashboard/SimplePurchasesStatsCards';
+import SimpleRecentPurchaseOrders from './dashboard/SimpleRecentPurchaseOrders';
+import SimplePurchasesAlerts from './dashboard/SimplePurchasesAlerts';
+import ReceivingDashboard from './dashboard/ReceivingDashboard';
 import { useNotificationStore, createSystemNotification } from '../store/notificationStore';
 import { inventoryMonitor } from '../services/inventoryMonitor';
+import { useSimplePurchasesData } from '../hooks/useSimplePurchasesData';
 
 const Dashboard: React.FC = () => {
   const { addNotification } = useNotificationStore();
+  const { data: simplePurchasesData, loading: simpleLoading, error: simpleError } = useSimplePurchasesData();
+
+  // Debug purchases data (can be removed in production)
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Simple Purchases Data:', simplePurchasesData);
+      console.log('Simple Loading:', simpleLoading);
+      console.log('Simple Error:', simpleError);
+    }
+  }, [simplePurchasesData, simpleLoading, simpleError]);
+
+
 
   useEffect(() => {
     // Initialize notifications system
@@ -67,6 +85,22 @@ const Dashboard: React.FC = () => {
     }
   ];
 
+  const handlePurchaseOrderClick = (orderId: string) => {
+    if (orderId === 'all') {
+      // Navigate to purchases module
+      window.location.href = '/purchases';
+    } else {
+      // Navigate to specific purchase order
+      window.location.href = `/purchases/orders/${orderId}`;
+    }
+  };
+
+  const handleAlertClick = (alert: any) => {
+    if (alert.actionUrl) {
+      window.location.href = alert.actionUrl;
+    }
+  };
+
   const alerts = [
     { type: 'warning', message: '15 products are running low on stock', icon: AlertTriangle },
     { type: 'info', message: 'Monthly BIR filing due in 5 days', icon: Calendar },
@@ -103,6 +137,12 @@ const Dashboard: React.FC = () => {
         ))}
       </div>
 
+      {/* Purchases Stats Cards */}
+      <SimplePurchasesStatsCards 
+        metrics={simplePurchasesData} 
+        loading={simpleLoading} 
+      />
+
       {/* Alerts */}
       <div className="bg-white dark:bg-dark-800 rounded-xl p-0.5 sm:p-2 md:p-4 shadow-sm border border-gray-200 dark:border-dark-700 transition-colors duration-300">
         <h2 className="text-xs sm:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1 sm:mb-4 flex items-center">
@@ -127,6 +167,14 @@ const Dashboard: React.FC = () => {
         </div>
       </div>
 
+      {/* Purchases Alerts */}
+      <SimplePurchasesAlerts 
+        onAlertClick={handleAlertClick}
+      />
+
+      {/* Receiving Dashboard */}
+      <ReceivingDashboard className="mb-4" />
+
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-1 sm:gap-2 md:gap-4">
         {/* Sales Chart */}
@@ -146,11 +194,21 @@ const Dashboard: React.FC = () => {
         <BusinessAnalytics />
       </div>
 
+
+
       {/* Bottom Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-1 sm:gap-2 md:gap-4">
         {/* Recent Transactions */}
         <RecentTransactions />
         
+        {/* Recent Purchase Orders */}
+        <SimpleRecentPurchaseOrders 
+          onOrderClick={handlePurchaseOrderClick}
+        />
+      </div>
+
+      {/* Additional Bottom Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-1 sm:gap-2 md:gap-4">
         {/* Top Products */}
         <TopProducts />
       </div>

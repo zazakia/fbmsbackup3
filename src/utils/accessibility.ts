@@ -1,1 +1,73 @@
-/**\n * Accessibility utilities for WCAG 2.1 AA compliance\n */\n\n// Color contrast ratios\nexport const CONTRAST_RATIOS = {\n  AA_NORMAL: 4.5,\n  AA_LARGE: 3.0,\n  AAA_NORMAL: 7.0,\n  AAA_LARGE: 4.5,\n} as const;\n\n/**\n * Calculate relative luminance of a color\n * @param color - Hex color string (e.g., '#ffffff')\n * @returns Relative luminance value between 0 and 1\n */\nexport function getRelativeLuminance(color: string): number {\n  // Remove # if present\n  const hex = color.replace('#', '');\n  \n  // Convert to RGB\n  const r = parseInt(hex.substr(0, 2), 16) / 255;\n  const g = parseInt(hex.substr(2, 2), 16) / 255;\n  const b = parseInt(hex.substr(4, 2), 16) / 255;\n  \n  // Apply gamma correction\n  const sRGB = [r, g, b].map(c => {\n    return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);\n  });\n  \n  // Calculate relative luminance\n  return 0.2126 * sRGB[0] + 0.7152 * sRGB[1] + 0.0722 * sRGB[2];\n}\n\n/**\n * Calculate contrast ratio between two colors\n * @param color1 - First color (hex)\n * @param color2 - Second color (hex)\n * @returns Contrast ratio between 1 and 21\n */\nexport function getContrastRatio(color1: string, color2: string): number {\n  const lum1 = getRelativeLuminance(color1);\n  const lum2 = getRelativeLuminance(color2);\n  \n  const lighter = Math.max(lum1, lum2);\n  const darker = Math.min(lum1, lum2);\n  \n  return (lighter + 0.05) / (darker + 0.05);\n}\n\n/**\n * Check if color combination meets WCAG contrast requirements\n * @param backgroundColor - Background color (hex)\n * @param textColor - Text color (hex)\n * @param level - WCAG level ('AA' or 'AAA')\n * @param isLargeText - Whether text is large (18pt+ or 14pt+ bold)\n * @returns Whether the combination meets the requirements\n */\nexport function meetsContrastRequirement(\n  backgroundColor: string,\n  textColor: string,\n  level: 'AA' | 'AAA' = 'AA',\n  isLargeText: boolean = false\n): boolean {\n  const ratio = getContrastRatio(backgroundColor, textColor);\n  \n  if (level === 'AAA') {\n    return ratio >= (isLargeText ? CONTRAST_RATIOS.AAA_LARGE : CONTRAST_RATIOS.AAA_NORMAL);\n  }\n  \n  return ratio >= (isLargeText ? CONTRAST_RATIOS.AA_LARGE : CONTRAST_RATIOS.AA_NORMAL);\n}\n\n/**\n * Generate accessible color palette for notifications\n */\nexport const ACCESSIBLE_COLORS = {\n  light: {\n    success: {\n      background: '#f0fdf4', // green-50\n      text: '#166534',       // green-800\n      border: '#bbf7d0',     // green-200\n      icon: '#16a34a',       // green-600\n    },\n    error: {\n      background: '#fef2f2', // red-50\n      text: '#991b1b',       // red-800\n      border: '#fecaca',     // red-200\n      icon: '#dc2626',       // red-600\n    },\n    warning: {\n      background: '#fffbeb', // amber-50\n      text: '#92400e',       // amber-800\n      border: '#fed7aa',     // amber-200\n      icon: '#d97706',       // amber-600\n    },\n    info: {\n      background: '#eff6ff', // blue-50\n      text: '#1e40af',       // blue-800\n      border: '#bfdbfe',     // blue-200\n      icon: '#2563eb',       // blue-600\n    },\n  },\n  dark: {\n    success: {\n      background: '#064e3b', // green-900\n      text: '#bbf7d0',       // green-200\n      border: '#166534',     // green-800\n      icon: '#4ade80',       // green-400\n    },\n    error: {\n      background: '#7f1d1d', // red-900\n      text: '#fecaca',       // red-200\n      border: '#991b1b',     // red-800\n      icon: '#f87171',       // red-400\n    },\n    warning: {\n      background: '#78350f', // amber-900\n      text: '#fed7aa',       // amber-200\n      border: '#92400e',     // amber-800\n      icon: '#fbbf24',       // amber-400\n    },\n    info: {\n      background: '#1e3a8a', // blue-900\n      text: '#bfdbfe',       // blue-200\n      border: '#1e40af',     // blue-800\n      icon: '#60a5fa',       // blue-400\n    },\n  },\n} as const;\n\n/**\n * Validate all color combinations in the accessible palette\n */\nexport function validateAccessibleColors(): { [key: string]: boolean } {\n  const results: { [key: string]: boolean } = {};\n  \n  Object.entries(ACCESSIBLE_COLORS).forEach(([theme, colors]) => {\n    Object.entries(colors).forEach(([type, palette]) => {\n      const key = `${theme}-${type}`;\n      results[`${key}-text`] = meetsContrastRequirement(\n        palette.background,\n        palette.text,\n        'AA'\n      );\n      results[`${key}-icon`] = meetsContrastRequirement(\n        palette.background,\n        palette.icon,\n        'AA'\n      );\n    });\n  });\n  \n  return results;\n}\n\n/**\n * Focus management utilities\n */\nexport class FocusManager {\n  private static focusableSelectors = [\n    'button:not([disabled])',\n    'input:not([disabled])',\n    'select:not([disabled])',\n    'textarea:not([disabled])',\n    'a[href]',\n    '[tabindex]:not([tabindex=\"-1\"])',\n    '[contenteditable=\"true\"]',\n  ].join(', ');\n\n  /**\n   * Get all focusable elements within a container\n   */\n  static getFocusableElements(container: HTMLElement): HTMLElement[] {\n    return Array.from(\n      container.querySelectorAll(this.focusableSelectors)\n    ) as HTMLElement[];\n  }\n\n  /**\n   * Trap focus within a container (for modals, dialogs)\n   */\n  static trapFocus(container: HTMLElement): () => void {\n    const focusableElements = this.getFocusableElements(container);\n    const firstElement = focusableElements[0];\n    const lastElement = focusableElements[focusableElements.length - 1];\n\n    const handleKeyDown = (event: KeyboardEvent) => {\n      if (event.key !== 'Tab') return;\n\n      if (event.shiftKey) {\n        // Shift + Tab\n        if (document.activeElement === firstElement) {\n          event.preventDefault();\n          lastElement?.focus();\n        }\n      } else {\n        // Tab\n        if (document.activeElement === lastElement) {\n          event.preventDefault();\n          firstElement?.focus();\n        }\n      }\n    };\n\n    container.addEventListener('keydown', handleKeyDown);\n    \n    // Focus first element\n    firstElement?.focus();\n\n    // Return cleanup function\n    return () => {\n      container.removeEventListener('keydown', handleKeyDown);\n    };\n  }\n\n  /**\n   * Restore focus to a previously focused element\n   */\n  static restoreFocus(element: HTMLElement | null): void {\n    if (element && typeof element.focus === 'function') {\n      element.focus();\n    }\n  }\n}\n\n/**\n * Screen reader utilities\n */\nexport class ScreenReaderUtils {\n  /**\n   * Announce a message to screen readers\n   */\n  static announce(message: string, priority: 'polite' | 'assertive' = 'polite'): void {\n    const announcer = document.createElement('div');\n    announcer.setAttribute('aria-live', priority);\n    announcer.setAttribute('aria-atomic', 'true');\n    announcer.setAttribute('class', 'sr-only');\n    announcer.textContent = message;\n    \n    document.body.appendChild(announcer);\n    \n    // Remove after announcement\n    setTimeout(() => {\n      document.body.removeChild(announcer);\n    }, 1000);\n  }\n\n  /**\n   * Create a visually hidden element for screen readers\n   */\n  static createScreenReaderOnly(text: string): HTMLElement {\n    const element = document.createElement('span');\n    element.className = 'sr-only';\n    element.textContent = text;\n    return element;\n  }\n}\n\n/**\n * Keyboard navigation utilities\n */\nexport class KeyboardNavigation {\n  /**\n   * Handle arrow key navigation in a list\n   */\n  static handleArrowNavigation(\n    event: KeyboardEvent,\n    items: HTMLElement[],\n    currentIndex: number,\n    onIndexChange: (index: number) => void\n  ): void {\n    let newIndex = currentIndex;\n\n    switch (event.key) {\n      case 'ArrowDown':\n        event.preventDefault();\n        newIndex = (currentIndex + 1) % items.length;\n        break;\n      case 'ArrowUp':\n        event.preventDefault();\n        newIndex = currentIndex === 0 ? items.length - 1 : currentIndex - 1;\n        break;\n      case 'Home':\n        event.preventDefault();\n        newIndex = 0;\n        break;\n      case 'End':\n        event.preventDefault();\n        newIndex = items.length - 1;\n        break;\n      default:\n        return;\n    }\n\n    onIndexChange(newIndex);\n    items[newIndex]?.focus();\n  }\n\n  /**\n   * Handle escape key to close modals/dropdowns\n   */\n  static handleEscape(event: KeyboardEvent, onEscape: () => void): void {\n    if (event.key === 'Escape') {\n      event.preventDefault();\n      onEscape();\n    }\n  }\n}\n\n/**\n * ARIA utilities\n */\nexport class AriaUtils {\n  /**\n   * Generate a unique ID for ARIA relationships\n   */\n  static generateId(prefix: string = 'aria'): string {\n    return `${prefix}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;\n  }\n\n  /**\n   * Set up ARIA describedby relationship\n   */\n  static setDescribedBy(element: HTMLElement, descriptionId: string): void {\n    const existingIds = element.getAttribute('aria-describedby')?.split(' ') || [];\n    if (!existingIds.includes(descriptionId)) {\n      existingIds.push(descriptionId);\n      element.setAttribute('aria-describedby', existingIds.join(' '));\n    }\n  }\n\n  /**\n   * Remove ARIA describedby relationship\n   */\n  static removeDescribedBy(element: HTMLElement, descriptionId: string): void {\n    const existingIds = element.getAttribute('aria-describedby')?.split(' ') || [];\n    const filteredIds = existingIds.filter(id => id !== descriptionId);\n    \n    if (filteredIds.length > 0) {\n      element.setAttribute('aria-describedby', filteredIds.join(' '));\n    } else {\n      element.removeAttribute('aria-describedby');\n    }\n  }\n}\n\n/**\n * Reduced motion utilities\n */\nexport class MotionUtils {\n  /**\n   * Check if user prefers reduced motion\n   */\n  static prefersReducedMotion(): boolean {\n    return window.matchMedia('(prefers-reduced-motion: reduce)').matches;\n  }\n\n  /**\n   * Get appropriate animation duration based on user preference\n   */\n  static getAnimationDuration(normalDuration: number): number {\n    return this.prefersReducedMotion() ? 0 : normalDuration;\n  }\n\n  /**\n   * Apply reduced motion styles conditionally\n   */\n  static applyReducedMotion(element: HTMLElement): void {\n    if (this.prefersReducedMotion()) {\n      element.style.animation = 'none';\n      element.style.transition = 'none';\n    }\n  }\n}\n\n/**\n * High contrast mode detection\n */\nexport class HighContrastUtils {\n  /**\n   * Detect if high contrast mode is enabled\n   */\n  static isHighContrastMode(): boolean {\n    // Create a test element to detect high contrast mode\n    const testElement = document.createElement('div');\n    testElement.style.position = 'absolute';\n    testElement.style.left = '-9999px';\n    testElement.style.backgroundColor = 'rgb(0, 0, 0)';\n    testElement.style.color = 'rgb(255, 255, 255)';\n    \n    document.body.appendChild(testElement);\n    \n    const computedStyle = window.getComputedStyle(testElement);\n    const isHighContrast = computedStyle.backgroundColor !== 'rgb(0, 0, 0)' ||\n                          computedStyle.color !== 'rgb(255, 255, 255)';\n    \n    document.body.removeChild(testElement);\n    \n    return isHighContrast;\n  }\n\n  /**\n   * Apply high contrast styles if needed\n   */\n  static applyHighContrastStyles(element: HTMLElement): void {\n    if (this.isHighContrastMode()) {\n      element.classList.add('high-contrast');\n    }\n  }\n}\n\n// Export validation results for testing\nexport const colorValidationResults = validateAccessibleColors();"
+/**
+ * Accessibility utilities for WCAG 2.1 AA compliance
+ */
+
+// Color contrast ratios
+export const CONTRAST_RATIOS = {
+  AA_NORMAL: 4.5,
+  AA_LARGE: 3.0,
+  AAA_NORMAL: 7.0,
+  AAA_LARGE: 4.5,
+} as const;
+
+/**
+ * Calculate relative luminance of a color
+ * @param color - Hex color string (e.g., '#ffffff')
+ * @returns Relative luminance value between 0 and 1
+ */
+export function getRelativeLuminance(color: string): number {
+  // Remove # if present
+  const hex = color.replace('#', '');
+  
+  // Convert to RGB
+  const r = parseInt(hex.substr(0, 2), 16) / 255;
+  const g = parseInt(hex.substr(2, 2), 16) / 255;
+  const b = parseInt(hex.substr(4, 2), 16) / 255;
+  
+  // Apply gamma correction
+  const sRGB = [r, g, b].map(c => {
+    return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  });
+  
+  // Calculate relative luminance
+  return 0.2126 * sRGB[0] + 0.7152 * sRGB[1] + 0.0722 * sRGB[2];
+}
+
+/**
+ * Calculate contrast ratio between two colors
+ * @param color1 - First color (hex)
+ * @param color2 - Second color (hex)
+ * @returns Contrast ratio between 1 and 21
+ */
+export function getContrastRatio(color1: string, color2: string): number {
+  const lum1 = getRelativeLuminance(color1);
+  const lum2 = getRelativeLuminance(color2);
+  
+  const lighter = Math.max(lum1, lum2);
+  const darker = Math.min(lum1, lum2);
+  
+  return (lighter + 0.05) / (darker + 0.05);
+}
+
+/**
+ * Check if color combination meets WCAG contrast requirements
+ * @param backgroundColor - Background color (hex)
+ * @param textColor - Text color (hex)
+ * @param level - WCAG level ('AA' or 'AAA')
+ * @param isLargeText - Whether text is large (18pt+ or 14pt+ bold)
+ * @returns Whether the combination meets the requirements
+ */
+export function meetsContrastRequirement(
+  backgroundColor: string,
+  textColor: string,
+  level: 'AA' | 'AAA' = 'AA',
+  isLargeText = false
+): boolean {
+  const ratio = getContrastRatio(backgroundColor, textColor);
+  
+  if (level === 'AAA') {
+    return ratio >= (isLargeText ? CONTRAST_RATIOS.AAA_LARGE : CONTRAST_RATIOS.AAA_NORMAL);
+  }
+  
+  return ratio >= (isLargeText ? CONTRAST_RATIOS.AA_LARGE : CONTRAST_RATIOS.AA_NORMAL);
+}

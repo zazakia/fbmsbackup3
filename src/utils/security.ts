@@ -238,8 +238,8 @@ export const useRateLimit = (
 // Environment Validation
 export interface EnvironmentConfig {
   NODE_ENV: 'development' | 'production' | 'test';
-  VITE_SUPABASE_URL: string;
-  VITE_SUPABASE_ANON_KEY: string;
+  VITE_PUBLIC_SUPABASE_URL: string;
+  VITE_PUBLIC_SUPABASE_ANON_KEY: string;
   VITE_ENABLE_ANALYTICS?: string;
   VITE_SENTRY_DSN?: string;
   VITE_API_BASE_URL?: string;
@@ -251,8 +251,8 @@ export const validateEnvironment = (): EnvironmentConfig => {
   
   // Required environment variables
   const requiredVars = [
-    'VITE_SUPABASE_URL',
-    'VITE_SUPABASE_ANON_KEY'
+    'VITE_PUBLIC_SUPABASE_URL',
+    'VITE_PUBLIC_SUPABASE_ANON_KEY'
   ];
   
   const missing = requiredVars.filter(varName => !env[varName]);
@@ -266,27 +266,27 @@ export const validateEnvironment = (): EnvironmentConfig => {
   }
   
   // Validate Supabase URL format
-  if (!env.VITE_SUPABASE_URL.startsWith('https://')) {
+  if (!env.VITE_PUBLIC_SUPABASE_URL.startsWith('https://')) {
     throw createError(
       ERROR_CODES.UNKNOWN_ERROR,
-      'VITE_SUPABASE_URL must start with https://',
-      { url: env.VITE_SUPABASE_URL }
+      'VITE_PUBLIC_SUPABASE_URL must start with https://',
+      { url: env.VITE_PUBLIC_SUPABASE_URL }
     );
   }
   
   // Validate Supabase key format (basic check)
-  if (env.VITE_SUPABASE_ANON_KEY.length < 100) {
+  if (env.VITE_PUBLIC_SUPABASE_ANON_KEY.length < 100) {
     throw createError(
       ERROR_CODES.UNKNOWN_ERROR,
-      'VITE_SUPABASE_ANON_KEY appears to be invalid',
-      { keyLength: env.VITE_SUPABASE_ANON_KEY.length }
+      'VITE_PUBLIC_SUPABASE_ANON_KEY appears to be invalid',
+      { keyLength: env.VITE_PUBLIC_SUPABASE_ANON_KEY.length }
     );
   }
   
   return {
     NODE_ENV: env.NODE_ENV as 'development' | 'production' | 'test',
-    VITE_SUPABASE_URL: env.VITE_SUPABASE_URL,
-    VITE_SUPABASE_ANON_KEY: env.VITE_SUPABASE_ANON_KEY,
+    VITE_SUPABASE_URL: env.VITE_PUBLIC_SUPABASE_URL,
+    VITE_SUPABASE_ANON_KEY: env.VITE_PUBLIC_SUPABASE_ANON_KEY,
     VITE_ENABLE_ANALYTICS: env.VITE_ENABLE_ANALYTICS,
     VITE_SENTRY_DSN: env.VITE_SENTRY_DSN,
     VITE_API_BASE_URL: env.VITE_API_BASE_URL

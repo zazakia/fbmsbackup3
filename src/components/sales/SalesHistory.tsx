@@ -22,7 +22,8 @@ import {
 import { useBusinessStore } from '../../store/businessStore';
 import { useToastStore } from '../../store/toastStore';
 import { Sale, PaymentMethod } from '../../types/business';
-import { formatCurrency } from '../../utils/formatters';
+import { formatCurrency, parseSupabaseDate, formatSalesDate } from '../../utils/formatters';
+import { TableDateDisplay, ExportDateDisplay } from '../common/SafeDateDisplay';
 
 interface SalesFilters {
   dateRange: {
@@ -41,6 +42,24 @@ interface SortConfig {
   key: keyof Sale | 'total';
   direction: 'asc' | 'desc';
 }
+
+// Safe date filtering helper
+const isDateInRange = (saleDate: Date | string | null, startDate: string, endDate: string): boolean => {
+  const parsedSaleDate = typeof saleDate === 'string' ? parseSupabaseDate(saleDate) : saleDate;
+  
+  if (!parsedSaleDate) {
+    // Include invalid dates in results but flag them
+    return true;
+  }
+  
+  try {
+    const saleDateStr = parsedSaleDate.toISOString().split('T')[0];
+    return saleDateStr >= startDate && saleDateStr <= endDate;
+  } catch (error) {
+    console.warn('Error comparing dates:', saleDate, error);
+    return true; // Include problematic dates for visibility
+  }
+};
 
 const SalesHistory: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -82,11 +101,12 @@ const SalesHistory: React.FC = () => {
         sale.customerName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         sale.items.some(item => item.productName?.toLowerCase().includes(searchTerm.toLowerCase()));
 
-      // Date range filter
-      const saleDate = new Date(sale.createdAt).toISOString().split('T')[0];
-      const matchesDateRange = 
-        saleDate >= filters.dateRange.start && 
-        saleDate <= filters.dateRange.end;
+      // Date range filter with safe date handling
+      const matchesDateRange = isDateInRange(
+        sale.createdAt, 
+        filters.dateRange.start, 
+        filters.dateRange.end
+      );
 
       // Payment method filter
       const matchesPaymentMethod = 
@@ -132,8 +152,10 @@ const SalesHistory: React.FC = () => {
         aValue = a.total;
         bValue = b.total;
       } else if (sortConfig.key === 'createdAt') {
-        aValue = new Date(a.createdAt).getTime();
-        bValue = new Date(b.createdAt).getTime();
+        const aDate = parseSupabaseDate(a.createdAt as any);
+        const bDate = parseSupabaseDate(b.createdAt as any);
+        aValue = aDate ? aDate.getTime() : 0;
+        bValue = bDate ? bDate.getTime() : 0;
       }
 
       if (aValue < bValue) {
@@ -191,7 +213,7 @@ const SalesHistory: React.FC = () => {
       // Data rows
       ...filteredSales.map(sale => [
         sale.invoiceNumber,
-        new Date(sale.createdAt).toLocaleDateString(),
+        ExportDateDisplay({ date: sale.createdAt }),
         sale.customerName,
         sale.items.length,
         sale.subtotal.toFixed(2),
@@ -589,12 +611,7 @@ const SalesHistory: React.FC = () => {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900 dark:text-gray-100">
-                      {new Date(sale.createdAt).toLocaleDateString()}
-                    </div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400">
-                      {new Date(sale.createdAt).toLocaleTimeString()}
-                    </div>
+                    <TableDateDisplay date={sale.createdAt} showTime={true} />
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">

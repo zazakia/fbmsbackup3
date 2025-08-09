@@ -204,6 +204,237 @@ export interface Expense {
 
 export type PurchaseOrderStatus = 'draft' | 'sent' | 'received' | 'partial' | 'cancelled';
 
+// Enhanced Purchase Order Status for improved workflow
+export type EnhancedPurchaseOrderStatus = 
+  | 'draft'              // Being created/edited
+  | 'pending_approval'   // Awaiting approval
+  | 'approved'           // Approved for ordering
+  | 'sent_to_supplier'   // Sent to supplier
+  | 'partially_received' // Some items received
+  | 'fully_received'     // All items received
+  | 'cancelled'          // Cancelled order
+  | 'closed';            // Completed and closed
+
+// Status transition rules for validation
+export interface StatusTransitionRules {
+  readonly draft: readonly ['pending_approval', 'cancelled'];
+  readonly pending_approval: readonly ['approved', 'draft', 'cancelled'];
+  readonly approved: readonly ['sent_to_supplier', 'partially_received', 'cancelled'];
+  readonly sent_to_supplier: readonly ['partially_received', 'fully_received', 'cancelled'];
+  readonly partially_received: readonly ['fully_received'];
+  readonly fully_received: readonly ['closed'];
+  readonly cancelled: readonly [];
+  readonly closed: readonly [];
+}
+
+// Purchase Order Status Transitions
+export interface StatusTransition {
+  id: string;
+  fromStatus: EnhancedPurchaseOrderStatus;
+  toStatus: EnhancedPurchaseOrderStatus;
+  timestamp: Date;
+  performedBy: string;
+  reason?: string;
+  metadata?: Record<string, unknown>;
+}
+
+// Receiving Records for audit trail
+export interface ReceivingRecord {
+  id: string;
+  receivedDate: Date;
+  receivedBy: string;
+  receivedByName?: string;
+  items: PartialReceiptItem[];
+  notes?: string;
+  attachments?: string[];
+  totalItems: number;
+  totalQuantity: number;
+  totalValue: number;
+}
+
+// Partial Receipt Item for receiving workflow
+export interface PartialReceiptItem {
+  id: string;
+  productId: string;
+  productName: string;
+  productSku: string;
+  orderedQuantity: number;
+  receivedQuantity: number;
+  previouslyReceived: number;
+  totalReceived: number;
+  pendingQuantity: number;
+  unitCost: number;
+  totalCost: number;
+  condition: 'good' | 'damaged' | 'expired' | 'returned';
+  batchNumber?: string;
+  expiryDate?: Date;
+  serialNumbers?: string[];
+  qualityStatus?: 'pending' | 'approved' | 'rejected';
+  damageReport?: string;
+  notes?: string;
+}
+
+// Enhanced Purchase Order Item with receiving fields
+export interface EnhancedPurchaseOrderItem extends PurchaseOrderItem {
+  receivedQuantity: number;
+  pendingQuantity: number;
+  totalReceived: number;
+  receivingHistory: ReceiptLineItem[];
+  qualityStatus: 'pending' | 'approved' | 'rejected';
+  damageReports?: DamageReport[];
+  batchNumber?: string;
+  expiryDate?: Date;
+  serialNumbers?: string[];
+}
+
+// Receipt Line Item for detailed tracking
+export interface ReceiptLineItem {
+  id: string;
+  date: Date;
+  quantity: number;
+  condition: 'good' | 'damaged' | 'expired' | 'returned';
+  receivedBy: string;
+  receivedByName?: string;
+  batchNumber?: string;
+  expiryDate?: Date;
+  notes?: string;
+  unitCost: number;
+  totalCost: number;
+}
+
+// Damage Report for quality control
+export interface DamageReport {
+  id: string;
+  reportDate: Date;
+  reportedBy: string;
+  damageType: 'physical' | 'expired' | 'defective' | 'contaminated' | 'missing';
+  severity: 'minor' | 'major' | 'total_loss';
+  description: string;
+  quantity: number;
+  estimatedLoss: number;
+  supplierNotified: boolean;
+  actionTaken: string;
+  photosAttached?: string[];
+  resolutionStatus: 'pending' | 'resolved' | 'claim_filed' | 'written_off';
+}
+
+// Enhanced Purchase Order with full workflow support
+export interface EnhancedPurchaseOrder extends PurchaseOrder {
+  statusHistory: StatusTransition[];
+  receivingHistory: ReceivingRecord[];
+  validationErrors: ValidationError[];
+  approvalHistory: ApprovalRecord[];
+  totalReceived: number;
+  totalPending: number;
+  isPartiallyReceived: boolean;
+  isFullyReceived: boolean;
+  lastReceivedDate?: Date;
+  expectedDeliveryDate?: Date;
+  actualDeliveryDate?: Date;
+  supplierReference?: string;
+  internalNotes?: string;
+  attachments?: string[];
+}
+
+// Approval Record for approval workflow
+export interface ApprovalRecord {
+  id: string;
+  approverUserId: string;
+  approverName: string;
+  approverRole: string;
+  approvalDate: Date;
+  approvalStatus: 'approved' | 'rejected' | 'pending';
+  comments?: string;
+  approvalLevel: number;
+  amountApproved: number;
+}
+
+// Validation Error types for purchase order operations
+export interface ValidationError {
+  id: string;
+  field: string;
+  message: string;
+  severity: 'error' | 'warning' | 'info';
+  code: ValidationErrorCode;
+  metadata?: Record<string, unknown>;
+}
+
+export enum ValidationErrorCode {
+  // Quantity validations
+  QUANTITY_EXCEEDS_ORDERED = 'QUANTITY_EXCEEDS_ORDERED',
+  QUANTITY_NEGATIVE = 'QUANTITY_NEGATIVE',
+  QUANTITY_ZERO = 'QUANTITY_ZERO',
+  
+  // Status validations
+  INVALID_STATUS_TRANSITION = 'INVALID_STATUS_TRANSITION',
+  STATUS_ALREADY_SET = 'STATUS_ALREADY_SET',
+  
+  // Permission validations
+  INSUFFICIENT_PERMISSIONS = 'INSUFFICIENT_PERMISSIONS',
+  USER_NOT_AUTHORIZED = 'USER_NOT_AUTHORIZED',
+  
+  // Business rule validations
+  ALREADY_FULLY_RECEIVED = 'ALREADY_FULLY_RECEIVED',
+  CANNOT_RECEIVE_CANCELLED_ORDER = 'CANNOT_RECEIVE_CANCELLED_ORDER',
+  DUPLICATE_RECEIPT_DETECTED = 'DUPLICATE_RECEIPT_DETECTED',
+  
+  // Product validations
+  PRODUCT_NOT_FOUND = 'PRODUCT_NOT_FOUND',
+  PRODUCT_INACTIVE = 'PRODUCT_INACTIVE',
+  
+  // Supplier validations
+  SUPPLIER_NOT_FOUND = 'SUPPLIER_NOT_FOUND',
+  SUPPLIER_INACTIVE = 'SUPPLIER_INACTIVE',
+  
+  // Cost validations
+  COST_VARIANCE_HIGH = 'COST_VARIANCE_HIGH',
+  NEGATIVE_COST = 'NEGATIVE_COST',
+  
+  // Date validations
+  INVALID_DATE_RANGE = 'INVALID_DATE_RANGE',
+  PAST_DATE_NOT_ALLOWED = 'PAST_DATE_NOT_ALLOWED',
+  FUTURE_DATE_NOT_ALLOWED = 'FUTURE_DATE_NOT_ALLOWED',
+  
+  // Required field validations
+  REQUIRED_FIELD_MISSING = 'REQUIRED_FIELD_MISSING',
+  
+  // Format validations
+  INVALID_FORMAT = 'INVALID_FORMAT',
+  INVALID_EMAIL_FORMAT = 'INVALID_EMAIL_FORMAT',
+  INVALID_PHONE_FORMAT = 'INVALID_PHONE_FORMAT'
+}
+
+// Purchase Order Audit Log for complete audit trail
+export interface PurchaseOrderAuditLog {
+  id: string;
+  purchaseOrderId: string;
+  purchaseOrderNumber: string;
+  action: PurchaseOrderAuditAction;
+  performedBy: string;
+  performedByName?: string;
+  timestamp: Date;
+  oldValues?: Record<string, unknown>;
+  newValues?: Record<string, unknown>;
+  reason?: string;
+  metadata?: Record<string, unknown>;
+  ipAddress?: string;
+  userAgent?: string;
+}
+
+export enum PurchaseOrderAuditAction {
+  CREATED = 'created',
+  UPDATED = 'updated',
+  STATUS_CHANGED = 'status_changed',
+  APPROVED = 'approved',
+  REJECTED = 'rejected',
+  SENT_TO_SUPPLIER = 'sent_to_supplier',
+  RECEIVED = 'received',
+  PARTIALLY_RECEIVED = 'partially_received',
+  CANCELLED = 'cancelled',
+  CLOSED = 'closed',
+  DELETED = 'deleted'
+}
+
 export type AccountType = 'Asset' | 'Liability' | 'Equity' | 'Income' | 'Expense';
 
 export interface Account {

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
 import { useBusinessStore } from '../../store/businessStore';
+import { parseSupabaseDate } from '../../utils/formatters';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
 
@@ -19,8 +20,8 @@ const SalesReports: React.FC = () => {
       const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
       
       const daySales = sales.filter(sale => {
-        if (!sale.date) return false;
-        const saleDate = new Date(sale.date);
+        const saleDate = parseSupabaseDate(sale.createdAt as any);
+        if (!saleDate) return false;
         return saleDate.toDateString() === date.toDateString();
       });
       
@@ -51,8 +52,8 @@ const SalesReports: React.FC = () => {
       const weekLabel = `${weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${weekEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
       
       const weekSales = sales.filter(sale => {
-        if (!sale.date) return false;
-        const saleDate = new Date(sale.date);
+        const saleDate = parseSupabaseDate(sale.createdAt as any);
+        if (!saleDate) return false;
         return saleDate >= weekStart && saleDate <= weekEnd;
       });
       

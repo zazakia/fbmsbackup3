@@ -61,6 +61,9 @@ interface POSTransaction {
 }
 
 const EnhancedPOSSystem: React.FC = () => {
+  try {
+    console.info('[POS] EnhancedPOSSystem mount start');
+  } catch (e) {}
   // State management
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -75,9 +78,9 @@ const EnhancedPOSSystem: React.FC = () => {
   const [currentHold, setCurrentHold] = useState<string | null>(null);
   const [savedCarts, setSavedCarts] = useState<Array<{ id: string; name: string; items: CartItem[]; customer?: Customer }>>([]);
   
-  // Stock validation state
-  const [stockValidationErrors, setStockValidationErrors] = useState<StockValidationError[]>([]);
-  const [stockValidationWarnings, setStockValidationWarnings] = useState<StockValidationError[]>([]);
+  // Stock validation state (temporarily relaxed to any to unblock diagnostics)
+  const [stockValidationErrors, setStockValidationErrors] = useState<any[]>([]);
+  const [stockValidationWarnings, setStockValidationWarnings] = useState<any[]>([]);
   const [showStockValidation, setShowStockValidation] = useState(false);
   
   // Barcode scanner
@@ -87,33 +90,82 @@ const EnhancedPOSSystem: React.FC = () => {
   // Sound effects for feedback
   const [enableSounds, setEnableSounds] = useState(true);
 
-  const { 
-    products, 
-    categories, 
-    cart, 
+  const {
+    products,
+    categories,
+    cart,
     customers,
     addToCart,
     updateCartItem,
     removeFromCart,
     clearCart,
-    getCartSubtotal, 
-    getCartTax, 
+    getCartSubtotal,
+    getCartTax,
     getCartTotal,
     createSale,
-    updateStock,
-    getCustomer,
     fetchCustomers,
     updateCustomer,
     validateSaleStock,
     validateProductStock
-  } = useBusinessStore();
+  } = useBusinessStore() as any;
+
+  // Runtime guards for critical store methods
+  useEffect(() => {
+    try {
+      console.info('[POS] Store snapshot', {
+        productsCount: Array.isArray(products) ? products.length : 'n/a',
+        categoriesCount: Array.isArray(categories) ? categories.length : 'n/a',
+        cartCount: Array.isArray(cart) ? cart.length : 'n/a',
+      });
+      const guards = {
+        addToCart: typeof addToCart === 'function',
+        updateCartItem: typeof updateCartItem === 'function',
+        removeFromCart: typeof removeFromCart === 'function',
+        clearCart: typeof clearCart === 'function',
+        getCartSubtotal: typeof getCartSubtotal === 'function',
+        createSale: typeof createSale === 'function',
+        fetchCustomers: typeof fetchCustomers === 'function',
+        updateCustomer: typeof updateCustomer === 'function',
+        validateSaleStock: typeof validateSaleStock === 'function',
+        validateProductStock: typeof validateProductStock === 'function',
+      };
+      console.info('[POS] Method guards', guards);
+      const missing = Object.entries(guards).filter(([, ok]) => !ok).map(([k]) => k);
+      if (missing.length) {
+        console.error('[POS] Missing required store methods:', missing);
+      }
+    } catch (e) {
+      console.error('[POS] Error during guard checks:', e);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Continuous cart validation
   useEffect(() => {
     if (cart.length > 0) {
       const validation = validateSaleStock(cart);
-      setStockValidationErrors(validation.errors);
-      setStockValidationWarnings(validation.warnings);
+
+      // Targeted diagnostics for validation shape from store
+      try {
+        const firstErr = (validation as any)?.errors?.[0];
+        const firstWarn = (validation as any)?.warnings?.[0];
+        // eslint-disable-next-line no-console
+        console.info('[POS][validateSaleStock] validation summary', {
+          isValid: (validation as any)?.isValid,
+          errorsType: Array.isArray((validation as any)?.errors) ? 'array' : typeof (validation as any)?.errors,
+          warningsType: Array.isArray((validation as any)?.warnings) ? 'array' : typeof (validation as any)?.warnings,
+          firstErrorType: firstErr ? typeof firstErr : 'none',
+          firstErrorKeys: firstErr ? Object.keys(firstErr) : [],
+          firstWarningType: firstWarn ? typeof firstWarn : 'none',
+          firstWarningKeys: firstWarn ? Object.keys(firstWarn) : []
+        });
+      } catch (e) {
+        // eslint-disable-next-line no-console
+        console.error('[POS][validateSaleStock] diagnostics failed', e);
+      }
+
+      setStockValidationErrors(validation.errors as any);
+      setStockValidationWarnings(validation.warnings as any);
       setShowStockValidation(validation.errors.length > 0 || validation.warnings.length > 0);
     } else {
       setStockValidationErrors([]);
@@ -128,19 +180,25 @@ const EnhancedPOSSystem: React.FC = () => {
 
   // Load customers from Supabase on component mount
   useEffect(() => {
-    fetchCustomers();
+    try {
+      console.info('[POS] Fetching customers on mount');
+      fetchCustomers();
+    } catch (e) {
+      console.error('[POS] fetchCustomers threw:', e);
+    }
   }, [fetchCustomers]);
 
   // Initialize quick products (top-selling items)
   useEffect(() => {
-    const topProducts = products
-      .filter(p => p.isActive && p.stock > 0)
+    const topProducts = (products as any[])
+      .filter((p: any) => p.isActive && p.stock > 0)
       .slice(0, 12); // Top 12 quick access products
     setQuickProducts(topProducts);
   }, [products]);
 
   // Keyboard shortcuts
   useEffect(() => {
+    console.info('[POS] Keyboard shortcuts active, cart length:', cart.length);
     const handleKeyPress = (e: KeyboardEvent) => {
       if (e.ctrlKey || e.metaKey) {
         switch (e.key) {
@@ -186,11 +244,16 @@ const EnhancedPOSSystem: React.FC = () => {
 
   // Barcode scanner functionality
   const handleBarcodeInput = (barcode: string) => {
-    const product = products.find(p => p.barcode === barcode || p.sku === barcode);
+    const product = products.find((p: any) => p.barcode === barcode || p.sku === barcode);
     if (product && product.isActive) {
-      const validation = addToCart(product, 1);
-      
-      if (validation.isValid) {
+      // addToCart in store returns void; perform validation locally before calling it
+      const validation = validateProductStock(product.id, 1, {
+        preventNegative: true,
+        validateBeforeUpdate: true
+      } as any);
+
+      if ((validation as any)?.isValid) {
+        addToCart(product, 1);
         playSound('beep');
         addToast({
           type: 'success',
@@ -199,20 +262,23 @@ const EnhancedPOSSystem: React.FC = () => {
         });
         
         // Show warnings if any
-        validation.warnings.forEach(warning => {
-          addToast({
-            type: 'warning',
-            title: 'Stock Warning',
-            message: warning.message,
-            duration: 4000
-          });
+        ((validation as any)?.warnings || []).forEach((warning: any) => {
+          if (warning?.message) {
+            addToast({
+              type: 'warning',
+              title: 'Stock Warning',
+              message: warning.message,
+              duration: 4000
+            });
+          }
         });
       } else {
         playSound('error');
+        const errMsg = (validation as any)?.errors?.[0]?.message || 'Stock validation failed';
         addToast({
           type: 'error',
           title: 'Cannot Add Product',
-          message: validation.errors[0]?.message || 'Stock validation failed'
+          message: errMsg
         });
       }
     } else {
@@ -248,7 +314,7 @@ const EnhancedPOSSystem: React.FC = () => {
     oscillator.stop(audioContext.currentTime + 0.1);
   };
 
-  const filteredProducts = products.filter(product => {
+  const filteredProducts = (products as any[]).filter((product: any) => {
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          product.sku.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          (product.barcode && product.barcode.includes(searchTerm));
@@ -279,10 +345,10 @@ const EnhancedPOSSystem: React.FC = () => {
   };
 
   const handleProductSelect = (product: Product) => {
-    const existingItem = cart.find(item => item.product.id === product.id);
+    const existingItem = (cart as any[]).find((item: any) => item.product.id === product.id);
     if (existingItem) {
       // Validate before updating cart item
-      const validation = validateProductStock(product, existingItem.quantity + 1, {
+      const validation = validateProductStock(product.id, existingItem.quantity + 1, {
         preventNegative: true,
         validateBeforeUpdate: true
       });
@@ -292,7 +358,7 @@ const EnhancedPOSSystem: React.FC = () => {
         playSound('beep');
         
         // Show warnings if any
-        validation.warnings.forEach(warning => {
+        (validation as any).warnings.forEach((warning: any) => {
           addToast({
             type: 'warning',
             title: 'Stock Warning',
@@ -319,33 +385,40 @@ const EnhancedPOSSystem: React.FC = () => {
   };
 
   const handleQuantityChange = (productId: string, newQuantity: number) => {
+    try {
+      // Basic diagnostics for qty changes
+      // eslint-disable-next-line no-console
+      console.debug('[POS] handleQuantityChange', { productId, newQuantity });
+    } catch {}
     if (newQuantity <= 0) {
       removeFromCart(productId);
     } else {
-      const product = products.find(p => p.id === productId);
+      const product = (products as any[]).find((p: any) => p.id === productId);
       if (product) {
-        const validation = validateProductStock(product, newQuantity, {
+        const validation = validateProductStock(product.id, newQuantity, {
           preventNegative: true,
           validateBeforeUpdate: true
         });
         
-        if (validation.isValid) {
+        if ((validation as any)?.isValid) {
           updateCartItem(productId, newQuantity);
           
           // Show warnings if any
-          validation.warnings.forEach(warning => {
-            addToast({
-              type: 'warning',
-              title: 'Stock Warning',
-              message: warning.message,
-              duration: 4000
-            });
+          ((validation as any)?.warnings || []).forEach((warning: any) => {
+            if (warning?.message) {
+              addToast({
+                type: 'warning',
+                title: 'Stock Warning',
+                message: warning.message,
+                duration: 4000
+              });
+            }
           });
         } else {
           addToast({
             type: 'error',
             title: 'Cannot Update Quantity',
-            message: validation.errors[0]?.message || 'Stock validation failed'
+            message: (validation as any)?.errors?.[0]?.message || 'Stock validation failed'
           });
         }
       }
@@ -466,7 +539,7 @@ const EnhancedPOSSystem: React.FC = () => {
     
     if (!stockValidation.isValid) {
       // Show detailed error messages for each stock issue
-      stockValidation.errors.forEach(error => {
+      (stockValidation as any).errors.forEach((error: any) => {
         addToast({
           type: 'error',
           title: 'Stock Validation Error',
@@ -477,8 +550,8 @@ const EnhancedPOSSystem: React.FC = () => {
 
       // Show suggestions if available
       const suggestions = stockValidation.errors
-        .flatMap(error => error.suggestions || [])
-        .filter((suggestion, index, arr) => arr.indexOf(suggestion) === index); // Remove duplicates
+        .flatMap((error: any) => error.suggestions || [])
+        .filter((suggestion: any, index: number, arr: any[]) => arr.indexOf(suggestion) === index); // Remove duplicates
 
       if (suggestions.length > 0) {
         addToast({
@@ -494,7 +567,7 @@ const EnhancedPOSSystem: React.FC = () => {
 
     // Show warnings if any (low stock, etc.)
     if (stockValidation.warnings.length > 0) {
-      stockValidation.warnings.forEach(warning => {
+      (stockValidation as any).warnings.forEach((warning: any) => {
         addToast({
           type: 'warning',
           title: 'Stock Warning',
@@ -519,7 +592,7 @@ const EnhancedPOSSystem: React.FC = () => {
       const saleData = {
         customerId: selectedCustomer?.id,
         customerName: selectedCustomer ? `${selectedCustomer.firstName} ${selectedCustomer.lastName}` : 'Walk-in Customer',
-        items: cart.map(item => ({
+        items: (cart as any[]).map((item: any) => ({
           id: `item-${Date.now()}-${Math.random()}`,
           productId: item.product.id,
           productName: item.product.name,
@@ -626,6 +699,9 @@ const EnhancedPOSSystem: React.FC = () => {
     }
   };
 
+  try {
+    console.info('[POS] EnhancedPOSSystem render');
+  } catch (e) {}
   return (
     <div className="h-screen flex flex-col lg:flex-row bg-gray-50 dark:bg-dark-950">
       {/* Left Panel - Products */}
@@ -760,7 +836,7 @@ const EnhancedPOSSystem: React.FC = () => {
                 className="px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-lg bg-white dark:bg-dark-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 <option value="all">All</option>
-                {categories.map(category => (
+                {(categories as any[]).map((category: any) => (
                   <option key={category.id} value={category.id}>{category.name}</option>
                 ))}
               </select>
@@ -788,7 +864,7 @@ const EnhancedPOSSystem: React.FC = () => {
         {/* Products Grid */}
         <div className="flex-1 overflow-y-auto p-2 sm:p-4">
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 sm:gap-3">
-            {filteredProducts.map(product => {
+            {(filteredProducts as any[]).map((product: any) => {
               const effectivePrice = product.price * getCurrentModeMultiplier();
               return (
                 <button
@@ -1079,7 +1155,7 @@ const EnhancedPOSSystem: React.FC = () => {
             </div>
           ) : (
             <div className="p-2 sm:p-4 space-y-2 sm:space-y-3">
-              {cart.map(item => {
+              {(cart as any[]).map((item: any) => {
                 const effectivePrice = item.product.price * getCurrentModeMultiplier();
                 const itemTotal = effectivePrice * item.quantity;
                 
@@ -1113,9 +1189,36 @@ const EnhancedPOSSystem: React.FC = () => {
                         >
                           <Minus className="h-3 w-3" />
                         </button>
-                        <span className="w-8 text-center text-xs sm:text-sm font-medium text-gray-900 dark:text-gray-100">
-                          {item.quantity}
-                        </span>
+                        <input
+                          type="number"
+                          inputMode="numeric"
+                          min={1}
+                          max={item.product.stock}
+                          value={item.quantity}
+                          onChange={(e) => {
+                            const raw = e.target.value;
+                            // Allow empty input temporarily; don't update store until blur/enter
+                            if (raw === '') return;
+                            const parsed = Math.floor(Number(raw));
+                            if (Number.isNaN(parsed)) return;
+                            const clamped = Math.max(1, Math.min(parsed, item.product.stock));
+                            if (clamped !== item.quantity) {
+                              handleQuantityChange(item.product.id, clamped);
+                            }
+                          }}
+                          onBlur={(e) => {
+                            const raw = e.target.value;
+                            const parsed = Math.floor(Number(raw));
+                            const fallback = Math.max(1, Math.min(Number.isNaN(parsed) ? item.quantity : parsed, item.product.stock));
+                            if (fallback !== item.quantity) {
+                              handleQuantityChange(item.product.id, fallback);
+                            } else {
+                              // force input to reflect clamped value
+                              e.currentTarget.value = String(item.quantity);
+                            }
+                          }}
+                          className="w-12 text-center text-xs sm:text-sm font-medium text-gray-900 dark:text-gray-100 bg-white dark:bg-dark-700 border border-gray-300 dark:border-dark-600 rounded px-1 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
                         <button
                           onClick={() => handleQuantityChange(item.product.id, item.quantity + 1)}
                           disabled={item.quantity >= item.product.stock}

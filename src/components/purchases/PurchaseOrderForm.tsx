@@ -2,13 +2,41 @@ import React, { useState, useEffect } from 'react';
 import { X, Save, FileText, Plus, Trash2, Package } from 'lucide-react';
 import { useBusinessStore } from '../../store/businessStore';
 import { useSupabaseAuthStore } from '../../store/supabaseAuthStore';
-import { PurchaseOrderItem, Supplier, PurchaseOrderStatus } from '../../types/business';
-import { getActiveSuppliers, createPurchaseOrder, updatePurchaseOrder as updatePO, getNextPONumber } from '../../api/purchases';
+import { PurchaseOrderItem, Supplier, PurchaseOrderStatus, EnhancedPurchaseOrderStatus } from '../../types/business';
+import { getActiveSuppliers, createPurchaseOrder, updatePurchaseOrder as updatePO, getNextPONumber, receivePurchaseOrder } from '../../api/purchases';
+import { PurchaseOrderStateMachine } from '../../services/purchaseOrderStateMachine';
+import { canPerformPurchaseOrderAction } from '../../utils/purchaseOrderPermissions';
 
 interface PurchaseOrderFormProps {
   poId?: string | null;
   onClose: () => void;
 }
+
+// Helper function to map legacy status to enhanced status
+const mapLegacyToEnhanced = (legacyStatus: PurchaseOrderStatus): EnhancedPurchaseOrderStatus => {
+  const statusMap: Record<PurchaseOrderStatus, EnhancedPurchaseOrderStatus> = {
+    'draft': 'draft',
+    'sent': 'sent_to_supplier',
+    'received': 'fully_received',
+    'partial': 'partially_received',
+    'cancelled': 'cancelled'
+  };
+  return statusMap[legacyStatus] || 'draft';
+};
+
+const mapEnhancedToLegacy = (enhancedStatus: EnhancedPurchaseOrderStatus): PurchaseOrderStatus => {
+  const statusMap: Record<EnhancedPurchaseOrderStatus, PurchaseOrderStatus> = {
+    'draft': 'draft',
+    'pending_approval': 'draft', // Map to draft in legacy system
+    'approved': 'sent',
+    'sent_to_supplier': 'sent',
+    'partially_received': 'partial',
+    'fully_received': 'received',
+    'cancelled': 'cancelled',
+    'closed': 'received'
+  };
+  return statusMap[enhancedStatus] || 'draft';
+};
 
 const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ poId, onClose }) => {
   const { 
@@ -25,9 +53,14 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ poId, onClose }) 
     expectedDate: '',
     status: 'draft' as PurchaseOrderStatus
   });
+  
+  const [stateMachine] = useState(() => new PurchaseOrderStateMachine());
+  const [availableStatuses, setAvailableStatuses] = useState<EnhancedPurchaseOrderStatus[]>(['draft']);
 
   const [items, setItems] = useState<PurchaseOrderItem[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [statusChangeReason, setStatusChangeReason] = useState('');
+  const [showReasonInput, setShowReasonInput] = useState(false);
   const [realSuppliers, setRealSuppliers] = useState<Supplier[]>([]);
   const [loadingSuppliers, setLoadingSuppliers] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -63,9 +96,14 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ poId, onClose }) 
           status: po.status
         });
         setItems(po.items);
+        
+        // Update available statuses based on current status and permissions
+        const currentEnhancedStatus = mapLegacyToEnhanced(po.status);
+        const validTransitions = stateMachine.getValidTransitions(currentEnhancedStatus);
+        setAvailableStatuses([currentEnhancedStatus, ...validTransitions]);
       }
     }
-  }, [poId, getPurchaseOrder]);
+  }, [poId, getPurchaseOrder, stateMachine]);
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -98,6 +136,17 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ poId, onClose }) 
         return;
       }
 
+      // Validate all items have valid product linkage (UUID id present in products store)
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+      const invalidItem = items.find((it) => {
+        const p = products.find(p => p.id === it.productId);
+        return !p || !uuidRegex.test(String(it.productId || ''));
+      });
+      if (invalidItem) {
+        setErrors({ items: 'One or more items are not linked to a valid product. Please reselect the products.' });
+        return;
+      }
+
       const subtotal = items.reduce((sum, item) => sum + item.total, 0);
       const tax = subtotal * 0.12; // 12% VAT
       const total = subtotal + tax;
@@ -114,15 +163,25 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ poId, onClose }) 
           status: formData.status,
           expectedDate: formData.expectedDate ? new Date(formData.expectedDate) : undefined
         };
-        
-        const { error } = await updatePO(poId, updateData);
-        if (error) {
-          console.error('Failed to update purchase order:', error);
-          setErrors({ submit: 'Failed to update purchase order' });
-          return;
+
+        // If marking as received, route through receivePurchaseOrder for idempotent stock updates
+        if (formData.status === 'received') {
+          const { error } = await receivePurchaseOrder(poId, items as any);
+          if (error) {
+            console.error('Failed to receive purchase order:', error);
+            setErrors({ submit: 'Failed to receive purchase order' });
+            return;
+          }
+        } else {
+          const { error } = await updatePO(poId, updateData);
+          if (error) {
+            console.error('Failed to update purchase order:', error);
+            setErrors({ submit: 'Failed to update purchase order' });
+            return;
+          }
         }
         
-        // Also update local store
+        // Update local store optimistically
         updatePurchaseOrder(poId, updateData);
       } else {
         // Create new PO
@@ -138,14 +197,24 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ poId, onClose }) 
           total,
           status: formData.status,
           expectedDate: formData.expectedDate ? new Date(formData.expectedDate) : undefined,
-          createdBy: user?.id || null // Use actual user ID or null if not authenticated
+          createdBy: user?.id || undefined // Use actual user ID or undefined if not authenticated
         };
         
-        const { error } = await createPurchaseOrder(poData);
+        const { data, error } = await createPurchaseOrder(poData);
         if (error) {
           console.error('Failed to create purchase order:', error);
           setErrors({ submit: 'Failed to create purchase order' });
           return;
+        }
+
+        // If immediately received upon creation, call receive flow with the new id
+        if (data && formData.status === 'received') {
+          const { error: recvErr } = await receivePurchaseOrder(data.id as string);
+          if (recvErr) {
+            console.error('Failed to receive purchase order after creation:', recvErr);
+            setErrors({ submit: 'Failed to receive purchase order after creation' });
+            return;
+          }
         }
         
         // Also add to local store
@@ -205,6 +274,34 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ poId, onClose }) 
     // Clear error when user starts typing
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
+    }
+  };
+
+  const handleStatusChange = (newStatus: string) => {
+    const currentPO = poId ? getPurchaseOrder(poId) : null;
+    const enhancedStatus = newStatus as EnhancedPurchaseOrderStatus;
+    
+    // Check if status change requires reason
+    const requiresReason = ['cancelled', 'fully_received', 'closed'].includes(enhancedStatus);
+    
+    if (currentPO && requiresReason) {
+      // Validate transition
+      const currentEnhanced = mapLegacyToEnhanced(currentPO.status);
+      if (!stateMachine.canTransition(currentEnhanced, enhancedStatus)) {
+        setErrors(prev => ({
+          ...prev,
+          status: `Cannot transition from ${currentEnhanced} to ${enhancedStatus}`
+        }));
+        return;
+      }
+      setShowReasonInput(true);
+    }
+    
+    setFormData(prev => ({ ...prev, status: mapEnhancedToLegacy(enhancedStatus) }));
+    
+    // Clear any previous status errors
+    if (errors.status) {
+      setErrors(prev => ({ ...prev, status: '' }));
     }
   };
 
@@ -278,16 +375,35 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ poId, onClose }) 
                 Status
               </label>
               <select
-                value={formData.status}
-                onChange={(e) => handleInputChange('status', e.target.value)}
+                value={mapLegacyToEnhanced(formData.status)}
+                onChange={(e) => handleStatusChange(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
               >
-                <option value="draft">Draft</option>
-                <option value="sent">Sent</option>
-                <option value="received">Received</option>
-                <option value="partial">Partial</option>
-                <option value="cancelled">Cancelled</option>
+                {availableStatuses.map(status => (
+                  <option key={status} value={status}>
+                    {status.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
+                  </option>
+                ))}
               </select>
+              {errors.status && (
+                <p className="mt-1 text-sm text-red-600">{errors.status}</p>
+              )}
+              
+              {/* Status change reason input */}
+              {showReasonInput && (
+                <div className="mt-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-white mb-1">
+                    Reason for status change
+                  </label>
+                  <textarea
+                    value={statusChangeReason}
+                    onChange={(e) => setStatusChangeReason(e.target.value)}
+                    rows={2}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                    placeholder="Please provide a reason for this status change..."
+                  />
+                </div>
+              )}
             </div>
           </div>
 

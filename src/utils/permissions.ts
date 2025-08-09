@@ -21,6 +21,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     { module: 'users', actions: ['view', 'create', 'edit', 'delete'] },
     { module: 'settings', actions: ['view', 'edit'] },
     { module: 'bir', actions: ['view', 'create', 'edit'] },
+    { module: 'operations', actions: ['view', 'create', 'edit', 'delete'] },
     { module: 'admin-dashboard', actions: ['view', 'monitor', 'manage'] },
     { module: 'system-monitoring', actions: ['view', 'configure'] },
     { module: 'security', actions: ['view', 'manage'] },
@@ -38,7 +39,9 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     { module: 'reports', actions: ['view', 'export'] },
     { module: 'branches', actions: ['view'] },
     { module: 'users', actions: ['view'] },
+    { module: 'settings', actions: ['view'] },
     { module: 'bir', actions: ['view'] },
+    { module: 'operations', actions: ['view', 'create', 'edit'] },
     { module: 'help', actions: ['view'] }
   ],
   cashier: [
@@ -47,6 +50,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     { module: 'inventory', actions: ['view'] },
     { module: 'customers', actions: ['view', 'create', 'edit'] },
     { module: 'reports', actions: ['view'] },
+    { module: 'settings', actions: ['view'] },
     { module: 'help', actions: ['view'] }
   ],
   accountant: [
@@ -58,6 +62,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     { module: 'bir', actions: ['view', 'create', 'edit'] },
     { module: 'purchases', actions: ['view'] },
     { module: 'customers', actions: ['view'] },
+    { module: 'settings', actions: ['view'] },
     { module: 'help', actions: ['view'] }
   ],
   employee: [

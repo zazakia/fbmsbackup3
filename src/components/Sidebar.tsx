@@ -42,6 +42,7 @@ const Sidebar: React.FC<SidebarProps> = memo(({
   const confirmLogout = () => {
     setShowLogoutConfirm(true);
   };
+  
   return (
     <>
       {/* Desktop Sidebar */}
@@ -111,9 +112,13 @@ const Sidebar: React.FC<SidebarProps> = memo(({
           {/* Help Section */}
           <div className="bg-gradient-to-r from-primary-500 to-primary-600 rounded-lg p-4 text-white">
             <h3 className="font-semibold text-sm">Need Help?</h3>
-            <p className="text-xs mt-1 text-primary-100">Contact our support team</p>
-            <button className="mt-2 text-xs bg-white bg-opacity-20 px-3 py-1 rounded hover:bg-opacity-30 transition-all duration-200">
-              Get Support
+            <p className="text-xs mt-1 text-primary-100">Access guides and documentation</p>
+            <button 
+              onClick={() => setShowHelpMenu(!showHelpMenu)}
+              className="mt-2 text-xs bg-white bg-opacity-20 px-3 py-1 rounded hover:bg-opacity-30 transition-all duration-200 flex items-center space-x-1"
+            >
+              <HelpCircle className="h-3 w-3" />
+              <span>Help & Docs</span>
             </button>
           </div>
         </div>
@@ -194,9 +199,13 @@ const Sidebar: React.FC<SidebarProps> = memo(({
           {/* Help Section */}
           <div className="bg-gradient-to-r from-primary-500 to-primary-600 rounded-lg p-4 text-white">
             <h3 className="font-semibold text-sm">Need Help?</h3>
-            <p className="text-xs mt-1 text-primary-100">Contact our support team</p>
-            <button className="mt-2 text-xs bg-white bg-opacity-20 px-3 py-1 rounded hover:bg-opacity-30 transition-all duration-200">
-              Get Support
+            <p className="text-xs mt-1 text-primary-100">Access guides and documentation</p>
+            <button 
+              onClick={() => setShowHelpMenu(!showHelpMenu)}
+              className="mt-2 text-xs bg-white bg-opacity-20 px-3 py-1 rounded hover:bg-opacity-30 transition-all duration-200 flex items-center space-x-1"
+            >
+              <HelpCircle className="h-3 w-3" />
+              <span>Help & Docs</span>
             </button>
           </div>
         </div>
@@ -240,6 +249,26 @@ const Sidebar: React.FC<SidebarProps> = memo(({
                 <LogOut className="h-4 w-4 mr-2" />
                 Logout
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Help Menu Modal */}
+      {showHelpMenu && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-dark-800 rounded-lg shadow-xl w-full max-w-2xl mx-4 max-h-[80vh] overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-dark-600">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Help & Documentation</h2>
+              <button
+                onClick={() => setShowHelpMenu(false)}
+                className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-700 transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="overflow-y-auto max-h-[calc(80vh-80px)]">
+              <HelpMenu />
             </div>
           </div>
         </div>

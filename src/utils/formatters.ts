@@ -45,6 +45,48 @@ export const parseDate = (date: Date | string | null | undefined): Date | null =
   }
 };
 
+// Enhanced date parsing specifically for Supabase timestamps
+export const parseSupabaseDate = (date: string | null | undefined): Date | null => {
+  if (!date) return null;
+  
+  try {
+    // Handle Supabase timestamp formats (ISO 8601)
+    const parsed = new Date(date);
+    
+    // Validate the parsed date
+    if (isNaN(parsed.getTime())) {
+      console.warn('Invalid Supabase date:', date);
+      return null;
+    }
+    
+    return parsed;
+  } catch (error) {
+    console.error('Error parsing Supabase date:', date, error);
+    return null;
+  }
+};
+
+// Relative time formatting (e.g., "2 hours ago")
+export const formatRelativeTime = (date: Date): string => {
+  try {
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMinutes = Math.floor(diffMs / (1000 * 60));
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    
+    if (diffMinutes < 1) return 'Just now';
+    if (diffMinutes < 60) return `${diffMinutes} minute${diffMinutes === 1 ? '' : 's'} ago`;
+    if (diffHours < 24) return `${diffHours} hour${diffHours === 1 ? '' : 's'} ago`;
+    if (diffDays < 7) return `${diffDays} day${diffDays === 1 ? '' : 's'} ago`;
+    
+    return date.toLocaleDateString('en-PH');
+  } catch (error) {
+    console.warn('Error formatting relative time:', date, error);
+    return 'Some time ago';
+  }
+};
+
 export const formatDate = (date: Date | string | null | undefined, format: 'short' | 'long' | 'time' = 'short'): string => {
   const dateObj = parseDate(date);
   if (!dateObj) {
@@ -70,6 +112,84 @@ export const formatDate = (date: Date | string | null | undefined, format: 'shor
   } catch (error) {
     console.warn('Error formatting date:', date, error);
     return 'Invalid Date';
+  }
+};
+
+// Safe date formatting specifically for sales data with enhanced error handling
+export const formatSalesDate = (
+  date: string | Date | null | undefined, 
+  format: 'short' | 'long' | 'time' | 'relative' = 'short'
+): string => {
+  const dateObj = typeof date === 'string' ? parseSupabaseDate(date) : parseDate(date);
+  
+  if (!dateObj) {
+    return 'Date unavailable';
+  }
+  
+  try {
+    switch (format) {
+      case 'relative':
+        return formatRelativeTime(dateObj);
+      case 'long':
+        return dateObj.toLocaleDateString('en-PH', {
+          weekday: 'long',
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+      case 'time':
+        return dateObj.toLocaleTimeString('en-PH', {
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+      default:
+        return dateObj.toLocaleDateString('en-PH');
+    }
+  } catch (error) {
+    console.warn('Error formatting sales date:', date, error);
+    return 'Date format error';
+  }
+};
+
+// Safe date formatting for Philippine timezone
+export const formatDatePST = (date: Date | string | null | undefined, format: 'short' | 'long' | 'time' = 'short'): string => {
+  const dateObj = typeof date === 'string' ? parseSupabaseDate(date) : parseDate(date);
+  
+  if (!dateObj) {
+    return 'Date unavailable';
+  }
+  
+  try {
+    // Convert to Philippine Standard Time (UTC+8)
+    const pstDate = new Date(dateObj.toLocaleString('en-US', { timeZone: 'Asia/Manila' }));
+    
+    switch (format) {
+      case 'long':
+        return pstDate.toLocaleDateString('en-PH', {
+          weekday: 'long',
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+          timeZone: 'Asia/Manila'
+        });
+      case 'time':
+        return pstDate.toLocaleTimeString('en-PH', {
+          hour: '2-digit',
+          minute: '2-digit',
+          timeZone: 'Asia/Manila'
+        });
+      default:
+        return pstDate.toLocaleDateString('en-PH', {
+          timeZone: 'Asia/Manila'
+        });
+    }
+  } catch (error) {
+    console.warn('Error formatting PST date:', date, error);
+    return 'Date format error';
   }
 };
 

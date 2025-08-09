@@ -5,6 +5,11 @@ import {
   SaleItem, 
   PurchaseOrder, 
   PurchaseOrderItem,
+  PartialReceiptItem,
+  EnhancedPurchaseOrder,
+  StatusTransition,
+  ReceivingRecord,
+  ValidationError,
   StockMovement, 
   InventoryLocation, 
   StockTransfer,
@@ -12,7 +17,10 @@ import {
   Customer,
   Supplier,
   Employee,
-  PayrollEntry
+  PayrollEntry,
+  User,
+  PurchaseOrderAuditLog,
+  PurchaseOrderAuditAction
 } from '../../types/business';
 
 export interface InventoryTestData {
@@ -30,9 +38,20 @@ export interface InventoryTestData {
 
 export class TestDataFactory {
   private static idCounter = 1;
+  private static dateOffset = 0;
 
   private static generateId(): string {
     return `test-${this.idCounter++}-${Date.now()}`;
+  }
+
+  /**
+   * Generate a test date with optional offset
+   */
+  static generateDate(offsetDays: number = 0): Date {
+    const baseDate = new Date('2024-01-01T10:00:00Z');
+    baseDate.setDate(baseDate.getDate() + this.dateOffset + offsetDays);
+    this.dateOffset++;
+    return baseDate;
   }
 
   private static generateSKU(): string {
@@ -464,8 +483,281 @@ export class TestDataFactory {
     };
   }
 
+  /**
+   * Create a mock user for testing
+   */
+  static createMockUser(overrides: Partial<User> = {}): User {
+    return {
+      id: this.generateId(),
+      email: `test.user${this.idCounter}@example.com`,
+      name: `Test User ${this.idCounter}`,
+      role: 'manager',
+      isActive: true,
+      createdAt: this.generateDate(),
+      ...overrides
+    };
+  }
+
+  /**
+   * Create mock partial receipt items for purchase order testing
+   */
+  static createMockPartialReceiptItems(
+    purchaseOrder: PurchaseOrder,
+    receiptPercentage: number = 0.8, // 80% of ordered quantity by default
+    overrides: Partial<PartialReceiptItem> = {}
+  ): PartialReceiptItem[] {
+    return purchaseOrder.items.map((item, index) => {
+      const receivedQuantity = Math.floor(item.quantity * receiptPercentage);
+      const unitCost = item.cost + (Math.random() * 2 - 1); // Add some price variance
+      
+      return {
+        productId: item.productId,
+        productName: item.productName,
+        productSku: item.sku,
+        orderedQuantity: item.quantity,
+        receivedQuantity,
+        totalReceived: receivedQuantity,
+        previouslyReceived: 0,
+        unitCost: Math.max(0, unitCost), // Ensure positive cost
+        totalCost: receivedQuantity * unitCost,
+        condition: index % 4 === 3 ? 'damaged' : 'good', // 25% chance of damage
+        batchNumber: `BATCH-${this.generateDate().getFullYear()}-${String(index + 1).padStart(3, '0')}`,
+        expiryDate: this.generateDate(365), // 1 year expiry
+        notes: `Receipt item ${index + 1} - ${receiptPercentage * 100}% of order`,
+        qualityGrade: 'A',
+        inspectionNotes: index % 4 === 3 ? 'Minor damage noted during inspection' : 'Passed quality inspection',
+        ...overrides
+      };
+    });
+  }
+
+  /**
+   * Create an enhanced purchase order with workflow history
+   */
+  static createEnhancedMockPurchaseOrder(overrides: Partial<EnhancedPurchaseOrder> = {}): EnhancedPurchaseOrder {
+    const basePO = this.createPurchaseOrder(overrides);
+    
+    const statusHistory: StatusTransition[] = [
+      {
+        id: this.generateId(),
+        fromStatus: 'draft',
+        toStatus: 'pending_approval',
+        timestamp: this.generateDate(-2),
+        performedBy: basePO.createdBy!,
+        performedByName: 'Test User',
+        reason: 'Submitted for approval'
+      },
+      {
+        id: this.generateId(),
+        fromStatus: 'pending_approval', 
+        toStatus: 'approved',
+        timestamp: this.generateDate(-1),
+        performedBy: this.generateId(),
+        performedByName: 'Test Manager',
+        reason: 'Budget approved, supplier verified'
+      }
+    ];
+
+    const receivingHistory: ReceivingRecord[] = [];
+    
+    return {
+      ...basePO,
+      statusHistory,
+      receivingHistory,
+      validationErrors: [],
+      approvalWorkflow: {
+        currentLevel: 2,
+        requiredLevel: 2,
+        approvers: [
+          {
+            level: 1,
+            userId: this.generateId(),
+            userName: 'Department Manager', 
+            approvedAt: this.generateDate(-1),
+            comments: 'Departmental approval granted'
+          },
+          {
+            level: 2,
+            userId: this.generateId(),
+            userName: 'Finance Manager',
+            approvedAt: this.generateDate(),
+            comments: 'Financial approval granted'
+          }
+        ]
+      },
+      ...overrides
+    };
+  }
+
+  /**
+   * Create mock receiving record
+   */
+  static createMockReceivingRecord(
+    purchaseOrderId: string,
+    items: PartialReceiptItem[],
+    overrides: Partial<ReceivingRecord> = {}
+  ): ReceivingRecord {
+    return {
+      id: this.generateId(),
+      purchaseOrderId,
+      receivedDate: this.generateDate(),
+      receivedBy: this.generateId(),
+      receivedByName: 'Warehouse Staff Member',
+      items,
+      totalItems: items.length,
+      totalQuantity: items.reduce((sum, item) => sum + item.receivedQuantity, 0),
+      totalValue: items.reduce((sum, item) => sum + item.totalCost, 0),
+      notes: 'Standard receiving process completed successfully',
+      inspectionStatus: 'passed',
+      qualityNotes: 'All items meet quality standards',
+      discrepancyNotes: null,
+      deliveryNote: this.generateId(),
+      vehicleInfo: 'Delivery Truck ABC-123',
+      driverInfo: 'John Delivery Driver',
+      receivingLocation: 'Warehouse A - Dock 2',
+      weatherConditions: 'Clear, 22°C',
+      ...overrides
+    };
+  }
+
+  /**
+   * Create mock validation errors
+   */
+  static createMockValidationErrors(count: number = 1): ValidationError[] {
+    const errorTypes = [
+      'REQUIRED_FIELD_MISSING',
+      'INVALID_FORMAT', 
+      'QUANTITY_EXCEEDS_ORDERED',
+      'NEGATIVE_COST',
+      'PRODUCT_NOT_FOUND',
+      'COST_VARIANCE_HIGH'
+    ] as const;
+
+    const severities = ['error', 'warning'] as const;
+    
+    return Array.from({ length: count }, (_, index) => ({
+      id: this.generateId(),
+      field: `testField${index + 1}`,
+      message: `Test validation error ${index + 1}: This is a sample error message for testing purposes`,
+      severity: severities[index % 2],
+      code: errorTypes[index % errorTypes.length],
+      metadata: {
+        testError: true,
+        errorIndex: index,
+        timestamp: this.generateDate().toISOString()
+      }
+    }));
+  }
+
+  /**
+   * Create mock audit logs for purchase order testing
+   */
+  static createMockAuditLogs(
+    purchaseOrderId: string,
+    count: number = 10
+  ): PurchaseOrderAuditLog[] {
+    const actions = Object.values(PurchaseOrderAuditAction);
+    const users = ['user-123', 'manager-456', 'warehouse-789', 'admin-000'];
+    
+    return Array.from({ length: count }, (_, index) => ({
+      id: this.generateId(),
+      purchaseOrderId,
+      purchaseOrderNumber: `PO-2024-${String(index + 1).padStart(4, '0')}`,
+      action: actions[index % actions.length],
+      performedBy: users[index % users.length],
+      performedByName: `Test User ${index + 1}`,
+      timestamp: this.generateDate(-(count - index)),
+      oldValues: index > 0 ? { 
+        status: index % 2 === 0 ? 'draft' : 'pending_approval',
+        updatedAt: this.generateDate(-(count - index + 1)).toISOString()
+      } : {},
+      newValues: {
+        status: index % 2 === 0 ? 'pending_approval' : 'approved', 
+        updatedAt: this.generateDate(-(count - index)).toISOString()
+      },
+      reason: `Test audit log ${index + 1}: ${actions[index % actions.length]} action performed`,
+      metadata: {
+        testAuditLog: true,
+        auditIndex: index,
+        userRole: index % 2 === 0 ? 'manager' : 'admin',
+        sessionId: this.generateId(),
+        browserInfo: 'Test Browser 1.0'
+      },
+      ipAddress: `192.168.1.${100 + (index % 50)}`,
+      userAgent: `TestAgent/1.0 (Test ${index + 1})`
+    }));
+  }
+
+  /**
+   * Create performance test data sets for purchase order workflow
+   */
+  static createPurchaseOrderPerformanceTestData(scale: 'small' | 'medium' | 'large' = 'medium') {
+    const scales = {
+      small: { orders: 10, itemsPerOrder: 5, receiptsPerOrder: 2 },
+      medium: { orders: 50, itemsPerOrder: 10, receiptsPerOrder: 3 },
+      large: { orders: 200, itemsPerOrder: 25, receiptsPerOrder: 5 }
+    };
+
+    const config = scales[scale];
+    const suppliers = Array.from({ length: Math.ceil(config.orders / 5) }, () => 
+      this.createSupplier()
+    );
+
+    const products = Array.from({ length: config.orders * config.itemsPerOrder }, () =>
+      this.createProduct()
+    );
+
+    const purchaseOrders = Array.from({ length: config.orders }, (_, orderIndex) => {
+      const orderProducts = products.slice(
+        orderIndex * config.itemsPerOrder, 
+        (orderIndex + 1) * config.itemsPerOrder
+      );
+      
+      const items = orderProducts.map(product => ({
+        id: this.generateId(),
+        productId: product.id,
+        productName: product.name,
+        sku: product.sku,
+        quantity: Math.floor(Math.random() * 100) + 10,
+        cost: Math.floor(Math.random() * 500) + 25,
+        total: 0 // Will be calculated
+      }));
+
+      // Calculate totals
+      items.forEach(item => {
+        item.total = item.quantity * item.cost;
+      });
+
+      return this.createPurchaseOrder({
+        supplierId: suppliers[orderIndex % suppliers.length].id,
+        supplierName: suppliers[orderIndex % suppliers.length].name,
+        items: items as PurchaseOrderItem[]
+      });
+    });
+
+    const receipts = purchaseOrders.flatMap(po => 
+      Array.from({ length: config.receiptsPerOrder }, (_, receiptIndex) =>
+        this.createMockReceivingRecord(
+          po.id,
+          this.createMockPartialReceiptItems(po, 0.3 + (receiptIndex * 0.3)) // Gradual receipts
+        )
+      )
+    );
+
+    return {
+      suppliers,
+      products,
+      purchaseOrders,
+      receipts,
+      auditLogs: purchaseOrders.flatMap(po => 
+        this.createMockAuditLogs(po.id, 5)
+      )
+    };
+  }
+
   // Reset counter for consistent test runs
   static resetIdCounter(): void {
     this.idCounter = 1;
+    this.dateOffset = 0;
   }
 }

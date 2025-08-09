@@ -77,8 +77,7 @@ import {
   LazyLoyaltyPrograms,
   LazyCloudBackup,
   LazySalesHistory,
-  LazyProductHistory,
-  LazyHelpModule
+  LazyProductHistory
 } from './utils/lazyComponents';
 
 const App: React.FC = () => {
@@ -141,7 +140,7 @@ const App: React.FC = () => {
       'reports': 'reports',
       'bir': 'bir',
       'branches': 'branches',
-      'operations': 'operations',
+      'operations': 'dashboard', // Map operations to dashboard visibility setting
       'marketing': 'marketing',
       'loyalty': 'loyalty',
       'backup': 'backup',
@@ -168,7 +167,7 @@ const App: React.FC = () => {
       { id: 'reports', label: 'Reports & Analytics', icon: FileText, module: 'reports' },
       { id: 'bir', label: 'BIR Forms', icon: FileSpreadsheet, module: 'bir' },
       { id: 'branches', label: 'Multi-Branch', icon: Building2, module: 'branches' },
-      { id: 'operations', label: 'Operations', icon: Activity, module: 'dashboard' }, // Map to dashboard permissions
+      { id: 'operations', label: 'Operations', icon: Activity, module: 'operations' }, // Operations module
       { id: 'marketing', label: 'Marketing', icon: Megaphone, module: 'reports' }, // Map to reports permissions for now
       { id: 'loyalty', label: 'Loyalty Programs', icon: Gift, module: 'customers' }, // Map to customers permissions
       { id: 'backup', label: 'Cloud Backup', icon: Cloud, module: 'settings' }, // Map to settings permissions
@@ -181,6 +180,11 @@ const App: React.FC = () => {
     ];
 
     return allMenuItems.filter(item => {
+      // Exclude help module from main navigation
+      if (item.id === 'help') {
+        return false;
+      }
+      
       if (!user || !user.role) {
         // Show basic items for unauthenticated users
         return ['dashboard', 'settings'].includes(item.id);
@@ -219,159 +223,183 @@ const App: React.FC = () => {
   }, []);
 
   const renderContent = () => {
-    switch (activeModule) {
-      case 'dashboard':
-        return (
-          <PermissionGuard module="dashboard">
-            <LazyDashboard />
-          </PermissionGuard>
-        );
-      case 'sales':
-        return (
-          <PermissionGuard module="pos">
-            <LazyEnhancedPOSSystem />
-          </PermissionGuard>
-        );
-      case 'sales-history':
-        return (
-          <PermissionGuard module="pos">
-            <LazySalesHistory />
-          </PermissionGuard>
-        );
-      case 'inventory':
-        return (
-          <PermissionGuard module="inventory">
-            <LazyEnhancedInventoryManagement />
-          </PermissionGuard>
-        );
-      case 'product-history':
-        return (
-          <PermissionGuard module="inventory">
-            <LazyProductHistory />
-          </PermissionGuard>
-        );
-      case 'purchases':
-        return (
-          <PermissionGuard module="purchases">
-            <LazyEnhancedPurchaseManagement />
-          </PermissionGuard>
-        );
-      case 'customers':
-        return (
-          <PermissionGuard module="customers">
-            <LazyCustomerManagement />
-          </PermissionGuard>
-        );
-      case 'customer-transactions':
-        return (
-          <PermissionGuard module="customers">
-            <LazyCustomerTransactionInterface />
-          </PermissionGuard>
-        );
-      case 'suppliers':
-        return (
-          <PermissionGuard module="suppliers">
-            <LazySupplierManagement />
-          </PermissionGuard>
-        );
-      case 'expenses':
-        return (
-          <PermissionGuard module="expenses">
-            <LazyExpenseTracking />
-          </PermissionGuard>
-        );
-      case 'payroll':
-        return (
-          <PermissionGuard module="payroll">
-            <LazyPayrollManagement />
-          </PermissionGuard>
-        );
-      case 'accounting':
-        return (
-          <PermissionGuard module="accounting">
-            <LazyEnhancedAccountingManagement />
-          </PermissionGuard>
-        );
-      case 'reports':
-        return (
-          <PermissionGuard module="reports">
-            <LazyEnhancedReportsDashboard />
-          </PermissionGuard>
-        );
-      case 'bir':
-        return (
-          <PermissionGuard module="bir">
-            <LazyBIRForms />
-          </PermissionGuard>
-        );
-      case 'branches':
-        return (
-          <PermissionGuard module="branches">
-            <LazyBranchManagement />
-          </PermissionGuard>
-        );
-      case 'operations':
-        return (
-          <PermissionGuard module="dashboard" requiredRole="manager">
-            <LazyManagerOperations />
-          </PermissionGuard>
-        );
-      case 'marketing':
-        return (
-          <PermissionGuard module="reports">
-            <LazyMarketingCampaigns />
-          </PermissionGuard>
-        );
-      case 'loyalty':
-        return (
-          <PermissionGuard module="customers">
-            <LazyLoyaltyPrograms />
-          </PermissionGuard>
-        );
-      case 'backup':
-        return (
-          <PermissionGuard module="settings" requiredRole="admin">
-            <LazyCloudBackup />
-          </PermissionGuard>
-        );
-      case 'testing':
-        return (
-          <PermissionGuard module="settings" requiredRole="admin">
-            <TestDashboard />
-          </PermissionGuard>
-        );
-      case 'admin-dashboard':
-        return (
-          <PermissionGuard module="admin-dashboard" requiredRole="admin">
-            <AdminDashboard />
-          </PermissionGuard>
-        );
-      case 'user-roles':
-        return (
-          <PermissionGuard module="admin-dashboard" requiredRole="admin">
-            <LazyUserRoleManagement />
-          </PermissionGuard>
-        );
-      case 'data-history':
-        return (
-          <PermissionGuard module="admin-dashboard" requiredRole="admin">
-            <LazyDataHistoryTracking />
-          </PermissionGuard>
-        );
-      case 'help':
-        return <LazyHelpModule />;
-      case 'settings':
-        return (
-          <PermissionGuard module="settings">
-            <LazySettingsPage />
-          </PermissionGuard>
-        );
-      default:
-        return (
-          <PermissionGuard module="dashboard">
-            <LazyDashboard />
-          </PermissionGuard>
-        );
+    try {
+      console.info('[NAV] renderContent ->', activeModule);
+      switch (activeModule) {
+        case 'dashboard':
+          return (
+            <PermissionGuard module="dashboard">
+              <LazyDashboard />
+            </PermissionGuard>
+          );
+        case 'sales':
+          console.info('[NAV] Loading POS module (sales -> pos)');
+          return (
+            <PermissionGuard module="pos">
+              <LazyEnhancedPOSSystem />
+            </PermissionGuard>
+          );
+        case 'sales-history':
+          console.info('[NAV] Loading Sales History');
+          return (
+            <ErrorBoundary>
+              <PermissionGuard module="pos">
+                <LazySalesHistory />
+              </PermissionGuard>
+            </ErrorBoundary>
+          );
+        case 'inventory':
+          return (
+            <PermissionGuard module="inventory">
+              <LazyEnhancedInventoryManagement />
+            </PermissionGuard>
+          );
+        case 'product-history':
+          return (
+            <ErrorBoundary>
+              <PermissionGuard module="inventory">
+                <LazyProductHistory />
+              </PermissionGuard>
+            </ErrorBoundary>
+          );
+        case 'purchases':
+          return (
+            <PermissionGuard module="purchases">
+              <LazyEnhancedPurchaseManagement />
+            </PermissionGuard>
+          );
+        case 'customers':
+          return (
+            <PermissionGuard module="customers">
+              <LazyCustomerManagement />
+            </PermissionGuard>
+          );
+        case 'customer-transactions':
+          return (
+            <PermissionGuard module="customers">
+              <LazyCustomerTransactionInterface />
+            </PermissionGuard>
+          );
+        case 'suppliers':
+          return (
+            <PermissionGuard module="suppliers">
+              <LazySupplierManagement />
+            </PermissionGuard>
+          );
+        case 'expenses':
+          return (
+            <ErrorBoundary>
+              <PermissionGuard module="expenses">
+                <LazyExpenseTracking />
+              </PermissionGuard>
+            </ErrorBoundary>
+          );
+        case 'payroll':
+          return (
+            <ErrorBoundary>
+              <PermissionGuard module="payroll">
+                <LazyPayrollManagement />
+              </PermissionGuard>
+            </ErrorBoundary>
+          );
+        case 'accounting':
+          return (
+            <PermissionGuard module="accounting">
+              <LazyEnhancedAccountingManagement />
+            </PermissionGuard>
+          );
+        case 'reports':
+          return (
+            <PermissionGuard module="reports">
+              <LazyEnhancedReportsDashboard />
+            </PermissionGuard>
+          );
+        case 'bir':
+          return (
+            <ErrorBoundary>
+              <PermissionGuard module="bir">
+                <LazyBIRForms />
+              </PermissionGuard>
+            </ErrorBoundary>
+          );
+        case 'branches':
+          return (
+            <PermissionGuard module="branches">
+              <LazyBranchManagement />
+            </PermissionGuard>
+          );
+        case 'operations':
+          return (
+            <ErrorBoundary>
+              <PermissionGuard module="operations" requiredRole="manager">
+                <LazyManagerOperations />
+              </PermissionGuard>
+            </ErrorBoundary>
+          );
+        case 'marketing':
+          return (
+            <PermissionGuard module="reports">
+              <LazyMarketingCampaigns />
+            </PermissionGuard>
+          );
+        case 'loyalty':
+          return (
+            <PermissionGuard module="customers">
+              <LazyLoyaltyPrograms />
+            </PermissionGuard>
+          );
+        case 'backup':
+          return (
+            <ErrorBoundary>
+              <PermissionGuard module="settings" requiredRole="admin">
+                <LazyCloudBackup />
+              </PermissionGuard>
+            </ErrorBoundary>
+          );
+        case 'testing':
+          return (
+            <PermissionGuard module="settings" requiredRole="admin">
+              <TestDashboard />
+            </PermissionGuard>
+          );
+        case 'admin-dashboard':
+          return (
+            <PermissionGuard module="admin-dashboard" requiredRole="admin">
+              <AdminDashboard />
+            </PermissionGuard>
+          );
+        case 'user-roles':
+          return (
+            <PermissionGuard module="admin-dashboard" requiredRole="admin">
+              <LazyUserRoleManagement />
+            </PermissionGuard>
+          );
+        case 'data-history':
+          return (
+            <PermissionGuard module="admin-dashboard" requiredRole="admin">
+              <LazyDataHistoryTracking />
+            </PermissionGuard>
+          );
+        case 'settings':
+          return (
+            <PermissionGuard module="settings">
+              <LazySettingsPage />
+            </PermissionGuard>
+          );
+        default:
+          return (
+            <PermissionGuard module="dashboard">
+              <LazyDashboard />
+            </PermissionGuard>
+          );
+      }
+    } catch (err) {
+      console.error('[NAV] renderContent error for module:', activeModule, err);
+      return (
+        <PermissionGuard module="dashboard">
+          <LazyDashboard />
+        </PermissionGuard>
+      );
     }
   };
 
@@ -446,8 +474,7 @@ const App: React.FC = () => {
         {/* User Debug Info (Development Only) */}
         {import.meta.env.DEV && <UserDebugInfo />}
         
-        {/* Help Menu */}
-        <HelpMenu />
+
         
         {/* User Onboarding Tour */}
         <UserOnboardingTour 

@@ -1,5 +1,30 @@
 import { supabase } from '../utils/supabase';
 import { Sale } from '../types/business';
+import { parseSupabaseDate } from '../utils/formatters';
+
+// Safe date transformation helper
+const transformSaleData = (saleData: any) => {
+  const createdAt = parseSupabaseDate(saleData.created_at);
+  
+  return {
+    id: saleData.id,
+    invoiceNumber: saleData.invoice_number,
+    customerId: saleData.customer_id,
+    customerName: saleData.customer_name,
+    items: saleData.items || [],
+    subtotal: saleData.subtotal || 0,
+    tax: saleData.tax || 0,
+    discount: saleData.discount || 0,
+    total: saleData.total || 0,
+    paymentMethod: saleData.payment_method,
+    paymentStatus: saleData.payment_status,
+    status: saleData.status,
+    cashierId: saleData.cashier_id,
+    notes: saleData.notes,
+    createdAt: createdAt || new Date(), // Fallback to current date
+    hasValidDate: createdAt !== null // Flag for UI handling
+  };
+};
 
 // CREATE sale
 export async function createSale(sale: Omit<Sale, 'id' | 'createdAt'>) {
@@ -41,23 +66,7 @@ export async function createSale(sale: Omit<Sale, 'id' | 'createdAt'>) {
 
   if (data) {
     return {
-      data: {
-        id: data.id,
-        invoiceNumber: data.invoice_number,
-        customerId: data.customer_id,
-        customerName: data.customer_name,
-        items: data.items,
-        subtotal: data.subtotal,
-        tax: data.tax,
-        discount: data.discount,
-        total: data.total,
-        paymentMethod: data.payment_method,
-        paymentStatus: data.payment_status,
-        status: data.status,
-        cashierId: data.cashier_id,
-        notes: data.notes,
-        createdAt: new Date(data.created_at)
-      },
+      data: transformSaleData(data),
       error: null
     };
   }
@@ -98,23 +107,7 @@ export async function getSales(limit?: number, offset?: number) {
   const { data, error } = await query;
 
   if (data) {
-    const transformedData = data.map(sale => ({
-      id: sale.id,
-      invoiceNumber: sale.invoice_number,
-      customerId: sale.customer_id,
-      customerName: sale.customer_name,
-      items: sale.items,
-      subtotal: sale.subtotal,
-      tax: sale.tax,
-      discount: sale.discount,
-      total: sale.total,
-      paymentMethod: sale.payment_method,
-      paymentStatus: sale.payment_status,
-      status: sale.status,
-      cashierId: sale.cashier_id,
-      notes: sale.notes,
-      createdAt: new Date(sale.created_at)
-    }));
+    const transformedData = data.map(sale => transformSaleData(sale));
     return { data: transformedData, error: null };
   }
 
@@ -147,23 +140,7 @@ export async function getSale(id: string) {
 
   if (data) {
     return {
-      data: {
-        id: data.id,
-        invoiceNumber: data.invoice_number,
-        customerId: data.customer_id,
-        customerName: data.customer_name,
-        items: data.items,
-        subtotal: data.subtotal,
-        tax: data.tax,
-        discount: data.discount,
-        total: data.total,
-        paymentMethod: data.payment_method,
-        paymentStatus: data.payment_status,
-        status: data.status,
-        cashierId: data.cashier_id,
-        notes: data.notes,
-        createdAt: new Date(data.created_at)
-      },
+      data: transformSaleData(data),
       error: null
     };
   }
@@ -228,23 +205,7 @@ export async function updateSale(id: string, updates: Partial<Omit<Sale, 'id' | 
 
   if (data) {
     return {
-      data: {
-        id: data.id,
-        invoiceNumber: data.invoice_number,
-        customerId: data.customer_id,
-        customerName: data.customer_name,
-        items: data.items,
-        subtotal: data.subtotal,
-        tax: data.tax,
-        discount: data.discount,
-        total: data.total,
-        paymentMethod: data.payment_method,
-        paymentStatus: data.payment_status,
-        status: data.status,
-        cashierId: data.cashier_id,
-        notes: data.notes,
-        createdAt: new Date(data.created_at)
-      },
+      data: transformSaleData(data),
       error: null
     };
   }
@@ -288,23 +249,7 @@ export async function getSalesByDateRange(startDate: Date, endDate: Date) {
     .order('created_at', { ascending: false });
 
   if (data) {
-    const transformedData = data.map(sale => ({
-      id: sale.id,
-      invoiceNumber: sale.invoice_number,
-      customerId: sale.customer_id,
-      customerName: sale.customer_name,
-      items: sale.items,
-      subtotal: sale.subtotal,
-      tax: sale.tax,
-      discount: sale.discount,
-      total: sale.total,
-      paymentMethod: sale.payment_method,
-      paymentStatus: sale.payment_status,
-      status: sale.status,
-      cashierId: sale.cashier_id,
-      notes: sale.notes,
-      createdAt: new Date(sale.created_at)
-    }));
+    const transformedData = data.map(sale => transformSaleData(sale));
     return { data: transformedData, error: null };
   }
 
@@ -336,23 +281,7 @@ export async function getSalesByCustomer(customerId: string) {
     .order('created_at', { ascending: false });
 
   if (data) {
-    const transformedData = data.map(sale => ({
-      id: sale.id,
-      invoiceNumber: sale.invoice_number,
-      customerId: sale.customer_id,
-      customerName: sale.customer_name,
-      items: sale.items,
-      subtotal: sale.subtotal,
-      tax: sale.tax,
-      discount: sale.discount,
-      total: sale.total,
-      paymentMethod: sale.payment_method,
-      paymentStatus: sale.payment_status,
-      status: sale.status,
-      cashierId: sale.cashier_id,
-      notes: sale.notes,
-      createdAt: new Date(sale.created_at)
-    }));
+    const transformedData = data.map(sale => transformSaleData(sale));
     return { data: transformedData, error: null };
   }
 
