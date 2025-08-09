@@ -303,7 +303,7 @@ export const useBusinessStore = create<BusinessStore>()(
           // Targeted runtime diagnostics
           const firstErr = validation?.errors?.[0];
           const firstWarn = validation?.warnings?.[0];
-          // eslint-disable-next-line no-console
+           
           console.info('[Store][addToCart] validation summary', {
             isValid: validation?.isValid,
             errorsType: Array.isArray(validation?.errors) ? 'array' : typeof validation?.errors,
@@ -314,7 +314,7 @@ export const useBusinessStore = create<BusinessStore>()(
             firstWarningKeys: firstWarn ? Object.keys(firstWarn) : []
           });
         } catch (e) {
-          // eslint-disable-next-line no-console
+           
           console.error('[Store][addToCart] diagnostics failed', e);
         }
         
@@ -369,7 +369,7 @@ export const useBusinessStore = create<BusinessStore>()(
         try {
           const firstErr = validation?.errors?.[0];
           const firstWarn = validation?.warnings?.[0];
-          // eslint-disable-next-line no-console
+           
           console.info('[Store][updateCartItem] validation summary', {
             isValid: validation?.isValid,
             errorsType: Array.isArray(validation?.errors) ? 'array' : typeof validation?.errors,
@@ -380,7 +380,7 @@ export const useBusinessStore = create<BusinessStore>()(
             firstWarningKeys: firstWarn ? Object.keys(firstWarn) : []
           });
         } catch (e) {
-          // eslint-disable-next-line no-console
+           
           console.error('[Store][updateCartItem] diagnostics failed', e);
         }
         
@@ -427,7 +427,7 @@ export const useBusinessStore = create<BusinessStore>()(
       createSale: async (saleData: any) => {
         // Diagnostics: entry
         try {
-          // eslint-disable-next-line no-console
+           
           console.info('[Store][createSale] start', {
             itemsCount: Array.isArray(saleData?.items) ? saleData.items.length : 'n/a',
             total: saleData?.total,
@@ -499,7 +499,7 @@ export const useBusinessStore = create<BusinessStore>()(
 
           // Diagnostics: completion
           try {
-            // eslint-disable-next-line no-console
+             
             console.info('[Store][createSale] completed. Products updated.');
           } catch {}
         } catch (e) {
@@ -526,7 +526,7 @@ export const useBusinessStore = create<BusinessStore>()(
           // Fallback to empty array if null
           set({ sales: Array.isArray(data) ? data : [], isLoading: false, error: null });
           try {
-            // eslint-disable-next-line no-console
+             
             console.info('[Store][fetchSales] loaded', { count: Array.isArray(data) ? data.length : 0 });
           } catch {}
         } catch (e) {

@@ -553,7 +553,7 @@ describe('Inventory Synchronization Accuracy - Integration Tests', () => {
 
   describe('Audit Trail Accuracy', () => {
     it('should create complete and accurate audit trails', async () => {
-      let auditEntries: any[] = [];
+      const auditEntries: any[] = [];
 
       // Mock audit service to capture entries
       vi.spyOn(auditService, 'logStockMovementAudit').mockImplementation(async (data, context) => {
@@ -606,7 +606,7 @@ describe('Inventory Synchronization Accuracy - Integration Tests', () => {
     });
 
     it('should maintain audit trail consistency across multiple operations', async () => {
-      let allAuditEntries: any[] = [];
+      const allAuditEntries: any[] = [];
 
       vi.spyOn(auditService, 'logStockMovementAudit').mockImplementation(async (data, context) => {
         allAuditEntries.push({ data, context, timestamp: new Date() });

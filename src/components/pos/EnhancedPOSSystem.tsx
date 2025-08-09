@@ -149,7 +149,7 @@ const EnhancedPOSSystem: React.FC = () => {
       try {
         const firstErr = (validation as any)?.errors?.[0];
         const firstWarn = (validation as any)?.warnings?.[0];
-        // eslint-disable-next-line no-console
+         
         console.info('[POS][validateSaleStock] validation summary', {
           isValid: (validation as any)?.isValid,
           errorsType: Array.isArray((validation as any)?.errors) ? 'array' : typeof (validation as any)?.errors,
@@ -160,7 +160,7 @@ const EnhancedPOSSystem: React.FC = () => {
           firstWarningKeys: firstWarn ? Object.keys(firstWarn) : []
         });
       } catch (e) {
-        // eslint-disable-next-line no-console
+         
         console.error('[POS][validateSaleStock] diagnostics failed', e);
       }
 
@@ -387,7 +387,7 @@ const EnhancedPOSSystem: React.FC = () => {
   const handleQuantityChange = (productId: string, newQuantity: number) => {
     try {
       // Basic diagnostics for qty changes
-      // eslint-disable-next-line no-console
+       
       console.debug('[POS] handleQuantityChange', { productId, newQuantity });
     } catch {}
     if (newQuantity <= 0) {

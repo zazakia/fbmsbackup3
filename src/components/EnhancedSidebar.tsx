@@ -1,10 +1,16 @@
-import React, { memo, useState } from 'react';
-import { X, BarChart3, LogOut, User, AlertTriangle, HelpCircle } from 'lucide-react';
+import React, { memo, useState, useCallback, useEffect } from 'react';
+import { 
+  X, BarChart3, LogOut, User, AlertTriangle, HelpCircle, 
+  Loader2, WifiOff, Clock, RefreshCw 
+} from 'lucide-react';
 import { useSupabaseAuthStore } from '../store/supabaseAuthStore';
+import { useModuleLoading } from '../hooks/useModuleLoading';
+import { moduleLoadingManager } from '../services/ModuleLoadingManager';
+import { ModuleId } from '../types/moduleLoading';
 import HelpMenu from './help/HelpMenu';
 
 interface MenuItem {
-  id: string;
+  id: ModuleId;
   label: string;
   icon: React.ComponentType<{ className?: string }>;
 }
@@ -12,10 +18,159 @@ interface MenuItem {
 interface SidebarProps {
   isOpen: boolean;
   menuItems: MenuItem[];
-  activeModule: string;
-  onModuleChange: (moduleId: string) => void;
+  activeModule: ModuleId;
+  onModuleChange: (moduleId: ModuleId) => void;
   onClose: () => void;
 }
+
+// Enhanced menu item component with loading states
+const MenuItemButton: React.FC<{
+  item: MenuItem;
+  isActive: boolean;
+  onClick: (moduleId: ModuleId) => void;
+  onMobileClick: (moduleId: ModuleId) => void;
+  isMobile?: boolean;
+}> = memo(({ item, isActive, onClick, onMobileClick, isMobile = false }) => {
+  const { loadingState, error, isLoading, retry } = useModuleLoading(item.id);
+  const [clickDebounce, setClickDebounce] = useState(false);
+
+  const handleClick = useCallback(async () => {
+    if (clickDebounce || isLoading) return;
+
+    setClickDebounce(true);
+    setTimeout(() => setClickDebounce(false), 300); // Debounce clicks
+
+    try {
+      if (isMobile) {
+        onMobileClick(item.id);
+      } else {
+        onClick(item.id);
+      }
+    } catch (error) {
+      console.error(`Error loading module ${item.id}:`, error);
+    }
+  }, [item.id, onClick, onMobileClick, isMobile, clickDebounce, isLoading]);
+
+  const handleRetry = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    retry();
+  }, [retry]);
+
+  const Icon = item.icon;
+  const hasError = !!error;
+  const canRetry = hasError && error?.recoverable;
+
+  // Determine button state styles
+  const getButtonStyles = () => {
+    if (hasError) {
+      return 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500';
+    }
+    if (isLoading) {
+      return 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500';
+    }
+    if (isActive) {
+      return 'bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300 border-l-4 border-primary-600 dark:border-primary-400';
+    }
+    return 'text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-dark-700 hover:text-gray-900 dark:hover:text-gray-100';
+  };
+
+  const getIconStyles = () => {
+    if (hasError) {
+      return 'text-red-500 dark:text-red-400';
+    }
+    if (isLoading) {
+      return 'text-blue-500 dark:text-blue-400';
+    }
+    if (isActive) {
+      return 'text-primary-700 dark:text-primary-300';
+    }
+    return 'text-gray-400 dark:text-gray-500';
+  };
+
+  const getLoadingIcon = () => {
+    if (hasError) {
+      switch (error?.type) {
+        case 'network_error':
+        case 'offline_error':
+          return WifiOff;
+        case 'timeout_error':
+          return Clock;
+        default:
+          return AlertTriangle;
+      }
+    }
+    if (isLoading) {
+      return Loader2;
+    }
+    return null;
+  };
+
+  const LoadingIcon = getLoadingIcon();
+
+  return (
+    <div className="relative group">
+      <button
+        onClick={handleClick}
+        disabled={clickDebounce}
+        className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-left transition-all duration-200 disabled:opacity-50 ${getButtonStyles()}`}
+        title={hasError ? error.message : (isLoading ? `Loading ${item.label}...` : item.label)}
+      >
+        <div className="relative flex-shrink-0">
+          <Icon className={`h-5 w-5 ${getIconStyles()}`} />
+          {LoadingIcon && (
+            <LoadingIcon 
+              className={`absolute -top-1 -right-1 h-3 w-3 ${
+                isLoading ? 'animate-spin text-blue-500' : 'text-red-500'
+              }`} 
+            />
+          )}
+        </div>
+        
+        <div className="flex-1 min-w-0">
+          <span className="font-medium truncate block">{item.label}</span>
+          {(isLoading || hasError) && (
+            <div className="text-xs opacity-75 truncate mt-0.5">
+              {isLoading && loadingState && (
+                <span>
+                  {loadingState.progress > 0 ? `${Math.round(loadingState.progress)}% - ` : ''}
+                  {loadingState.message}
+                </span>
+              )}
+              {hasError && (
+                <span className="text-red-500 dark:text-red-400">
+                  {error.message}
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Loading progress bar */}
+        {isLoading && loadingState?.progress && loadingState.progress > 0 && (
+          <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gray-200 dark:bg-gray-600 rounded-full overflow-hidden">
+            <div 
+              className="h-full bg-blue-500 transition-all duration-300 ease-out"
+              style={{ width: `${loadingState.progress}%` }}
+            />
+          </div>
+        )}
+      </button>
+
+      {/* Retry button for errors */}
+      {canRetry && (
+        <button
+          onClick={handleRetry}
+          className="absolute right-2 top-1/2 transform -translate-y-1/2 p-1 rounded-full bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-red-200 dark:hover:bg-red-900/50"
+          title="Retry loading"
+        >
+          <RefreshCw className="h-3 w-3" />
+        </button>
+      )}
+    </div>
+  );
+});
+
+MenuItemButton.displayName = 'MenuItemButton';
 
 const EnhancedSidebar: React.FC<SidebarProps> = memo(({ 
   isOpen, 
@@ -28,10 +183,36 @@ const EnhancedSidebar: React.FC<SidebarProps> = memo(({
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [showHelpMenu, setShowHelpMenu] = useState(false);
 
+  // Enhanced module change handler with loading management
+  const handleModuleChange = useCallback(async (moduleId: ModuleId) => {
+    try {
+      // Preload the module to check for errors
+      await moduleLoadingManager.preloadModule(moduleId);
+      onModuleChange(moduleId);
+    } catch (error) {
+      console.error(`Failed to load module ${moduleId}:`, error);
+      // Module loading will be handled by the error boundary
+      // Still attempt to change to the module to show the error state
+      onModuleChange(moduleId);
+    }
+  }, [onModuleChange]);
+
+  const handleMobileModuleChange = useCallback(async (moduleId: ModuleId) => {
+    try {
+      await moduleLoadingManager.preloadModule(moduleId);
+      onModuleChange(moduleId);
+      onClose(); // Close mobile sidebar after successful navigation
+    } catch (error) {
+      console.error(`Failed to load module ${moduleId}:`, error);
+      // Still attempt to change module and close sidebar
+      onModuleChange(moduleId);
+      onClose();
+    }
+  }, [onModuleChange, onClose]);
+
   const handleLogout = async () => {
     try {
       await logout();
-      // Close mobile sidebar after logout
       onClose();
       setShowLogoutConfirm(false);
     } catch (error) {
@@ -42,6 +223,26 @@ const EnhancedSidebar: React.FC<SidebarProps> = memo(({
   const confirmLogout = () => {
     setShowLogoutConfirm(true);
   };
+
+  // Preload high-priority modules on component mount
+  useEffect(() => {
+    const preloadHighPriorityModules = async () => {
+      const highPriorityModules = moduleLoadingManager
+        .getAllModules()
+        .filter(config => config.preloadPriority === 'high' && config.preloadOnLogin)
+        .map(config => config.id);
+
+      for (const moduleId of highPriorityModules) {
+        try {
+          await moduleLoadingManager.preloadModule(moduleId);
+        } catch (error) {
+          console.warn(`Failed to preload module ${moduleId}:`, error);
+        }
+      }
+    };
+
+    preloadHighPriorityModules();
+  }, []);
 
   return (
     <>
@@ -61,26 +262,17 @@ const EnhancedSidebar: React.FC<SidebarProps> = memo(({
         </div>
         
         {/* Scrollable Navigation */}
-        <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto min-h-0 scrollbar-thin scrollbar-track-gray-100 scrollbar-thumb-gray-300 dark:scrollbar-track-dark-700 dark:scrollbar-thumb-dark-500">
-          {menuItems.map((item) => {
-            const Icon = item.icon;
-            return (
-              <button
-                key={item.id}
-                onClick={() => onModuleChange(item.id)}
-                className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-left transition-all duration-200 ${
-                  activeModule === item.id
-                    ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300 border-r-4 border-primary-600 dark:border-primary-400'
-                    : 'text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-dark-700 hover:text-gray-900 dark:hover:text-gray-100'
-                }`}
-              >
-                <Icon className={`h-5 w-5 flex-shrink-0 ${
-                  activeModule === item.id ? 'text-primary-700 dark:text-primary-300' : 'text-gray-400 dark:text-gray-500'
-                }`} />
-                <span className="font-medium">{item.label}</span>
-              </button>
-            );
-          })}
+        <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto min-h-0 scrollbar-thin scrollbar-track-gray-100 scrollbar-thumb-gray-300 dark:scrollbar-track-dark-700 dark:scrollbar-thumb-dark-500">
+          {menuItems.map((item) => (
+            <MenuItemButton
+              key={item.id}
+              item={item}
+              isActive={activeModule === item.id}
+              onClick={handleModuleChange}
+              onMobileClick={handleMobileModuleChange}
+              isMobile={false}
+            />
+          ))}
         </nav>
         
         {/* Fixed Footer */}
@@ -162,29 +354,17 @@ const EnhancedSidebar: React.FC<SidebarProps> = memo(({
         </div>
         
         {/* Scrollable Navigation */}
-        <nav className="mobile-sidebar-nav flex-1 overflow-y-auto px-4 py-6 space-y-2">
-          {menuItems.map((item) => {
-            const Icon = item.icon;
-            return (
-              <button
-                key={item.id}
-                onClick={() => {
-                  onModuleChange(item.id);
-                  onClose();
-                }}
-                className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-left transition-all duration-200 ${
-                  activeModule === item.id
-                    ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300 border-r-4 border-primary-600 dark:border-primary-400'
-                    : 'text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-dark-700 hover:text-gray-900 dark:hover:text-gray-100'
-                }`}
-              >
-                <Icon className={`h-5 w-5 flex-shrink-0 ${
-                  activeModule === item.id ? 'text-primary-700 dark:text-primary-300' : 'text-gray-400 dark:text-gray-500'
-                }`} />
-                <span className="font-medium truncate">{item.label}</span>
-              </button>
-            );
-          })}
+        <nav className="mobile-sidebar-nav flex-1 overflow-y-auto px-4 py-6 space-y-1">
+          {menuItems.map((item) => (
+            <MenuItemButton
+              key={item.id}
+              item={item}
+              isActive={activeModule === item.id}
+              onClick={handleModuleChange}
+              onMobileClick={handleMobileModuleChange}
+              isMobile={true}
+            />
+          ))}
         </nav>
 
         {/* Fixed Footer */}

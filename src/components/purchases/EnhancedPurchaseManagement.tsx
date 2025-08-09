@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import PurchaseOrderForm from './PurchaseOrderForm';
 import SupplierForm from './SupplierForm';
+import { ApprovalQueue } from './ApprovalQueue';
+import { WorkflowConfigurationPanel } from './WorkflowConfigurationPanel';
+import { ReceivingInterface } from './ReceivingInterface';
 import { 
   Plus, 
   Search, 
@@ -17,7 +20,10 @@ import {
   Upload,
   BarChart3,
   Calculator,
-  Building2
+  Building2,
+  Settings,
+  CheckSquare,
+  InboxIcon
 } from 'lucide-react';
 import { useBusinessStore } from '../../store/businessStore';
 import { useToastStore } from '../../store/toastStore';
@@ -53,7 +59,7 @@ interface PurchaseAnalytics {
 }
 
 const EnhancedPurchaseManagement: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'orders' | 'suppliers' | 'receiving' | 'analytics'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'orders' | 'approval-queue' | 'suppliers' | 'receiving' | 'workflow-config' | 'analytics'>('dashboard');
   const [showOrderForm, setShowOrderForm] = useState(false);
   const [showSupplierForm, setShowSupplierForm] = useState(false);
   const [editingOrder, setEditingOrder] = useState<string | null>(null);
@@ -61,6 +67,10 @@ const EnhancedPurchaseManagement: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [supplierFilter, setSupplierFilter] = useState<string>('all');
+  const [showReceivingInterface, setShowReceivingInterface] = useState(false);
+  const [selectedPOForReceiving, setSelectedPOForReceiving] = useState<PurchaseOrder | null>(null);
+  const [pendingApprovalsCount, setPendingApprovalsCount] = useState(0);
+  const [itemsToReceiveCount, setItemsToReceiveCount] = useState(0);
   const [stats, setStats] = useState<PurchaseStats | null>(null);
   const [analytics, setAnalytics] = useState<PurchaseAnalytics | null>(null);
   const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([]);
@@ -121,6 +131,52 @@ const EnhancedPurchaseManagement: React.FC = () => {
       type: 'success',
       title: 'Purchase Order Created',
       message: `PO created for ${suggestion.productName}`
+    });
+  };
+
+  // Workflow handlers
+  const handlePOApproval = (po: PurchaseOrder, reason?: string) => {
+    addToast({
+      type: 'success',
+      title: 'Purchase Order Approved',
+      message: `PO ${po.poNumber} has been approved`
+    });
+    // Refresh data
+    initializeMockData();
+  };
+
+  const handlePOReject = (po: PurchaseOrder, reason: string) => {
+    addToast({
+      type: 'info',
+      title: 'Purchase Order Rejected',
+      message: `PO ${po.poNumber} has been rejected: ${reason}`
+    });
+    // Refresh data
+    initializeMockData();
+  };
+
+  const handleReceiveItems = (po: PurchaseOrder) => {
+    setSelectedPOForReceiving(po);
+    setShowReceivingInterface(true);
+  };
+
+  const handleReceiptComplete = (receivingRecord: any) => {
+    addToast({
+      type: 'success',
+      title: 'Items Received',
+      message: `Successfully received ${receivingRecord.totalItems} items`
+    });
+    setShowReceivingInterface(false);
+    setSelectedPOForReceiving(null);
+    // Refresh data
+    initializeMockData();
+  };
+
+  const handleWorkflowConfigChange = (config: any) => {
+    addToast({
+      type: 'success',
+      title: 'Workflow Configuration Updated',
+      message: 'Purchase order workflow settings have been saved'
     });
   };
 
@@ -219,6 +275,14 @@ const EnhancedPurchaseManagement: React.FC = () => {
     const receivedThisMonth = mockOrders.filter(order => 
       order.status === 'received'
     ).length;
+    
+    // Update workflow counters
+    setPendingApprovalsCount(mockOrders.filter(order => 
+      ['draft', 'pending'].includes(order.status)
+    ).length);
+    setItemsToReceiveCount(mockOrders.filter(order => 
+      order.status === 'sent'
+    ).length);
 
     setStats({
       totalPurchases,
@@ -392,8 +456,10 @@ const EnhancedPurchaseManagement: React.FC = () => {
             {[
               { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
               { id: 'orders', label: 'Purchase Orders', icon: ShoppingCart, badge: stats?.pendingOrders },
+              { id: 'approval-queue', label: 'Approval Queue', icon: CheckSquare, badge: pendingApprovalsCount },
               { id: 'suppliers', label: 'Suppliers', icon: Building2 },
-              { id: 'receiving', label: 'Receiving', icon: Package },
+              { id: 'receiving', label: 'Receiving', icon: Package, badge: itemsToReceiveCount },
+              { id: 'workflow-config', label: 'Workflow Config', icon: Settings },
               { id: 'analytics', label: 'Analytics', icon: TrendingUp }
             ].map(tab => (
               <button
@@ -637,6 +703,7 @@ const EnhancedPurchaseManagement: React.FC = () => {
                             </button>
                             {order.status === 'sent' && (
                               <button
+                                onClick={() => handleReceiveItems(order)}
                                 className="p-1 text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300"
                                 title="Receive Items"
                               >
@@ -653,7 +720,21 @@ const EnhancedPurchaseManagement: React.FC = () => {
             </div>
           )}
 
-          {/* Other tabs would be implemented similarly */}
+          {/* Approval Queue Tab */}
+          {activeTab === 'approval-queue' && (
+            <div className="space-y-6">
+              <ApprovalQueue
+                onApprove={handlePOApproval}
+                onReject={handlePOReject}
+                onViewDetails={(po) => {
+                  setEditingOrder(po.id);
+                  setShowOrderForm(true);
+                }}
+              />
+            </div>
+          )}
+
+          {/* Suppliers Tab */}
           {activeTab === 'suppliers' && (
             <div className="space-y-6">
               <div className="text-center py-12">
@@ -664,11 +745,57 @@ const EnhancedPurchaseManagement: React.FC = () => {
             </div>
           )}
 
+          {/* Receiving Tab */}
           {activeTab === 'receiving' && (
-            <div className="text-center py-12">
-              <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Receiving Module</h3>
-              <p className="text-gray-500 dark:text-gray-400">Process incoming shipments and update inventory levels.</p>
+            <div className="space-y-6">
+              <div className="bg-white dark:bg-dark-800 rounded-xl shadow-sm border border-gray-200 dark:border-dark-700 p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Goods Receiving</h3>
+                    <p className="text-gray-500 dark:text-gray-400">Process incoming shipments and update inventory levels</p>
+                  </div>
+                </div>
+                
+                <div className="space-y-4">
+                  <h4 className="font-medium text-gray-900 dark:text-gray-100">Orders Ready for Receiving</h4>
+                  {purchaseOrders
+                    .filter(po => po.status === 'sent')
+                    .map(po => (
+                    <div key={po.id} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                      <div>
+                        <p className="font-medium text-gray-900 dark:text-gray-100">{po.poNumber}</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">{po.supplierName} • {po.items.length} items</p>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{formatCurrency(po.total)}</span>
+                        <button
+                          onClick={() => handleReceiveItems(po)}
+                          className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
+                        >
+                          Receive Items
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                  
+                  {purchaseOrders.filter(po => po.status === 'sent').length === 0 && (
+                    <div className="text-center py-8">
+                      <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                      <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No Items to Receive</h3>
+                      <p className="text-gray-500 dark:text-gray-400">All purchase orders have been received or are pending approval.</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Workflow Configuration Tab */}
+          {activeTab === 'workflow-config' && (
+            <div className="space-y-6">
+              <WorkflowConfigurationPanel
+                onConfigChange={handleWorkflowConfigChange}
+              />
             </div>
           )}
 
@@ -741,6 +868,18 @@ const EnhancedPurchaseManagement: React.FC = () => {
           onClose={() => {
             setShowSupplierForm(false);
             setEditingSupplier(null);
+          }}
+        />
+      )}
+
+      {/* Receiving Interface Modal */}
+      {showReceivingInterface && selectedPOForReceiving && (
+        <ReceivingInterface
+          purchaseOrder={selectedPOForReceiving}
+          onReceiptComplete={handleReceiptComplete}
+          onClose={() => {
+            setShowReceivingInterface(false);
+            setSelectedPOForReceiving(null);
           }}
         />
       )}

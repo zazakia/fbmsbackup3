@@ -9,7 +9,7 @@ function isValidUrl(value: string | undefined | null): boolean {
   if (!value || typeof value !== 'string') return false;
   try {
     // Must be absolute URL with protocol
-    // eslint-disable-next-line no-new
+     
     new URL(value);
     return true;
   } catch {

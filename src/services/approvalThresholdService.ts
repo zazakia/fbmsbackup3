@@ -461,7 +461,7 @@ export class ApprovalThresholdService {
    * Adjust date for business days (skip weekends and holidays)
    */
   private adjustForBusinessDays(date: Date, skipWeekends: boolean, skipHolidays: boolean): Date {
-    let adjustedDate = new Date(date);
+    const adjustedDate = new Date(date);
 
     if (skipWeekends) {
       // If it falls on weekend, move to next Monday

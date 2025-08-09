@@ -17,8 +17,11 @@ import {
 import { PurchaseOrderStateMachine, TransitionContext } from '../../services/purchaseOrderStateMachine';
 import { useSupabaseAuthStore } from '../../store/supabaseAuthStore';
 import { 
-  canPerformPurchaseOrderAction,
-  getUserPurchaseOrderActions 
+  hasPurchaseOrderPermission,
+  getPurchaseOrderPermissions,
+  validatePurchaseOrderApproval,
+  validatePurchaseOrderReceiving,
+  validatePurchaseOrderCancellation
 } from '../../utils/purchaseOrderPermissions';
 import { UserRole } from '../../types/auth';
 
@@ -99,16 +102,22 @@ export const StatusTransitionDialog: React.FC<StatusTransitionDialogProps> = ({
       reasons.push(`Cannot transition from ${currentEnhanced} to ${targetStatus}`);
     }
 
-    // Check user permissions
-    const action = getActionFromStatus(targetStatus);
-    const canPerformAction = canPerformPurchaseOrderAction(
-      action,
-      purchaseOrder,
-      targetStatus === 'approved' ? purchaseOrder.total : undefined
-    );
-
-    if (!canPerformAction.allowed) {
-      reasons.push(canPerformAction.reason || 'Insufficient permissions');
+    // Check user permissions based on target status
+    if (targetStatus === 'approved') {
+      const validation = validatePurchaseOrderApproval(userRole as UserRole, purchaseOrder.total, purchaseOrder);
+      if (!validation.isValid && validation.reason) {
+        reasons.push(validation.reason);
+      }
+    } else if (['sent_to_supplier', 'partially_received', 'fully_received'].includes(targetStatus)) {
+      const validation = validatePurchaseOrderReceiving(userRole as UserRole, purchaseOrder);
+      if (!validation.isValid && validation.reason) {
+        reasons.push(validation.reason);
+      }
+    } else if (targetStatus === 'cancelled') {
+      const validation = validatePurchaseOrderCancellation(userRole as UserRole, purchaseOrder);
+      if (!validation.isValid && validation.reason) {
+        reasons.push(validation.reason);
+      }
     }
 
     // Add specific validations based on target status

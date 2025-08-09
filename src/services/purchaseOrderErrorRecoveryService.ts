@@ -350,8 +350,8 @@ export class PurchaseOrderErrorRecoveryService {
   ): Promise<RecoveryResult> {
     
     try {
-      let validItems = [];
-      let invalidItems = [];
+      const validItems = [];
+      const invalidItems = [];
       let processedCount = 0;
 
       if (context.operationType === 'receiving' && originalData.receivingItems) {
