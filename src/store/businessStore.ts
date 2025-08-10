@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { Product, CartItem, Customer, PurchaseOrder } from '../types/business';
+import { Product, CartItem, Customer, PurchaseOrder, Expense, ExpenseCategory } from '../types/business';
 
 // Unified validation types used across Store and POS
 export type POSStockValidationError = {
@@ -25,17 +25,26 @@ import {
 } from '../api/products';
 import { BusinessService } from '../services/businessService';
 import { getSales } from '../api/sales';
+import {
+  createExpense as apiCreateExpense,
+  updateExpense as apiUpdateExpense,
+  createExpenseCategory as apiCreateExpenseCategory,
+  updateExpenseCategory as apiUpdateExpenseCategory,
+  deleteExpenseCategory as apiDeleteExpenseCategory,
+} from '../api/expenses';
 
 export interface BusinessState {
   products: Product[];
   cart: CartItem[];
   customers: Customer[];
   sales: any[];
-  expenses: any[];
+  expenses: Expense[];
   isLoading: boolean;
   error: string | null;
   // New derived state used by POS
   categories: Array<{ id: string; name: string }>;
+  // Expenses
+  expenseCategories: ExpenseCategory[];
   // Purchasing
   purchaseOrders: PurchaseOrder[];
 }
@@ -73,6 +82,14 @@ export interface BusinessActions {
   // Sales history
   fetchSales: (limit?: number, offset?: number) => Promise<void>;
 
+  // Expense actions
+  addExpense: (expense: Omit<Expense, 'id' | 'createdAt'>) => Promise<void>;
+  updateExpense: (id: string, updates: Partial<Omit<Expense, 'id' | 'createdAt'>>) => Promise<void>;
+  getExpense: (id: string) => Expense | undefined;
+  addExpenseCategory: (category: Omit<ExpenseCategory, 'id' | 'createdAt'>) => Promise<void>;
+  updateExpenseCategory: (id: string, updates: Partial<Omit<ExpenseCategory, 'id' | 'createdAt'>>) => Promise<void>;
+  deleteExpenseCategory: (id: string) => Promise<void>;
+
   // Purchasing actions expected by PurchaseOrderForm
   addPurchaseOrder: (po: Omit<PurchaseOrder, 'id' | 'createdAt'>) => void;
   updatePurchaseOrder: (id: string, updates: Partial<PurchaseOrder>) => void;
@@ -98,6 +115,7 @@ export const useBusinessStore = create<BusinessStore>()(
       isLoading: false,
       error: null,
       categories: [],
+      expenseCategories: [],
       purchaseOrders: [],
 
       // Add validation mixin
@@ -533,13 +551,76 @@ export const useBusinessStore = create<BusinessStore>()(
           console.error('[Store][fetchSales] failed', e);
           set({ isLoading: false, error: 'Failed to load sales history' });
         }
+      },
+
+      // Expense actions
+      addExpense: async (expense) => {
+        try {
+          const { data, error } = await apiCreateExpense(expense);
+          if (error || !data) throw (error as any) || new Error('Failed to create expense');
+          set((state) => ({ expenses: [data as Expense, ...state.expenses] }));
+        } catch (e) {
+          console.error('addExpense failed:', e);
+        }
+      },
+
+      updateExpense: async (id, updates) => {
+        try {
+          const { data, error } = await apiUpdateExpense(id, updates);
+          if (error || !data) throw (error as any) || new Error('Failed to update expense');
+          set((state) => ({
+            expenses: state.expenses.map((ex) => (ex.id === id ? (data as Expense) : ex))
+          }));
+        } catch (e) {
+          console.error('updateExpense failed:', e);
+        }
+      },
+
+      getExpense: (id: string) => {
+        return get().expenses.find((e) => e.id === id);
+      },
+
+      addExpenseCategory: async (category) => {
+        try {
+          const { data, error } = await apiCreateExpenseCategory(category);
+          if (error || !data) throw (error as any) || new Error('Failed to create expense category');
+          set((state) => ({ expenseCategories: [data as ExpenseCategory, ...state.expenseCategories] }));
+        } catch (e) {
+          console.error('addExpenseCategory failed:', e);
+        }
+      },
+
+      updateExpenseCategory: async (id, updates) => {
+        try {
+          const { data, error } = await apiUpdateExpenseCategory(id, updates);
+          if (error || !data) throw (error as any) || new Error('Failed to update expense category');
+          set((state) => ({
+            expenseCategories: state.expenseCategories.map((c) => (c.id === id ? (data as ExpenseCategory) : c))
+          }));
+        } catch (e) {
+          console.error('updateExpenseCategory failed:', e);
+        }
+      },
+
+      deleteExpenseCategory: async (id) => {
+        try {
+          const { error } = await apiDeleteExpenseCategory(id);
+          if (error) throw error;
+          set((state) => ({
+            expenseCategories: state.expenseCategories.filter((c) => c.id !== id)
+          }));
+        } catch (e) {
+          console.error('deleteExpenseCategory failed:', e);
+        }
       }
     }),
     {
       name: 'fbms-business',
       partialize: (state) => ({
         products: state.products,
-        purchaseOrders: state.purchaseOrders
+        purchaseOrders: state.purchaseOrders,
+        expenses: state.expenses,
+        expenseCategories: state.expenseCategories
       })
     }
   )

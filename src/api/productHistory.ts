@@ -72,41 +72,11 @@ export async function createProductMovement(movement: Omit<ProductMovementHistor
 
 // READ product movements with filtering
 export async function getProductMovements(filter: ProductHistoryFilter = {}, limit = 50, offset = 0) {
+  // Select all to avoid errors on environments where extended columns don't exist
+  // Downstream transformer handles optional/missing fields safely
   let query = supabase
     .from('stock_movements')
-    .select(`
-      id,
-      product_id,
-      product_name,
-      product_sku,
-      type,
-      quantity,
-      previous_stock,
-      new_stock,
-      unit_cost,
-      total_value,
-      reason,
-      reference_number,
-      reference_type,
-      reference_id,
-      location_id,
-      location_name,
-      from_location_id,
-      from_location_name,
-      to_location_id,
-      to_location_name,
-      batch_number,
-      expiry_date,
-      performed_by,
-      performed_by_name,
-      approved_by,
-      approved_by_name,
-      notes,
-      attachments,
-      status,
-      created_at,
-      updated_at
-    `)
+    .select('*')
     .order('created_at', { ascending: false });
 
   // Apply filters
