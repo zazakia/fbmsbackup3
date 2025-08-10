@@ -7,6 +7,7 @@ export default defineConfig({
   server: {
     port: 5180,
     strictPort: true,
+    open: true,
   },
   optimizeDeps: {
     include: ['lucide-react', 'zustand', 'date-fns'],
