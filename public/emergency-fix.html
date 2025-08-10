@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>🚨 Emergency Database Fix</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 0; 
+            padding: 20px; 
+            background: linear-gradient(135deg, #ff6b6b, #feca57);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .container { 
+            background: white; 
+            padding: 30px; 
+            border-radius: 15px; 
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+            max-width: 500px;
+            text-align: center;
+        }
+        h1 { color: #e74c3c; margin-bottom: 10px; }
+        .subtitle { color: #7f8c8d; margin-bottom: 30px; }
+        button { 
+            background: #e74c3c; 
+            color: white; 
+            border: none; 
+            padding: 15px 30px; 
+            border-radius: 8px; 
+            font-size: 16px; 
+            cursor: pointer; 
+            margin: 10px;
+            transition: all 0.3s;
+        }
+        button:hover { 
+            background: #c0392b; 
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        .status { 
+            margin: 20px 0; 
+            padding: 15px; 
+            border-radius: 8px; 
+            font-weight: bold;
+        }
+        .error { background: #ffebee; color: #c62828; border: 2px solid #ef5350; }
+        .success { background: #e8f5e8; color: #2e7d32; border: 2px solid #66bb6a; }
+        .info { background: #e3f2fd; color: #1565c0; border: 2px solid #42a5f5; }
+        pre { 
+            background: #f8f9fa; 
+            padding: 10px; 
+            border-radius: 5px; 
+            text-align: left; 
+            overflow-x: auto;
+            font-size: 12px;
+        }
+        .pulse { animation: pulse 1s infinite; }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚨 Emergency Database Fix</h1>
+        <p class="subtitle">Fixing "Failed to fetch" and 504 Gateway Timeout errors</p>
+        
+        <div id="status" class="status error">
+            <strong>Problem:</strong> App is stuck connecting to local Supabase (127.0.0.1:54321)<br>
+            <strong>Solution:</strong> Clear localStorage and switch to remote database
+        </div>
+        
+        <button onclick="emergencyFix()" class="pulse">
+            🔧 FIX LOGIN ISSUE NOW
+        </button>
+        
+        <button onclick="checkSettings()">
+            🔍 Check Current Settings
+        </button>
+        
+        <div id="results"></div>
+    </div>
+
+    <script>
+        function log(message, type = 'info') {
+            const results = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = `status ${type}`;
+            div.innerHTML = message;
+            results.appendChild(div);
+        }
+        
+        function emergencyFix() {
+            log('🚨 EMERGENCY FIX: Clearing all localStorage...', 'info');
+            
+            try {
+                // Show current problematic settings
+                const current = localStorage.getItem('fbms-settings-store');
+                if (current) {
+                    const settings = JSON.parse(current);
+                    const mode = settings?.state?.database?.mode;
+                    log(`❌ Found problematic setting: database mode = "${mode}"`, 'error');
+                }
+                
+                // Clear ALL localStorage
+                localStorage.clear();
+                log('✅ Cleared all localStorage data', 'success');
+                log('📡 App will now default to REMOTE database', 'success');
+                log('🔄 Redirecting to app in 3 seconds...', 'info');
+                
+                // Redirect to main app
+                setTimeout(() => {
+                    window.location.href = '/';
+                }, 3000);
+                
+            } catch (error) {
+                log(`❌ Error during fix: ${error.message}`, 'error');
+            }
+        }
+        
+        function checkSettings() {
+            document.getElementById('results').innerHTML = '';
+            
+            try {
+                const stored = localStorage.getItem('fbms-settings-store');
+                if (stored) {
+                    const settings = JSON.parse(stored);
+                    const mode = settings?.state?.database?.mode;
+                    
+                    log(`🔍 Current database mode: <strong>${mode}</strong>`, 
+                        mode === 'local' ? 'error' : 'success');
+                    
+                    if (mode === 'local') {
+                        log('⚠️ This is causing the 504 Gateway Timeout errors!', 'error');
+                        log('💡 Click "FIX LOGIN ISSUE NOW" to resolve this', 'info');
+                    }
+                    
+                    // Show full settings
+                    log('<pre>' + JSON.stringify(settings, null, 2) + '</pre>', 'info');
+                } else {
+                    log('ℹ️ No localStorage settings found (this is good!)', 'success');
+                    log('✅ App should use remote database by default', 'success');
+                }
+            } catch (error) {
+                log(`❌ Error checking settings: ${error.message}`, 'error');
+            }
+        }
+        
+        // Auto-check on load
+        checkSettings();
+        
+        // Show helpful info
+        setTimeout(() => {
+            log('<strong>What this fix does:</strong><br>1. Clears localStorage that forces local database<br>2. App will use remote database (https://coqjcziquviehgyifhek.supabase.co)<br>3. Login will work with demo account', 'info');
+        }, 1000);
+    </script>
+</body>
+</html>

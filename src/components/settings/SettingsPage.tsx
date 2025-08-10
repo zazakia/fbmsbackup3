@@ -13,6 +13,7 @@ import SecuritySettings from './SecuritySettings';
 import SystemSettings from './SystemSettings';
 import EnhancedVersionSettings from './EnhancedVersionSettings';
 import TopBarSettingsSection from './TopBarSettingsSection';
+import DatabaseSettings from './DatabaseSettings';
 
 import MenuVisibilitySettings from './MenuVisibilitySettings';
 
@@ -97,8 +98,14 @@ const SettingsPage: React.FC = () => {
     },
     {
       id: 'database',
-      title: 'System Settings',
+      title: 'Database Settings',
       icon: <Database className="h-5 w-5" />,
+      description: 'Switch between local and remote database'
+    },
+    {
+      id: 'system',
+      title: 'System Settings',
+      icon: <Settings className="h-5 w-5" />,
       description: 'Manage system configuration and integrations'
     }
   ];
@@ -107,6 +114,9 @@ const SettingsPage: React.FC = () => {
   const sections = allSections.filter(section => {
     if (section.id === 'security') {
       return user && hasPermission(user.role, 'users', 'view');
+    }
+    if (section.id === 'system') {
+      return user && hasPermission(user.role, 'settings', 'edit') && user.role === 'admin';
     }
     return true; // All other sections are accessible to all users
   });
@@ -279,6 +289,8 @@ const SettingsPage: React.FC = () => {
       case 'enhanced-versions':
         return <EnhancedVersionSettings />;
       case 'database':
+        return <DatabaseSettings />;
+      case 'system':
         return user && hasPermission(user.role, 'settings', 'edit') && user.role === 'admin' ? (
           <SystemSettings />
         ) : (

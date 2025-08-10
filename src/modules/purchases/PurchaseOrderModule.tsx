@@ -3,6 +3,7 @@ import { Plus } from 'lucide-react';
 import { usePurchaseOrderStore } from '../../store/purchaseOrderStore';
 import { PurchaseOrderList } from '../../components/purchases/PurchaseOrderList';
 import { PurchaseOrderDetails } from '../../components/purchases/PurchaseOrderDetails';
+import DatabaseMigrationAlert from '../../components/purchases/DatabaseMigrationAlert';
 import { PurchaseOrderStatus } from '../../types/business';
 
 interface FilterState {
@@ -116,6 +117,13 @@ export const PurchaseOrderModule: React.FC = () => {
         {/* Error state */}
         {error && (
           <div className="p-6">
+            {/* Check if this is the missing table error */}
+            {(error.includes('PGRST200') || 
+              error.includes('Could not find a relationship') ||
+              error.includes('purchase_order_items')) && (
+              <DatabaseMigrationAlert />
+            )}
+            
             <div className="bg-red-50 border border-red-200 rounded-md p-4">
               <div className="flex">
                 <div className="ml-3">

@@ -34,6 +34,7 @@ export interface UseModuleLoadingReturn {
   // Actions
   loadModule: (options?: LoadingOptions) => Promise<void>;
   retryLoad: () => Promise<void>;
+  retry: () => Promise<void>; // Alias for retryLoad
   cancelLoad: () => void;
   
   // User feedback
@@ -304,6 +305,7 @@ export const useModuleLoading = (
     // Actions
     loadModule,
     retryLoad,
+    retry: retryLoad, // Alias for backward compatibility
     cancelLoad,
     
     // User feedback

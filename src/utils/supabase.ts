@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { useSettingsStore } from '../store/settingsStore';
 // import { createAdminAccountIfNeeded } from './setupAdmin'; // Disabled for security
 
 // Resolve environment variables with backward compatibility to .env.example
@@ -17,37 +18,57 @@ function isValidUrl(value: string | undefined | null): boolean {
   }
 }
 
-// Try both legacy and current names
-const resolvedSupabaseUrl =
-  ENV.VITE_PUBLIC_SUPABASE_URL ||
-  ENV.VITE_SUPABASE_URL || // matches .env.example
-  '';
+// Configuration for different modes
+const LOCAL_CONFIG = {
+  url: 'http://127.0.0.1:54321',
+  anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxvY2FsaG9zdCIsInJvbGUiOiJhbm9uIiwiaWF0IjoxNjQxNzY5MjAwLCJleHAiOjE5NTcxMjkyMDB9.IotU_8FMxp8nZx4Pf0FJYCe9NdLOEBDw8oGOEQ4wHHw'
+};
 
-const resolvedAnonKey =
-  ENV.VITE_PUBLIC_SUPABASE_ANON_KEY ||
-  ENV.VITE_SUPABASE_ANON_KEY || // matches .env.example
-  '';
+const REMOTE_CONFIG = {
+  url: 'https://coqjcziquviehgyifhek.supabase.co',
+  anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNvcWpjemlxdXZpZWhneWlmaGVrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk0MDUzOTMsImV4cCI6MjA2NDk4MTM5M30.NSdUfHdeXLwBCcY9UO4s3LoSEBm4AuU0Jh5BLIcoQ5E'
+};
 
-// Optional staging fallbacks if explicitly in staging
-const isStaging = (ENV.VITE_ENVIRONMENT?.toString() || '').toLowerCase() === 'staging';
-const fallbackUrl = isStaging ? (ENV.VITE_SUPABASE_URL_STAGING || '') : '';
-const fallbackAnon = isStaging ? (ENV.VITE_SUPABASE_ANON_KEY_STAGING || '') : '';
+// Function to get database configuration based on settings
+function getDatabaseConfig() {
+  // Check if we're in a browser environment
+  if (typeof window === 'undefined') {
+    // Server-side: default to remote
+    return REMOTE_CONFIG;
+  }
 
-const supabaseUrl = isValidUrl(resolvedSupabaseUrl) ? resolvedSupabaseUrl : fallbackUrl;
-const supabaseAnonKey = (resolvedAnonKey && resolvedAnonKey !== 'your-anon-key-here') ? resolvedAnonKey : fallbackAnon;
+  // Try to get from stored settings
+  try {
+    const stored = localStorage.getItem('fbms-settings-store');
+    if (stored) {
+      const settings = JSON.parse(stored);
+      const mode = settings?.state?.database?.mode || 'remote';
+      return mode === 'remote' ? REMOTE_CONFIG : LOCAL_CONFIG;
+    }
+  } catch (error) {
+    console.warn('Error reading database settings, defaulting to remote:', error);
+  }
+
+  return REMOTE_CONFIG;
+}
+
+// Get current configuration
+const config = getDatabaseConfig();
+const supabaseUrl = config.url;
+const supabaseAnonKey = config.anonKey;
 
 // Supabase client configuration
 if (ENV.DEV) {
   console.log('Environment:', ENV.MODE);
+  console.log('Database mode:', config === REMOTE_CONFIG ? 'remote' : 'local');
+  console.log('Supabase URL:', supabaseUrl);
   console.log('Supabase URL valid:', isValidUrl(supabaseUrl));
 }
 
 // Guard against invalid configuration to avoid "new URL(): Invalid URL" deep in SDK
 if (!isValidUrl(supabaseUrl) || !supabaseAnonKey) {
-  const problems = [];
-  if (!isValidUrl(supabaseUrl)) problems.push('VITE_SUPABASE_URL (or VITE_PUBLIC_SUPABASE_URL)');
-  if (!supabaseAnonKey) problems.push('VITE_SUPABASE_ANON_KEY (or VITE_PUBLIC_SUPABASE_ANON_KEY)');
-  const msg = `Supabase configuration invalid. Missing or invalid: ${problems.join(', ')}. Check your .env values.`;
+  const mode = config === REMOTE_CONFIG ? 'remote' : 'local';
+  const msg = `Supabase configuration invalid for ${mode} mode. URL: ${supabaseUrl}, Has key: ${!!supabaseAnonKey}`;
   // Log a clear error; throw to stop app early with actionable message
   console.error(msg, { supabaseUrl, hasAnonKey: !!supabaseAnonKey });
   throw new Error(msg);

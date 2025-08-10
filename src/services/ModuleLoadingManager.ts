@@ -19,12 +19,9 @@ import {
   CacheEntry,
   PerformanceThresholds
 } from '../types/moduleLoading';
-import { checkUserPermissions } from '../utils/permissions';
+import { canAccessModule } from '../utils/permissions';
 import { retryManager } from './RetryManager';
 import { loadingStateManager } from './LoadingStateManager';
-
-// Import all lazy components
-import * as LazyComponents from '../utils/lazyComponents';
 
 class ModuleLoadingManager implements IModuleLoadingManager {
   private moduleRegistry: ModuleRegistry;
@@ -56,7 +53,7 @@ class ModuleLoadingManager implements IModuleLoadingManager {
         description: 'Main dashboard with business overview',
         icon: 'LayoutDashboard',
         route: '/',
-        component: LazyComponents.LazyDashboard,
+        component: null as any, // Will be set dynamically
         lazy: true,
         preloadPriority: 'high',
         requiredPermissions: [],
@@ -75,7 +72,7 @@ class ModuleLoadingManager implements IModuleLoadingManager {
         description: 'Track and manage business expenses',
         icon: 'Receipt',
         route: '/expenses',
-        component: LazyComponents.LazyExpenseTracking,
+        component: null as any, // Will be set dynamically
         lazy: true,
         preloadPriority: 'medium',
         requiredPermissions: ['expenses:read'],
@@ -94,7 +91,7 @@ class ModuleLoadingManager implements IModuleLoadingManager {
         description: 'Management tools and operations',
         icon: 'Users',
         route: '/manager',
-        component: LazyComponents.LazyManagerOperations,
+        component: null as any, // Will be set dynamically
         lazy: true,
         preloadPriority: 'medium',
         requiredPermissions: ['manager:read'],
@@ -113,7 +110,7 @@ class ModuleLoadingManager implements IModuleLoadingManager {
         description: 'Philippine BIR tax forms and compliance',
         icon: 'FileText',
         route: '/bir',
-        component: LazyComponents.LazyBIRForms,
+        component: null as any, // Will be set dynamically
         lazy: true,
         preloadPriority: 'low',
         requiredPermissions: ['bir:read'],
@@ -132,7 +129,7 @@ class ModuleLoadingManager implements IModuleLoadingManager {
         description: 'Employee payroll and benefits management',
         icon: 'Calculator',
         route: '/payroll',
-        component: LazyComponents.LazyPayrollManagement,
+        component: null as any, // Will be set dynamically
         lazy: true,
         preloadPriority: 'medium',
         requiredPermissions: ['payroll:read'],
@@ -151,7 +148,7 @@ class ModuleLoadingManager implements IModuleLoadingManager {
         description: 'Data backup and restore operations',
         icon: 'Cloud',
         route: '/settings?tab=backup',
-        component: LazyComponents.LazyCloudBackup,
+        component: null as any, // Will be set dynamically
         lazy: true,
         preloadPriority: 'low',
         requiredPermissions: ['backup:read'],
@@ -170,7 +167,7 @@ class ModuleLoadingManager implements IModuleLoadingManager {
         description: 'Enhanced POS system with barcode scanning',
         icon: 'ShoppingCart',
         route: '/pos',
-        component: LazyComponents.LazyEnhancedPOSSystem,
+        component: null as any, // Will be set dynamically
         lazy: true,
         preloadPriority: 'high',
         requiredPermissions: ['sales:read', 'sales:write'],
@@ -189,7 +186,7 @@ class ModuleLoadingManager implements IModuleLoadingManager {
         description: 'Enhanced inventory management system',
         icon: 'Package',
         route: '/inventory',
-        component: LazyComponents.LazyEnhancedInventoryManagement,
+        component: null as any, // Will be set dynamically
         lazy: true,
         preloadPriority: 'high',
         requiredPermissions: ['inventory:read'],
@@ -208,7 +205,7 @@ class ModuleLoadingManager implements IModuleLoadingManager {
         description: 'Enhanced accounting management system',
         icon: 'Calculator',
         route: '/accounting',
-        component: LazyComponents.LazyEnhancedAccountingManagement,
+        component: null as any, // Will be set dynamically
         lazy: true,
         preloadPriority: 'medium',
         requiredPermissions: ['accounting:read'],
@@ -227,7 +224,7 @@ class ModuleLoadingManager implements IModuleLoadingManager {
         description: 'Enhanced purchase management system',
         icon: 'ShoppingBag',
         route: '/purchases',
-        component: LazyComponents.LazyEnhancedPurchaseManagement,
+        component: null as any, // Will be set dynamically
         lazy: true,
         preloadPriority: 'medium',
         requiredPermissions: ['purchases:read'],
@@ -246,7 +243,7 @@ class ModuleLoadingManager implements IModuleLoadingManager {
         description: 'Enhanced reports and analytics dashboard',
         icon: 'BarChart',
         route: '/reports',
-        component: LazyComponents.LazyEnhancedReportsDashboard,
+        component: null as any, // Will be set dynamically
         lazy: true,
         preloadPriority: 'medium',
         requiredPermissions: ['reports:read'],
@@ -265,7 +262,7 @@ class ModuleLoadingManager implements IModuleLoadingManager {
         description: 'Sales transaction history and analytics',
         icon: 'TrendingUp',
         route: '/sales',
-        component: LazyComponents.LazySalesHistory,
+        component: null as any, // Will be set dynamically
         lazy: true,
         preloadPriority: 'medium',
         requiredPermissions: ['sales:read'],
@@ -284,7 +281,7 @@ class ModuleLoadingManager implements IModuleLoadingManager {
         description: 'Customer relationship management',
         icon: 'Users',
         route: '/customers',
-        component: LazyComponents.LazyCustomerManagement,
+        component: null as any, // Will be set dynamically
         lazy: true,
         preloadPriority: 'medium',
         requiredPermissions: ['customers:read'],
@@ -303,7 +300,7 @@ class ModuleLoadingManager implements IModuleLoadingManager {
         description: 'Marketing campaign management',
         icon: 'Megaphone',
         route: '/marketing',
-        component: LazyComponents.LazyMarketingCampaigns,
+        component: null as any, // Will be set dynamically
         lazy: true,
         preloadPriority: 'low',
         requiredPermissions: ['marketing:read'],
@@ -322,7 +319,7 @@ class ModuleLoadingManager implements IModuleLoadingManager {
         description: 'Customer loyalty program management',
         icon: 'Gift',
         route: '/loyalty',
-        component: LazyComponents.LazyLoyaltyPrograms,
+        component: null as any, // Will be set dynamically
         lazy: true,
         preloadPriority: 'low',
         requiredPermissions: ['loyalty:read'],
@@ -341,7 +338,7 @@ class ModuleLoadingManager implements IModuleLoadingManager {
         description: 'GCash payment integration',
         icon: 'CreditCard',
         route: '/payments/gcash',
-        component: LazyComponents.LazyGCashIntegration,
+        component: null as any, // Will be set dynamically
         lazy: true,
         preloadPriority: 'low',
         requiredPermissions: ['payments:read'],
@@ -360,7 +357,7 @@ class ModuleLoadingManager implements IModuleLoadingManager {
         description: 'PayMaya payment integration',
         icon: 'CreditCard',
         route: '/payments/paymaya',
-        component: LazyComponents.LazyPayMayaIntegration,
+        component: null as any, // Will be set dynamically
         lazy: true,
         preloadPriority: 'low',
         requiredPermissions: ['payments:read'],
@@ -379,7 +376,7 @@ class ModuleLoadingManager implements IModuleLoadingManager {
         description: 'Digital receipt management',
         icon: 'Receipt',
         route: '/receipts',
-        component: LazyComponents.LazyElectronicReceipts,
+        component: null as any, // Will be set dynamically
         lazy: true,
         preloadPriority: 'low',
         requiredPermissions: ['receipts:read'],
@@ -398,7 +395,7 @@ class ModuleLoadingManager implements IModuleLoadingManager {
         description: 'Product transaction history tracking',
         icon: 'History',
         route: '/inventory/history',
-        component: LazyComponents.LazyProductHistory,
+        component: null as any, // Will be set dynamically
         lazy: true,
         preloadPriority: 'low',
         requiredPermissions: ['inventory:read'],
@@ -417,7 +414,7 @@ class ModuleLoadingManager implements IModuleLoadingManager {
         description: 'Multi-location branch management',
         icon: 'MapPin',
         route: '/branches',
-        component: LazyComponents.LazyBranchManagement,
+        component: null as any, // Will be set dynamically
         lazy: true,
         preloadPriority: 'low',
         requiredPermissions: ['branches:read'],
@@ -436,7 +433,7 @@ class ModuleLoadingManager implements IModuleLoadingManager {
         description: 'Application settings and configuration',
         icon: 'Settings',
         route: '/settings',
-        component: LazyComponents.LazySettingsPage,
+        component: null as any, // Will be set dynamically
         lazy: true,
         preloadPriority: 'medium',
         requiredPermissions: [],
@@ -455,7 +452,7 @@ class ModuleLoadingManager implements IModuleLoadingManager {
         description: 'Help documentation and support',
         icon: 'HelpCircle',
         route: '/help',
-        component: LazyComponents.LazyHelpModule,
+        component: null as any, // Will be set dynamically
         lazy: true,
         preloadPriority: 'low',
         requiredPermissions: [],
@@ -689,8 +686,8 @@ class ModuleLoadingManager implements IModuleLoadingManager {
         message: 'Initializing component...'
       });
 
-      // Get the component (it's already lazy-loaded)
-      const component = moduleConfig.component;
+      // Dynamically import the component based on moduleId
+      const component = await this.importModuleComponent(moduleConfig.id);
       
       // Validate the component
       if (!component) {
@@ -723,6 +720,80 @@ class ModuleLoadingManager implements IModuleLoadingManager {
     }
   }
 
+  private async importModuleComponent(moduleId: ModuleId): Promise<ComponentType<any>> {
+    // Dynamic imports to avoid circular dependencies
+    switch (moduleId) {
+      case 'dashboard':
+        const { LazyDashboard } = await import('../utils/lazyComponents');
+        return LazyDashboard;
+      case 'expenses':
+        const { LazyExpenseTracking } = await import('../utils/lazyComponents');
+        return LazyExpenseTracking;
+      case 'manager-operations':
+        const { LazyManagerOperations } = await import('../utils/lazyComponents');
+        return LazyManagerOperations;
+      case 'bir-forms':
+        const { LazyBIRForms } = await import('../utils/lazyComponents');
+        return LazyBIRForms;
+      case 'payroll':
+        const { LazyPayrollManagement } = await import('../utils/lazyComponents');
+        return LazyPayrollManagement;
+      case 'cloud-backup':
+        const { LazyCloudBackup } = await import('../utils/lazyComponents');
+        return LazyCloudBackup;
+      case 'pos':
+        const { LazyEnhancedPOSSystem } = await import('../utils/lazyComponents');
+        return LazyEnhancedPOSSystem;
+      case 'inventory':
+        const { LazyEnhancedInventoryManagement } = await import('../utils/lazyComponents');
+        return LazyEnhancedInventoryManagement;
+      case 'accounting':
+        const { LazyEnhancedAccountingManagement } = await import('../utils/lazyComponents');
+        return LazyEnhancedAccountingManagement;
+      case 'purchases':
+        const { LazyEnhancedPurchaseManagement } = await import('../utils/lazyComponents');
+        return LazyEnhancedPurchaseManagement;
+      case 'reports':
+        const { LazyEnhancedReportsDashboard } = await import('../utils/lazyComponents');
+        return LazyEnhancedReportsDashboard;
+      case 'sales':
+        const { LazySalesHistory } = await import('../utils/lazyComponents');
+        return LazySalesHistory;
+      case 'customers':
+        const { LazyCustomerManagement } = await import('../utils/lazyComponents');
+        return LazyCustomerManagement;
+      case 'marketing':
+        const { LazyMarketingCampaigns } = await import('../utils/lazyComponents');
+        return LazyMarketingCampaigns;
+      case 'loyalty':
+        const { LazyLoyaltyPrograms } = await import('../utils/lazyComponents');
+        return LazyLoyaltyPrograms;
+      case 'gcash':
+        const { LazyGCashIntegration } = await import('../utils/lazyComponents');
+        return LazyGCashIntegration;
+      case 'paymaya':
+        const { LazyPayMayaIntegration } = await import('../utils/lazyComponents');
+        return LazyPayMayaIntegration;
+      case 'electronic-receipts':
+        const { LazyElectronicReceipts } = await import('../utils/lazyComponents');
+        return LazyElectronicReceipts;
+      case 'product-history':
+        const { LazyProductHistory } = await import('../utils/lazyComponents');
+        return LazyProductHistory;
+      case 'branches':
+        const { LazyBranchManagement } = await import('../utils/lazyComponents');
+        return LazyBranchManagement;
+      case 'settings':
+        const { LazySettingsPage } = await import('../utils/lazyComponents');
+        return LazySettingsPage;
+      case 'help':
+        const { LazyHelpModule } = await import('../utils/lazyComponents');
+        return LazyHelpModule;
+      default:
+        throw new Error(`Unknown module: ${moduleId}`);
+    }
+  }
+
   private getProgressSteps(networkCondition: NetworkCondition): number[] {
     switch (networkCondition) {
       case 'excellent':
@@ -742,7 +813,8 @@ class ModuleLoadingManager implements IModuleLoadingManager {
     // This would integrate with your actual auth system
     // For now, we'll return true as a placeholder
     try {
-      return checkUserPermissions(moduleConfig.requiredPermissions);
+      // Use canAccessModule from permissions utility
+      return canAccessModule('admin', moduleConfig.id); // Default to admin for now
     } catch {
       return false;
     }
@@ -1033,8 +1105,53 @@ class ModuleLoadingManager implements IModuleLoadingManager {
   getModulesByCategory(category: ModuleConfig['category']): ModuleConfig[] {
     return Object.values(this.moduleRegistry).filter(config => config.category === category);
   }
+
+  // Methods used by lazyComponents.ts
+  async loadModuleWithFactory(
+    moduleConfig: ModuleConfig, 
+    importFn: () => Promise<{ default: ComponentType<any> }>
+  ): Promise<{ default: ComponentType<any> }> {
+    try {
+      return await importFn();
+    } catch (error) {
+      // If factory fails, use the enhanced loading system
+      const component = await this.loadModule(moduleConfig.id);
+      return { default: component };
+    }
+  }
+
+  hasAccess(moduleConfig: ModuleConfig, userRole: string): boolean {
+    return this.checkPermissions(moduleConfig);
+  }
+
+  async preloadModules(configs: ModuleConfig[]): Promise<void> {
+    const promises = configs.map(config => this.preloadModule(config.id));
+    await Promise.allSettled(promises);
+  }
+
+  getGlobalStats(): {
+    totalModules: number;
+    loadedModules: number;
+    cachedModules: number;
+    failedModules: number;
+  } {
+    const allModules = Object.keys(this.moduleRegistry);
+    const loadedModules = Array.from(this.cache.keys());
+    const failedModules = this.metrics
+      .filter(m => !m.success)
+      .map(m => m.moduleId)
+      .filter((id, index, arr) => arr.indexOf(id) === index);
+
+    return {
+      totalModules: allModules.length,
+      loadedModules: loadedModules.length,
+      cachedModules: this.cache.size,
+      failedModules: failedModules.length
+    };
+  }
 }
 
 // Create and export singleton instance
 export const moduleLoadingManager = new ModuleLoadingManager();
+export { ModuleLoadingManager };
 export default ModuleLoadingManager;

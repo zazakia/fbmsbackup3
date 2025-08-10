@@ -1,6 +1,7 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
+import { AlertTriangle, RefreshCw, Home, Bug } from 'lucide-react';
 import { createError, logError, ERROR_CODES } from '../utils/errorHandling';
+import { errorMonitor } from '../utils/errorMonitor';
 
 interface Props {
   children: ReactNode;
@@ -32,6 +33,9 @@ class ErrorBoundary extends Component<Props, State> {
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    // Send to error monitor
+    errorMonitor.captureReactError(error, errorInfo);
+    
     // Log the error
     const appError = createError(
       ERROR_CODES.UNKNOWN_ERROR,
@@ -116,6 +120,26 @@ class ErrorBoundary extends Component<Props, State> {
               >
                 <RefreshCw className="h-4 w-4" />
                 <span>Try Again</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  const report = errorMonitor.generateClaudeErrorReport();
+                  navigator.clipboard.writeText(report).catch(() => {
+                    // Fallback
+                    const textArea = document.createElement('textarea');
+                    textArea.value = report;
+                    document.body.appendChild(textArea);
+                    textArea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(textArea);
+                  });
+                  alert('Error report copied to clipboard. Please share with Claude Code for instant fixes.');
+                }}
+                className="w-full bg-purple-600 text-white py-3 px-4 rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-center space-x-2"
+              >
+                <Bug className="h-4 w-4" />
+                <span>Copy Error Report for Claude</span>
               </button>
 
               <button

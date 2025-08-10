@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { soundNotificationManager } from '../utils/soundNotifications';
 
 export interface Notification {
   id: string;
@@ -55,7 +56,7 @@ export const useNotificationStore = create<NotificationState & NotificationActio
       addNotification: (notification) => {
         const newNotification: Notification = {
           ...notification,
-          id: `notif_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          id: `notif_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
           timestamp: new Date(),
           read: false,
         };
@@ -67,6 +68,22 @@ export const useNotificationStore = create<NotificationState & NotificationActio
             unreadCount: notifications.filter(n => !n.read).length,
           };
         });
+
+        // Play sound based on notification type
+        switch (notification.type) {
+          case 'success':
+            soundNotificationManager.playSuccess();
+            break;
+          case 'error':
+            soundNotificationManager.playError();
+            break;
+          case 'warning':
+            soundNotificationManager.playWarning();
+            break;
+          case 'info':
+            soundNotificationManager.playInfo();
+            break;
+        }
       },
 
       markAsRead: (id) => {

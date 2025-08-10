@@ -21,7 +21,8 @@ import {
   History,
   Truck,
   UserCog,
-  HelpCircle
+  HelpCircle,
+  AlertTriangle
 } from 'lucide-react';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
@@ -51,8 +52,10 @@ import AdminDashboard from './components/admin/AdminDashboard';
 import AuthCallback from './components/auth/AuthCallback';
 import PerformanceMonitor from './components/PerformanceMonitor';
 import UserDebugInfo from './components/auth/UserDebugInfo';
-import HelpMenu from './components/help/HelpMenu';
+// import HelpMenu from './components/help/HelpMenu';
 import UserOnboardingTour from './components/help/UserOnboardingTour';
+import { ErrorReporter } from './components/ErrorReporter';
+import { errorMonitor } from './utils/errorMonitor';
 import { 
   LazyUserRoleManagement, 
   LazySupplierManagement, 
@@ -84,7 +87,9 @@ const App: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeModule, setActiveModule] = useState('dashboard');
   const [showOnboardingTour, setShowOnboardingTour] = useState(false);
-  const { toasts, removeToast } = useToastStore();
+  const [showErrorReporter, setShowErrorReporter] = useState(false);
+  const [errorCount, setErrorCount] = useState(0);
+  const { toasts, removeToast, addToast } = useToastStore();
   const { initializeTheme } = useThemeStore();
   const { user } = useSupabaseAuthStore();
   const { menuVisibility } = useSettingsStore();
@@ -96,12 +101,45 @@ const App: React.FC = () => {
                          window.location.search.includes('code=') ||
                          window.location.pathname.includes('/auth/callback');
 
-  // Initialize theme and development auth on app load
+  // Initialize theme, error monitoring, and development auth on app load
   useEffect(() => {
     initializeTheme();
     if (!isOAuthCallback) {
       setupDevAuth(); // Setup development authentication
     }
+    
+    // Initialize error monitoring
+    const updateErrorCount = () => {
+      const recentErrors = errorMonitor.getErrorsInLastMinutes(30);
+      setErrorCount(recentErrors.length);
+    };
+    
+    // Update error count immediately and on new errors
+    updateErrorCount();
+    const handleNewError = () => updateErrorCount();
+    window.addEventListener('errorMonitor:newError', handleNewError);
+    
+    // Handle auto-copy notifications
+    const handleAutoCopy = (event: CustomEvent) => {
+      const { message } = event.detail;
+      addToast({
+        type: 'info',
+        title: 'Auto-Copy',
+        message: message + ' - Paste into Claude Code chat for instant fixes!',
+        duration: 5000
+      });
+    };
+    
+    window.addEventListener('errorMonitor:autoCopy', handleAutoCopy);
+    
+    // Update error count periodically
+    const interval = setInterval(updateErrorCount, 30000); // Every 30 seconds
+    
+    return () => {
+      window.removeEventListener('errorMonitor:newError', handleNewError);
+      window.removeEventListener('errorMonitor:autoCopy', handleAutoCopy);
+      clearInterval(interval);
+    };
   }, [initializeTheme, isOAuthCallback]);
 
   // Keyboard shortcuts
@@ -480,6 +518,29 @@ const App: React.FC = () => {
         <UserOnboardingTour 
           isOpen={showOnboardingTour} 
           onClose={() => setShowOnboardingTour(false)} 
+        />
+
+        {/* Floating Error Monitor Button */}
+        {errorCount > 0 && (
+          <button
+            onClick={() => setShowErrorReporter(true)}
+            className="fixed bottom-4 right-4 z-50 bg-red-500 hover:bg-red-600 text-white rounded-full p-3 shadow-lg transition-all duration-200 flex items-center space-x-2 group"
+            title={`${errorCount} error${errorCount > 1 ? 's' : ''} detected - Click for details`}
+          >
+            <AlertTriangle className="h-5 w-5" />
+            <span className="bg-white text-red-500 rounded-full px-2 py-1 text-xs font-bold">
+              {errorCount}
+            </span>
+            <span className="hidden group-hover:inline text-sm ml-2 whitespace-nowrap">
+              View Errors
+            </span>
+          </button>
+        )}
+
+        {/* Error Reporter Modal */}
+        <ErrorReporter 
+          isOpen={showErrorReporter} 
+          onClose={() => setShowErrorReporter(false)} 
         />
       </ProtectedRoute>
     </ErrorBoundary>

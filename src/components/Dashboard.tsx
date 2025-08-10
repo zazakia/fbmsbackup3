@@ -18,6 +18,7 @@ import PurchasesStatsCards from './dashboard/PurchasesStatsCards';
 import SimplePurchasesStatsCards from './dashboard/SimplePurchasesStatsCards';
 import SimpleRecentPurchaseOrders from './dashboard/SimpleRecentPurchaseOrders';
 import SimplePurchasesAlerts from './dashboard/SimplePurchasesAlerts';
+import DatabaseConnectionTest from './DatabaseConnectionTest';
 import ReceivingDashboard from './dashboard/ReceivingDashboard';
 import { useNotificationStore, createSystemNotification } from '../store/notificationStore';
 import { inventoryMonitor } from '../services/inventoryMonitor';
@@ -129,6 +130,9 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Database Connection Test */}
+      <DatabaseConnectionTest />
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-1 sm:gap-2 md:gap-4">

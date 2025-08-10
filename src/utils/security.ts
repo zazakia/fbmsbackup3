@@ -265,12 +265,29 @@ export const validateEnvironment = (): EnvironmentConfig => {
     );
   }
   
-  // Validate Supabase URL format
-  if (!env.VITE_PUBLIC_SUPABASE_URL.startsWith('https://')) {
+  // Validate Supabase URL format - allow HTTP for local development
+  const isHttpLocalhost = env.VITE_PUBLIC_SUPABASE_URL.startsWith('http://localhost') || 
+                           env.VITE_PUBLIC_SUPABASE_URL.startsWith('http://127.0.0.1');
+  const isInDevelopment = env.NODE_ENV === 'development' || env.DEV || import.meta.env.DEV || !env.NODE_ENV;
+  const isLocalDevelopment = isHttpLocalhost && isInDevelopment;
+  
+  // Skip HTTPS validation for local development
+  const requiresHttps = !isLocalDevelopment;
+     
+  if (requiresHttps && !env.VITE_PUBLIC_SUPABASE_URL.startsWith('https://')) {
     throw createError(
       ERROR_CODES.UNKNOWN_ERROR,
-      'VITE_PUBLIC_SUPABASE_URL must start with https://',
-      { url: env.VITE_PUBLIC_SUPABASE_URL }
+      'VITE_PUBLIC_SUPABASE_URL must start with https:// (except for local development)',
+      { 
+        url: env.VITE_PUBLIC_SUPABASE_URL, 
+        environment: env.NODE_ENV,
+        isDev: env.DEV,
+        isMetaDev: import.meta.env.DEV,
+        isLocalDevelopment,
+        isHttpLocalhost,
+        isInDevelopment,
+        requiresHttps
+      }
     );
   }
   
@@ -285,8 +302,8 @@ export const validateEnvironment = (): EnvironmentConfig => {
   
   return {
     NODE_ENV: env.NODE_ENV as 'development' | 'production' | 'test',
-    VITE_SUPABASE_URL: env.VITE_PUBLIC_SUPABASE_URL,
-    VITE_SUPABASE_ANON_KEY: env.VITE_PUBLIC_SUPABASE_ANON_KEY,
+    VITE_PUBLIC_SUPABASE_URL: env.VITE_PUBLIC_SUPABASE_URL,
+    VITE_PUBLIC_SUPABASE_ANON_KEY: env.VITE_PUBLIC_SUPABASE_ANON_KEY,
     VITE_ENABLE_ANALYTICS: env.VITE_ENABLE_ANALYTICS,
     VITE_SENTRY_DSN: env.VITE_SENTRY_DSN,
     VITE_API_BASE_URL: env.VITE_API_BASE_URL

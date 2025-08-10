@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Mail, Lock, Eye, EyeOff, LogIn, Loader2, Github, AlertCircle, Shield, UserPlus } from 'lucide-react';
 import { useSupabaseAuthStore } from '../../store/supabaseAuthStore';
 import { useToastStore } from '../../store/toastStore';
-import { triggerAdminSetup } from '../../utils/setupAdmin';
+// Admin setup removed for security
 
 interface ModernLoginFormProps {
   onSwitchToRegister: () => void;
@@ -140,36 +140,13 @@ const ModernLoginForm: React.FC<ModernLoginFormProps> = ({ onSwitchToRegister, o
     setShowUnregisteredPrompt(false);
   };
 
-  // Admin account setup
+  // Admin account setup - DISABLED for security
   const handleAdminSetup = async () => {
-    setIsSubmitting(true);
-    try {
-      const result = await triggerAdminSetup();
-      if (result.success) {
-        addToast({
-          type: 'success',
-          title: 'Admin Account Ready',
-          message: 'Admin account created! Email: admin@fbms.com'
-        });
-        // Auto-fill admin credentials
-        setEmail('admin@fbms.com');
-        setPassword('Qweasd145698@');
-      } else {
-        addToast({
-          type: 'error',
-          title: 'Setup Failed',
-          message: result.message
-        });
-      }
-    } catch (error) {
-      addToast({
-        type: 'error',
-        title: 'Setup Error',
-        message: 'Failed to setup admin account'
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
+    addToast({
+      type: 'info',
+      title: 'Admin Setup Disabled',
+      message: 'Admin setup is disabled for security. Please register normally and contact your administrator for role assignment.'
+    });
   };
 
   return (

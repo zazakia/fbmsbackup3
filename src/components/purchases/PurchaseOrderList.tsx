@@ -3,6 +3,7 @@ import { Edit, Trash2, FileText, Building, Calendar, DollarSign } from 'lucide-r
 import { usePurchaseOrderStore } from '../../store/purchaseOrderStore';
 import { PurchaseOrderStatus } from '../../types/business';
 import { formatCurrency } from '../../utils/formatters';
+import DatabaseMigrationAlert from './DatabaseMigrationAlert';
 
 interface PurchaseOrderListProps {
   supplierId?: string;
@@ -101,15 +102,23 @@ export const PurchaseOrderList: React.FC<PurchaseOrderListProps> = ({
   }
 
   if (error) {
+    // Check if this is the missing table error
+    const isMissingTableError = error.includes('PGRST200') || 
+                               error.includes('Could not find a relationship') ||
+                               error.includes('purchase_order_items');
+    
     return (
-      <div className="flex flex-col items-center justify-center h-64">
-        <p className="text-red-600 mb-4">{error}</p>
-        <button
-          onClick={() => loadPurchaseOrders(page, limit)}
-          className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-        >
-          Retry
-        </button>
+      <div>
+        {isMissingTableError && <DatabaseMigrationAlert />}
+        <div className="flex flex-col items-center justify-center h-64">
+          <p className="text-red-600 mb-4">{error}</p>
+          <button
+            onClick={() => loadPurchaseOrders(page, limit)}
+            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+          >
+            Retry
+          </button>
+        </div>
       </div>
     );
   }
