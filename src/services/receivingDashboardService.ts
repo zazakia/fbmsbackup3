@@ -1,5 +1,6 @@
 import { supabase } from '../utils/supabase';
 import { EnhancedPurchaseOrder } from '../types/business';
+import { getReceivableStatuses, mapLegacyToEnhanced } from '../utils/statusMappings';
 
 export interface ReceivingQueueItem extends EnhancedPurchaseOrder {
   priority: 'high' | 'medium' | 'low';
@@ -81,6 +82,8 @@ export interface OverdueAlert {
 }
 
 class ReceivingDashboardService {
+  // Legacy mapping function removed - now using centralized utility from statusMappings.ts
+
   /**
    * Get the receiving queue - orders that can be received
    */
@@ -89,14 +92,14 @@ class ReceivingDashboardService {
       console.log('Fetching receiving queue...');
       
       // Get purchase orders that can be received
-      // Use enhanced_status directly instead of legacy status mapping
+      // Use status for now until enhanced_status is available
+      const receivableStatuses = getReceivableStatuses();
+      console.log('🔍 DEBUG: Using receivable statuses:', receivableStatuses);
+      
       const { data: orders, error } = await supabase
         .from('purchase_orders')
-        .select(`
-          *,
-          items:purchase_order_items(*)
-        `)
-        .in('enhanced_status', ['approved', 'sent_to_supplier', 'partially_received'])
+        .select('*')
+        .in('status', receivableStatuses) // approved POs that are sent/partially received
         .order('expected_date', { ascending: true, nullsFirst: false });
 
       if (error) {
@@ -104,22 +107,26 @@ class ReceivingDashboardService {
         throw error;
       }
 
-      console.log('Fetched receiving queue orders:', orders);
+      console.log('🔍 DEBUG: Fetched receiving queue orders:', orders);
+      console.log('🔍 DEBUG: Order statuses in receiving queue:', orders?.map(o => ({ poNumber: o.po_number, status: o.status, id: o.id })));
+      console.log('🔍 DEBUG: Orders that match receivable filter:', orders?.filter(o => receivableStatuses.includes(o.status)));
 
-      // Transform to enhanced purchase orders
+      // Transform to enhanced purchase orders  
       const enhancedOrders: EnhancedPurchaseOrder[] = (orders || []).map(order => {
-        const totalItems = order.items?.reduce((sum: number, item: Record<string, unknown>) => sum + (Number(item.quantity) || 0), 0) || 0;
-        const totalReceived = order.items?.reduce((sum: number, item: Record<string, unknown>) => sum + (Number(item.received_quantity) || 0), 0) || 0;
+        // Parse items from JSONB column
+        const items = Array.isArray(order.items) ? order.items : [];
+        const totalItems = items.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0);
+        const totalReceived = items.reduce((sum, item) => sum + (Number(item.receivedQuantity || item.receivedQty) || 0), 0);
         
         return {
           id: order.id,
           poNumber: order.po_number || `PO-${order.id.slice(-8)}`,
           supplierId: order.supplier_id || '',
           supplierName: order.supplier_name || 'Unknown Supplier',
-          items: (order.items || []).map((item: Record<string, unknown>) => ({
+          items: items.map((item: any) => ({
             id: item.id,
-            productId: item.product_id,
-            productName: item.product_name || 'Unknown Product',
+            productId: item.productId,
+            productName: item.productName || 'Unknown Product',
             sku: item.sku || '',
             quantity: item.quantity || 0,
             cost: item.cost || 0,
@@ -128,7 +135,7 @@ class ReceivingDashboardService {
           subtotal: order.subtotal || 0,
           tax: order.tax || 0,
           total: order.total || 0,
-          status: order.enhanced_status as EnhancedPurchaseOrderStatus,
+          status: mapLegacyToEnhanced(order.status),
           expectedDate: order.expected_date ? new Date(order.expected_date) : undefined,
           expectedDeliveryDate: order.expected_date ? new Date(order.expected_date) : undefined,
           receivedDate: order.received_date ? new Date(order.received_date) : undefined,
@@ -340,11 +347,12 @@ class ReceivingDashboardService {
     try {
       console.log('Fetching overdue alerts...');
       
-      // Use enhanced_status directly instead of legacy status mapping
+      // Use status for now until enhanced_status is available
+      const receivableStatuses = getReceivableStatuses();
       const { data: orders, error } = await supabase
         .from('purchase_orders')
         .select('*')
-        .in('enhanced_status', ['approved', 'sent_to_supplier', 'partially_received'])
+        .in('status', receivableStatuses) // orders that can be received
         .order('expected_date', { ascending: true });
 
       if (error) {

@@ -70,7 +70,7 @@ export const useSupabaseAuthStore = create<SupabaseAuthStore>()(
               .from('users')
               .select('*')
               .eq('email', data.user.email)
-              .single();
+              .maybeSingle();
 
             let user: User;
             if (userProfile && !profileError) {
@@ -310,7 +310,7 @@ export const useSupabaseAuthStore = create<SupabaseAuthStore>()(
               .from('users')
               .select('*')
               .eq('id', session.user.id)
-              .single();
+              .maybeSingle();
             
             if (idResult.data) {
               userProfile = idResult.data;
@@ -321,7 +321,7 @@ export const useSupabaseAuthStore = create<SupabaseAuthStore>()(
                 .from('users')
                 .select('*')
                 .eq('email', session.user.email)
-                .single();
+                .maybeSingle();
               
               userProfile = emailResult.data;
               profileError = emailResult.error;
@@ -698,7 +698,7 @@ supabaseAnon.auth.onAuthStateChange((event, session) => {
           .from('users')
           .select('id')
           .eq('id', session.user.id)
-          .single();
+          .maybeSingle();
         
         if (!existingProfile) {
           // Create user profile for OAuth user - SECURITY: No automatic admin assignment

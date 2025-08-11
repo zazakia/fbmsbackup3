@@ -33,6 +33,7 @@ import {
   getPendingReceipts
 } from '../../api/purchases';
 import { formatCurrency, formatDate } from '../../utils/formatters';
+import { getReceivableStatuses, isReceivableStatus } from '../../utils/statusMappings';
 
 interface PurchaseStats {
   totalPurchases: number;
@@ -130,6 +131,7 @@ const EnhancedPurchaseManagement: React.FC = () => {
 
   // Workflow handlers
   const handlePOApproval = (po: PurchaseOrder) => {
+    console.log('🔍 DEBUG: PO approved:', po.poNumber, 'Current status:', po.status);
     addToast({
       type: 'success',
       title: 'Purchase Order Approved',
@@ -186,6 +188,22 @@ const EnhancedPurchaseManagement: React.FC = () => {
       const supplierList = suppliersRes.data || [];
       setPurchaseOrders(orders);
       setSuppliers(supplierList);
+
+      // Debug: Log PO statuses to understand what we have
+      console.log('🔍 DEBUG: Purchase Order statuses:', orders.map(po => ({ 
+        poNumber: po.poNumber, 
+        status: po.status, 
+        id: po.id 
+      })));
+      console.log('🔍 DEBUG: Orders with sent status:', orders.filter(po => po.status === 'sent').length);
+      console.log('🔍 DEBUG: Orders with sent/partial status:', orders.filter(po => ['sent', 'partial'].includes(po.status)).length);
+      console.log('🔍 DEBUG: All unique statuses:', [...new Set(orders.map(po => po.status))]);
+      
+      // Update items to receive count for receiving tab badge
+      const receivableItems = orders.filter(po => isReceivableStatus(po.status)).length;
+      setItemsToReceiveCount(receivableItems);
+      console.log('🔍 DEBUG: Items to receive count set to:', receivableItems);
+      console.log('🔍 DEBUG: Receivable statuses:', getReceivableStatuses());
 
       // Stats
       const totalPurchases = orders.length;
@@ -706,7 +724,7 @@ const EnhancedPurchaseManagement: React.FC = () => {
                 <div className="space-y-4">
                   <h4 className="font-medium text-gray-900 dark:text-gray-100">Orders Ready for Receiving</h4>
                   {purchaseOrders
-                    .filter(po => po.status === 'sent')
+                    .filter(po => isReceivableStatus(po.status))
                     .map(po => (
                     <div key={po.id} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
                       <div>
@@ -725,7 +743,7 @@ const EnhancedPurchaseManagement: React.FC = () => {
                     </div>
                   ))}
                   
-                  {purchaseOrders.filter(po => po.status === 'sent').length === 0 && (
+                  {purchaseOrders.filter(po => isReceivableStatus(po.status)).length === 0 && (
                     <div className="text-center py-8">
                       <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                       <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No Items to Receive</h3>

@@ -370,7 +370,6 @@ export async function getPurchaseOrders(limit?: number, offset?: number) {
       tax,
       total,
       status,
-      enhanced_status,
       expected_date,
       received_date,
       created_by,
@@ -424,7 +423,6 @@ export async function getPurchaseOrder(id: string) {
       tax,
       total,
       status,
-      enhanced_status,
       expected_date,
       received_date,
       created_by,
@@ -445,7 +443,7 @@ export async function getPurchaseOrder(id: string) {
         tax: data.tax,
         total: data.total,
         status: data.status,
-        enhancedStatus: data.enhanced_status,
+        enhancedStatus: data.status, // Fallback to status until enhanced_status is available
         expectedDate: data.expected_date ? new Date(data.expected_date) : undefined,
         receivedDate: data.received_date ? new Date(data.received_date) : undefined,
         createdBy: data.created_by,
@@ -488,7 +486,7 @@ export async function updatePurchaseOrder(id: string, updates: Partial<Omit<Purc
   if (updates.tax !== undefined) updateData.tax = updates.tax;
   if (updates.total !== undefined) updateData.total = updates.total;
   if (updates.status) updateData.status = updates.status;
-  if (updates.enhancedStatus) updateData.enhanced_status = updates.enhancedStatus;
+  if (updates.enhancedStatus) updateData.enhanced_status = updates.enhancedStatus; // ✅ Re-enabled: Schema has this column
   if (updates.expectedDate !== undefined) updateData.expected_date = updates.expectedDate?.toISOString() as string;
   if (updates.receivedDate !== undefined) updateData.received_date = updates.receivedDate ? updates.receivedDate.toISOString() : null;
   if (updates.createdBy !== undefined) updateData.created_by = updates.createdBy ?? null;
@@ -507,7 +505,6 @@ export async function updatePurchaseOrder(id: string, updates: Partial<Omit<Purc
       tax,
       total,
       status,
-      enhanced_status,
       expected_date,
       received_date,
       created_by,
@@ -527,7 +524,7 @@ export async function updatePurchaseOrder(id: string, updates: Partial<Omit<Purc
         tax: data.tax,
         total: data.total,
         status: data.status,
-        enhancedStatus: data.enhanced_status,
+        enhancedStatus: data.status, // Fallback to status until enhanced_status is available
         expectedDate: data.expected_date ? new Date(data.expected_date) : undefined,
         receivedDate: data.received_date ? new Date(data.received_date) : undefined,
         createdBy: data.created_by,
@@ -617,7 +614,6 @@ export async function getPurchaseOrdersBySupplier(supplierId: string) {
       tax,
       total,
       status,
-      enhanced_status,
       expected_date,
       received_date,
       created_by,
@@ -663,7 +659,6 @@ export async function getPurchaseOrdersByStatus(status: PurchaseOrderStatus) {
       tax,
       total,
       status,
-      enhanced_status,
       expected_date,
       received_date,
       created_by,
@@ -1810,12 +1805,12 @@ export async function approvePurchaseOrder(request: ApprovalRequest): Promise<{d
       auditAction = PurchaseOrderAuditAction.CANCELLED;
     }
 
-    // Update the purchase order status - update both legacy and enhanced status fields
+    // Update the purchase order status - now using both legacy and enhanced status
     const updateResult = await updatePurchaseOrder(request.purchaseOrderId, {
       status: newStatus,
-      enhanced_status: newEnhancedStatus,
-      approved_by: request.approvedBy,
-      approved_at: new Date().toISOString()
+      enhanced_status: newEnhancedStatus, // ✅ Re-enabled: Schema has this column
+      approved_by: request.approvedBy, // ✅ Re-enabled: Schema has this column
+      approved_at: new Date().toISOString() // ✅ Re-enabled: Schema has this column
     });
 
     if (updateResult.error) {
