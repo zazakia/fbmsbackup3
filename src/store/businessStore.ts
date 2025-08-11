@@ -15,6 +15,7 @@ export type POSStockValidationError = {
 
 export type StockValidationResult = { isValid: boolean; errors: POSStockValidationError[]; warnings: POSStockValidationError[] };
 import { supabase } from '../utils/supabase';
+import { validateProductStock as stockValidationUtil } from '../utils/stockValidation';
 import { createValidationMixin } from './businessStoreValidation';
 import {
   createProduct,
@@ -284,6 +285,11 @@ export const useBusinessStore = create<BusinessStore>()(
         return get().products.find(product => product.id === id);
       },
 
+      validateProductStock: (productId: string, quantity: number, options: any = {}) => {
+        const product = get().products.find(p => p.id === productId);
+        return stockValidationUtil(product, quantity, options);
+      },
+
       getCustomer: (id: string) => {
         return get().customers.find(customer => customer.id === id);
       },
@@ -467,6 +473,7 @@ export const useBusinessStore = create<BusinessStore>()(
           if ((supabase as any)) {
             try {
               await supabase.from('sales').insert({
+                invoice_number: saleData.invoiceNumber || saleData.receiptNumber || `INV-${Date.now()}`,
                 customer_id: saleData.customerId || null,
                 customer_name: saleData.customerName,
                 items: saleData.items,
@@ -496,11 +503,14 @@ export const useBusinessStore = create<BusinessStore>()(
             }
             try {
               // Persisted stock deduction; updateStock will also log a stock movement
-              const ref = line.id || saleData?.receiptNumber || `txn-${Date.now()}`;
+              // Generate a valid UUID for reference or use null
+              const isValidUUID = (str: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+              const potentialRef = line.id || saleData?.receiptNumber;
+              const ref = (potentialRef && isValidUUID(potentialRef)) ? potentialRef : null;
               const result = await updateStock(productId, qty, 'subtract', {
                 referenceId: ref,
                 userId: saleData?.cashierId,
-                reason: 'POS sale'
+                reason: `POS sale - ${saleData?.receiptNumber || 'unknown'}`
               });
               if ((result as any)?.error) {
                 console.error('[Store][createSale] updateStock error', { productId, qty, error: (result as any).error });

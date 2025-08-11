@@ -232,10 +232,10 @@ const CloudBackup: React.FC = () => {
   };
 
   const calculateTotalDataSize = () => {
-    return products.length * 0.5 + 
-           customers.length * 0.3 + 
-           sales.length * 0.2 + 
-           employees.length * 0.1;
+    return (products || []).length * 0.5 + 
+           (customers || []).length * 0.3 + 
+           (sales || []).length * 0.2 + 
+           (employees || []).length * 0.1;
   };
 
   return (
@@ -438,24 +438,24 @@ const CloudBackup: React.FC = () => {
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">Data Summary</h3>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                     <div className="text-center">
-                      <div className="text-2xl font-bold text-blue-600">{products.length}</div>
+                      <div className="text-2xl font-bold text-blue-600">{(products || []).length}</div>
                       <div className="text-sm text-gray-600">Products</div>
-                      <div className="text-xs text-gray-500">{(products.length * 0.5).toFixed(1)} MB</div>
+                      <div className="text-xs text-gray-500">{((products || []).length * 0.5).toFixed(1)} MB</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-2xl font-bold text-green-600">{customers.length}</div>
+                      <div className="text-2xl font-bold text-green-600">{(customers || []).length}</div>
                       <div className="text-sm text-gray-600">Customers</div>
-                      <div className="text-xs text-gray-500">{(customers.length * 0.3).toFixed(1)} MB</div>
+                      <div className="text-xs text-gray-500">{((customers || []).length * 0.3).toFixed(1)} MB</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-2xl font-bold text-purple-600">{sales.length}</div>
+                      <div className="text-2xl font-bold text-purple-600">{(sales || []).length}</div>
                       <div className="text-sm text-gray-600">Sales</div>
-                      <div className="text-xs text-gray-500">{(sales.length * 0.2).toFixed(1)} MB</div>
+                      <div className="text-xs text-gray-500">{((sales || []).length * 0.2).toFixed(1)} MB</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-2xl font-bold text-orange-600">{employees.length}</div>
+                      <div className="text-2xl font-bold text-orange-600">{(employees || []).length}</div>
                       <div className="text-sm text-gray-600">Employees</div>
-                      <div className="text-xs text-gray-500">{(employees.length * 0.1).toFixed(1)} MB</div>
+                      <div className="text-xs text-gray-500">{((employees || []).length * 0.1).toFixed(1)} MB</div>
                     </div>
                   </div>
                   <div className="mt-4 pt-4 border-t border-gray-200 text-center">

@@ -20,16 +20,25 @@ import { supabase } from '../../utils/supabase';
 
 interface Customer {
   id: string;
-  name: string;
+  first_name: string;
+  last_name: string;
   email: string;
   phone: string;
   address: string;
-  status: 'active' | 'inactive';
-  total_purchases: number;
-  total_spent: number;
+  city?: string;
+  state?: string;
+  postal_code?: string;
+  country?: string;
+  created_at: string;
+  updated_at: string;
+  // Computed fields (not in DB)
+  name?: string;
+  status?: 'active' | 'inactive';
+  total_purchases?: number;
+  total_spent?: number;
   last_purchase_date?: string;
-  average_order_value: number;
-  purchase_frequency: number;
+  average_order_value?: number;
+  purchase_frequency?: number;
 }
 
 interface Transaction {
@@ -100,23 +109,50 @@ const CustomerTransactionInterface: React.FC = () => {
 
   const loadCustomers = async () => {
     try {
-      let query = supabase
+      const { data, error } = await supabase
         .from('customers')
         .select('*')
-        .order('total_spent', { ascending: false });
-
-      if (statusFilter !== 'all') {
-        query = query.eq('status', statusFilter);
-      }
-
-      const { data, error } = await query;
+        .order('created_at', { ascending: false });
 
       if (error) {
         console.error('Error loading customers:', error);
         return;
       }
 
-      setCustomers(data || []);
+      // Enhance customer data with computed fields and sales stats
+      const enhancedCustomers = await Promise.all(
+        (data || []).map(async (customer) => {
+          // Get customer sales data
+          const { data: salesData } = await supabase
+            .from('sales')
+            .select('total, created_at')
+            .eq('customer_id', customer.id);
+
+          const totalSales = salesData?.length || 0;
+          const totalSpent = salesData?.reduce((sum, sale) => sum + (sale.total || 0), 0) || 0;
+          const avgOrderValue = totalSales > 0 ? totalSpent / totalSales : 0;
+          const lastSaleDate = salesData?.length > 0 
+            ? salesData.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]?.created_at
+            : undefined;
+
+          return {
+            ...customer,
+            name: `${customer.first_name} ${customer.last_name}`,
+            status: 'active' as const, // Default status since DB doesn't have this field
+            total_purchases: totalSales,
+            total_spent: totalSpent,
+            average_order_value: avgOrderValue,
+            last_purchase_date: lastSaleDate
+          };
+        })
+      );
+
+      // Filter by status if needed
+      const filteredCustomers = statusFilter === 'all' 
+        ? enhancedCustomers
+        : enhancedCustomers.filter(c => c.status === statusFilter);
+
+      setCustomers(filteredCustomers);
     } catch (error) {
       console.error('Error in loadCustomers:', error);
     }
@@ -125,21 +161,23 @@ const CustomerTransactionInterface: React.FC = () => {
   const loadTransactions = async () => {
     try {
       let query = supabase
-        .from('transactions')
+        .from('sales')
         .select(`
-          *,
-          customers(name, email)
+          id,
+          invoice_number,
+          customer_id,
+          customer_name,
+          total,
+          payment_method,
+          created_at,
+          status
         `)
-        .order('transaction_date', { ascending: false });
-
-      if (transactionFilter !== 'all') {
-        query = query.eq('type', transactionFilter);
-      }
+        .order('created_at', { ascending: false });
 
       if (dateRange !== 'all') {
         const daysAgo = new Date();
         daysAgo.setDate(daysAgo.getDate() - parseInt(dateRange));
-        query = query.gte('transaction_date', daysAgo.toISOString());
+        query = query.gte('created_at', daysAgo.toISOString());
       }
 
       const { data, error } = await query.limit(100);
@@ -149,7 +187,21 @@ const CustomerTransactionInterface: React.FC = () => {
         return;
       }
 
-      setTransactions(data || []);
+      // Transform sales data to match transaction interface
+      const transformedData = data?.map(sale => ({
+        id: sale.id,
+        customer_id: sale.customer_id,
+        type: 'sale' as const,
+        amount: sale.total,
+        status: sale.status || 'completed' as const,
+        payment_method: sale.payment_method,
+        transaction_date: sale.created_at,
+        items_count: 1, // Default value
+        reference_number: sale.invoice_number,
+        notes: ''
+      })) || [];
+
+      setTransactions(transformedData);
     } catch (error) {
       console.error('Error in loadTransactions:', error);
     }
@@ -167,21 +219,20 @@ const CustomerTransactionInterface: React.FC = () => {
         return;
       }
 
-      // Get transaction stats
-      const { data: transactionData, error: transactionError } = await supabase
-        .from('transactions')
-        .select('*')
-        .eq('status', 'completed');
+      // Get transaction stats from sales table
+      const { data: salesData, error: salesError } = await supabase
+        .from('sales')
+        .select('total, status');
 
-      if (transactionError) {
-        console.error('Error loading transaction stats:', transactionError);
+      if (salesError) {
+        console.error('Error loading sales stats:', salesError);
         return;
       }
 
       const totalCustomers = customerData?.length || 0;
       const activeCustomers = customerData?.filter(c => c.status === 'active').length || 0;
-      const totalTransactions = transactionData?.length || 0;
-      const totalRevenue = transactionData?.reduce((sum, t) => sum + (t.amount || 0), 0) || 0;
+      const totalTransactions = salesData?.length || 0;
+      const totalRevenue = salesData?.reduce((sum, sale) => sum + (sale.total || 0), 0) || 0;
       const averageOrderValue = totalTransactions > 0 ? totalRevenue / totalTransactions : 0;
       const topCustomers = customerData?.slice(0, 5) || [];
 
@@ -200,44 +251,38 @@ const CustomerTransactionInterface: React.FC = () => {
 
   const createQuickSale = async (customerId: string, amount: number, paymentMethod: string) => {
     try {
-      const transaction = {
+      const sale = {
         id: crypto.randomUUID(),
+        invoice_number: `INV-${Date.now()}`,
         customer_id: customerId,
-        type: 'sale',
-        amount,
-        status: 'completed',
+        customer_name: `${customers.find(c => c.id === customerId)?.first_name || ''} ${customers.find(c => c.id === customerId)?.last_name || ''}`.trim(),
+        items: [{ name: 'Quick Sale Item', quantity: 1, price: amount }],
+        subtotal: amount,
+        tax: 0,
+        discount: 0,
+        total: amount,
         payment_method: paymentMethod,
-        transaction_date: new Date().toISOString(),
-        reference_number: `TXN-${Date.now()}`,
-        items_count: 1
+        status: 'completed',
+        created_at: new Date().toISOString()
       };
 
       const { error } = await supabase
-        .from('transactions')
-        .insert([transaction]);
+        .from('sales')
+        .insert([sale]);
 
       if (error) {
-        console.error('Error creating transaction:', error);
+        console.error('Error creating sale:', error);
         addToast({
           type: 'error',
           title: 'Error',
-          message: 'Failed to create transaction'
+          message: 'Failed to create sale'
         });
         return;
       }
 
-      // Update customer total spent
-      const customer = customers.find(c => c.id === customerId);
-      if (customer) {
-        await supabase
-          .from('customers')
-          .update({
-            total_spent: (customer.total_spent || 0) + amount,
-            total_purchases: (customer.total_purchases || 0) + 1,
-            last_purchase_date: new Date().toISOString()
-          })
-          .eq('id', customerId);
-      }
+      // Note: Customer stats will be recalculated on next load
+      // The customers table doesn't have total_spent, total_purchases fields
+      // These are computed from sales data
 
       addToast({
         type: 'success',
@@ -262,7 +307,7 @@ const CustomerTransactionInterface: React.FC = () => {
   };
 
   const filteredCustomers = customers.filter(customer => {
-    const matchesSearch = `${customer.firstName} ${customer.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    const matchesSearch = `${customer.first_name} ${customer.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          customer.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          customer.phone?.includes(searchTerm);
     return matchesSearch;

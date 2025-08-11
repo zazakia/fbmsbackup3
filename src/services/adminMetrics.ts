@@ -151,7 +151,7 @@ export async function getRealActivityLogs(limit: number = 50): Promise<RealActiv
       .limit(limit);
 
     if (error) {
-      console.warn('Activity logs table not found, creating mock data from user actions');
+      console.debug('Activity logs table not found, using mock data:', error.message);
       return createMockActivityLogs();
     }
 
@@ -293,7 +293,7 @@ export async function logAdminActivity(
       });
 
     if (error) {
-      console.warn('Activity logs table not available:', error.message);
+      console.debug('Activity logs table not available, skipping log:', error.message);
     }
   } catch (error) {
     console.error('Error logging admin activity:', error);

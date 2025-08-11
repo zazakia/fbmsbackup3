@@ -4,6 +4,7 @@ import { validatePurchaseOrderApproval } from '../utils/purchaseOrderPermissions
 import { purchaseOrderStateMachine } from './purchaseOrderStateMachine';
 import { auditService } from './auditService';
 import { notificationService } from './notificationService';
+import { receivingIntegrationService, ApprovalContext } from './receivingIntegrationService';
 
 export interface ApprovalRequest {
   purchaseOrderId: string;
@@ -143,6 +144,32 @@ class ApprovalWorkflowService {
         request.comments
       );
 
+      // NEW: Integrate with receiving after successful approval
+      try {
+        const approvalContext: ApprovalContext = {
+          approvedBy: request.userId,
+          approvedAt: new Date(request.timestamp),
+          reason: request.reason,
+          comments: request.comments,
+          userRole
+        };
+
+        const integrationResult = await receivingIntegrationService.onPurchaseOrderApproved(
+          purchaseOrder.id,
+          approvalContext
+        );
+
+        // Log integration result (non-blocking)
+        if (!integrationResult.success) {
+          console.warn(`Receiving integration failed for PO ${purchaseOrder.id}:`, integrationResult.error);
+        } else {
+          console.log(`Receiving integration successful for PO ${purchaseOrder.id}`);
+        }
+      } catch (integrationError) {
+        // Integration failure should not block approval success
+        console.error('Receiving integration error:', integrationError);
+      }
+
       return {
         success: true,
         purchaseOrderId: purchaseOrder.id,
@@ -224,6 +251,54 @@ class ApprovalWorkflowService {
         },
         request.reason
       );
+    }
+
+    // NEW: Batch receiving integration processing
+    if (successCount > 0) {
+      try {
+        // Refresh receiving queue once for all successful approvals
+        await receivingIntegrationService.refreshReceivingQueue();
+        
+        console.log(`Bulk receiving integration completed for ${successCount} approved purchase orders`);
+        
+        // Log bulk integration success
+        await auditService.logPurchaseOrderAction({
+          purchaseOrderId: 'BULK_INTEGRATION',
+          purchaseOrderNumber: `Bulk Integration (${successCount} orders)`,
+          action: 'bulk_receiving_integration',
+          performedBy: request.userId,
+          performedByName: request.userEmail,
+          timestamp: new Date(),
+          reason: `Bulk receiving integration for ${successCount} approved purchase orders`,
+          metadata: {
+            successfulApprovals: successCount,
+            totalProcessed: purchaseOrders.length,
+            approvedPurchaseOrderIds: purchaseOrders
+              .filter((_, index) => results[index].success)
+              .map(po => po.id)
+          }
+        });
+      } catch (integrationError) {
+        // Batch integration failure should not affect approval results
+        console.error('Bulk receiving integration failed:', integrationError);
+        
+        // Log the failure for monitoring
+        await auditService.logPurchaseOrderAction({
+          purchaseOrderId: 'BULK_INTEGRATION_FAILED',
+          purchaseOrderNumber: `Failed Bulk Integration (${successCount} orders)`,
+          action: 'bulk_receiving_integration_failed',
+          performedBy: request.userId,
+          performedByName: request.userEmail,
+          timestamp: new Date(),
+          reason: `Bulk receiving integration failed: ${integrationError instanceof Error ? integrationError.message : 'Unknown error'}`,
+          metadata: {
+            successfulApprovals: successCount,
+            errorDetails: integrationError instanceof Error ? integrationError.stack : String(integrationError)
+          }
+        }).catch(auditError => {
+          console.error('Failed to log bulk integration failure:', auditError);
+        });
+      }
     }
 
     return {
@@ -309,6 +384,34 @@ class ApprovalWorkflowService {
         request.reason,
         request.comments
       );
+
+      // NEW: Integrate with receiving after successful rejection/cancellation
+      try {
+        const statusChangeContext = {
+          changedBy: request.userId,
+          changedAt: new Date(request.timestamp),
+          reason: `Rejected: ${request.reason} - ${request.comments}`,
+          previousStatus: this.mapLegacyToEnhanced(previousStatus),
+          newStatus: 'cancelled' as const
+        };
+
+        const integrationResult = await receivingIntegrationService.onPurchaseOrderStatusChanged(
+          purchaseOrder.id,
+          statusChangeContext.previousStatus,
+          statusChangeContext.newStatus,
+          statusChangeContext
+        );
+
+        // Log integration result (non-blocking)
+        if (!integrationResult.success) {
+          console.warn(`Receiving integration failed for rejected PO ${purchaseOrder.id}:`, integrationResult.error);
+        } else {
+          console.log(`Receiving integration successful for rejected PO ${purchaseOrder.id}`);
+        }
+      } catch (integrationError) {
+        // Integration failure should not block rejection success
+        console.error('Receiving integration error during rejection:', integrationError);
+      }
 
       return {
         success: true,

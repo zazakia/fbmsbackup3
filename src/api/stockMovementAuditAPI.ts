@@ -33,8 +33,7 @@ function getCurrentUserContext(additionalContext?: Partial<AuditContext>): Audit
   return {
     performedBy: user?.id || 'anonymous',
     performedByName: user?.user_metadata?.full_name || user?.email || 'Unknown User',
-    ipAddress: typeof window !== 'undefined' ? 
-      (window.navigator as unknown as { connection?: { effectiveType?: string } })?.connection?.effectiveType || 'unknown' : undefined,
+    ipAddress: undefined, // IP address not available in browser environment
     userAgent: typeof window !== 'undefined' ? window.navigator.userAgent : undefined,
     ...additionalContext
   };

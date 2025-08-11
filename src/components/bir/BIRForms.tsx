@@ -42,7 +42,7 @@ const BIRForms: React.FC = () => {
     const currentYear = now.getFullYear();
     
     // Filter sales for current period
-    const periodSales = sales.filter(sale => {
+    const periodSales = (sales || []).filter(sale => {
       const saleDate = new Date(sale.date);
       return saleDate.getMonth() === currentMonth && 
              saleDate.getFullYear() === currentYear;
@@ -72,7 +72,7 @@ const BIRForms: React.FC = () => {
     const currentYear = now.getFullYear();
     
     // Filter journal entries for withholding tax
-    const periodEntries = journalEntries.filter(entry => {
+    const periodEntries = (journalEntries || []).filter(entry => {
       const entryDate = new Date(entry.date);
       return entryDate.getMonth() === currentMonth && 
              entryDate.getFullYear() === currentYear &&
@@ -98,7 +98,7 @@ const BIRForms: React.FC = () => {
     const quarterStartMonth = (currentQuarter - 1) * 3;
     const quarterEndMonth = quarterStartMonth + 2;
     
-    const quarterEntries = journalEntries.filter(entry => {
+    const quarterEntries = (journalEntries || []).filter(entry => {
       const entryDate = new Date(entry.date);
       return entryDate.getMonth() >= quarterStartMonth &&
              entryDate.getMonth() <= quarterEndMonth &&
@@ -524,7 +524,7 @@ const BIRForms: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              {alphalistData.map((employee, index) => (
+              {(alphalistData || []).map((employee, index) => (
                 <tr key={index}>
                   <td className="border border-gray-300 px-4 py-2">{employee.tin}</td>
                   <td className="border border-gray-300 px-4 py-2">{employee.lastName}</td>

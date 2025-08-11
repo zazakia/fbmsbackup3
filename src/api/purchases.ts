@@ -261,8 +261,7 @@ function getCurrentUserContext(additionalContext?: Partial<AuditContext>): Audit
   return {
     performedBy: user?.id || 'anonymous',
     performedByName: user?.user_metadata?.full_name || user?.email || 'Unknown User',
-    ipAddress: typeof window !== 'undefined' ? 
-      (window.navigator as unknown as { connection?: { effectiveType?: string } })?.connection?.effectiveType || 'unknown' : undefined,
+    ipAddress: undefined, // IP address not available in browser environment
     userAgent: typeof window !== 'undefined' ? window.navigator.userAgent : undefined,
     ...additionalContext
   };
@@ -476,6 +475,8 @@ export async function updatePurchaseOrder(id: string, updates: Partial<Omit<Purc
     tax: number;
     received_date: string;
     created_by: string | null;
+    approved_by: string | null;
+    approved_at: string | null;
   }> = {};
   
   if (updates.poNumber) updateData.po_number = updates.poNumber;
@@ -490,6 +491,10 @@ export async function updatePurchaseOrder(id: string, updates: Partial<Omit<Purc
   if (updates.expectedDate !== undefined) updateData.expected_date = updates.expectedDate?.toISOString() as string;
   if (updates.receivedDate !== undefined) updateData.received_date = updates.receivedDate ? updates.receivedDate.toISOString() : null;
   if (updates.createdBy !== undefined) updateData.created_by = updates.createdBy ?? null;
+  
+  // Handle approval fields - map to database column names
+  if (updates.approved_by !== undefined) updateData.approved_by = updates.approved_by;
+  if (updates.approved_at !== undefined) updateData.approved_at = updates.approved_at;
 
   const { data, error } = await supabase
     .from('purchase_orders')
@@ -508,7 +513,10 @@ export async function updatePurchaseOrder(id: string, updates: Partial<Omit<Purc
       expected_date,
       received_date,
       created_by,
-      created_at
+      created_at,
+      enhanced_status,
+      approved_by,
+      approved_at
     `)
     .single();
 

@@ -1,6 +1,7 @@
 import { supabase } from '../utils/supabase';
-import { EnhancedPurchaseOrder } from '../types/business';
+import { EnhancedPurchaseOrder, EnhancedPurchaseOrderStatus } from '../types/business';
 import { getReceivableStatuses, mapLegacyToEnhanced } from '../utils/statusMappings';
+import { ValidationResult } from './receivingIntegrationService';
 
 export interface ReceivingQueueItem extends EnhancedPurchaseOrder {
   priority: 'high' | 'medium' | 'low';
@@ -81,6 +82,13 @@ export interface OverdueAlert {
   notes?: string;
 }
 
+export interface ReceivingQueueUpdateResult {
+  added: EnhancedPurchaseOrder[];
+  updated: EnhancedPurchaseOrder[];
+  removed: string[];
+  totalAffected: number;
+}
+
 class ReceivingDashboardService {
   // Legacy mapping function removed - now using centralized utility from statusMappings.ts
 
@@ -92,15 +100,14 @@ class ReceivingDashboardService {
       console.log('Fetching receiving queue...');
       
       // Get purchase orders that can be received
-      // Use status for now until enhanced_status is available
-      const receivableStatuses = getReceivableStatuses();
-      console.log('🔍 DEBUG: Using receivable statuses:', receivableStatuses);
-      
+      // ✅ Now using enhanced_status column directly from database!
       const { data: orders, error } = await supabase
         .from('purchase_orders')
         .select('*')
-        .in('status', receivableStatuses) // approved POs that are sent/partially received
+        .in('enhanced_status', ['approved', 'sent_to_supplier', 'partially_received']) // Use enhanced status directly
         .order('expected_date', { ascending: true, nullsFirst: false });
+      
+      console.log('🔍 DEBUG: Using enhanced_status filter directly from database');
 
       if (error) {
         console.error('Error fetching receiving queue:', error);
@@ -108,8 +115,13 @@ class ReceivingDashboardService {
       }
 
       console.log('🔍 DEBUG: Fetched receiving queue orders:', orders);
-      console.log('🔍 DEBUG: Order statuses in receiving queue:', orders?.map(o => ({ poNumber: o.po_number, status: o.status, id: o.id })));
-      console.log('🔍 DEBUG: Orders that match receivable filter:', orders?.filter(o => receivableStatuses.includes(o.status)));
+      console.log('🔍 DEBUG: Order enhanced_status in receiving queue:', orders?.map(o => ({ 
+        poNumber: o.po_number, 
+        legacyStatus: o.status, 
+        enhancedStatus: o.enhanced_status,
+        id: o.id 
+      })));
+      console.log('🔍 DEBUG: Orders retrieved by enhanced_status filter:', orders?.length);
 
       // Transform to enhanced purchase orders  
       const enhancedOrders: EnhancedPurchaseOrder[] = (orders || []).map(order => {
@@ -135,7 +147,7 @@ class ReceivingDashboardService {
           subtotal: order.subtotal || 0,
           tax: order.tax || 0,
           total: order.total || 0,
-          status: mapLegacyToEnhanced(order.status),
+          status: order.enhanced_status as EnhancedPurchaseOrderStatus || mapLegacyToEnhanced(order.status), // Use enhanced_status directly
           expectedDate: order.expected_date ? new Date(order.expected_date) : undefined,
           expectedDeliveryDate: order.expected_date ? new Date(order.expected_date) : undefined,
           receivedDate: order.received_date ? new Date(order.received_date) : undefined,
@@ -347,12 +359,11 @@ class ReceivingDashboardService {
     try {
       console.log('Fetching overdue alerts...');
       
-      // Use status for now until enhanced_status is available
-      const receivableStatuses = getReceivableStatuses();
+      // ✅ Now using enhanced_status column directly from database!
       const { data: orders, error } = await supabase
         .from('purchase_orders')
         .select('*')
-        .in('status', receivableStatuses) // orders that can be received
+        .in('enhanced_status', ['approved', 'sent_to_supplier', 'partially_received']) // orders that can be received
         .order('expected_date', { ascending: true });
 
       if (error) {
@@ -429,6 +440,209 @@ class ReceivingDashboardService {
     };
     
     return statusMap[status] || status;
+  }
+
+  /**
+   * Handle receiving integration events
+   */
+  async onReceivingIntegrationEvent(
+    eventType: 'approval' | 'status_change' | 'cancellation',
+    purchaseOrderId: string,
+    context: any
+  ): Promise<ReceivingQueueUpdateResult> {
+    try {
+      console.log(`Processing receiving integration event: ${eventType} for PO ${purchaseOrderId}`);
+      
+      const result: ReceivingQueueUpdateResult = {
+        added: [],
+        updated: [],
+        removed: [],
+        totalAffected: 0
+      };
+
+      // Refresh the receiving queue to get current state
+      const currentQueue = await this.getReceivingQueue();
+      const existingPO = currentQueue.find(po => po.id === purchaseOrderId);
+
+      // Fetch the specific purchase order from database
+      const { data: poData, error } = await supabase
+        .from('purchase_orders')
+        .select('*')
+        .eq('id', purchaseOrderId)
+        .single();
+
+      if (error) {
+        console.error('Error fetching PO for integration event:', error);
+        throw error;
+      }
+
+      if (!poData) {
+        console.warn(`Purchase order ${purchaseOrderId} not found for integration event`);
+        return result;
+      }
+
+      // Transform to enhanced purchase order
+      const enhancedPO = this.transformToEnhancedPO(poData);
+      
+      // Validate if PO should be in receiving queue
+      const validation = this.validatePurchaseOrderForReceiving(enhancedPO);
+      const shouldBeInQueue = validation.isValid && this.isReceivableStatus(enhancedPO.status);
+
+      switch (eventType) {
+        case 'approval':
+          if (shouldBeInQueue && !existingPO) {
+            result.added.push(enhancedPO);
+            console.log(`Added approved PO ${purchaseOrderId} to receiving queue`);
+          } else if (shouldBeInQueue && existingPO) {
+            result.updated.push(enhancedPO);
+            console.log(`Updated approved PO ${purchaseOrderId} in receiving queue`);
+          }
+          break;
+
+        case 'status_change':
+          if (shouldBeInQueue && !existingPO) {
+            result.added.push(enhancedPO);
+            console.log(`Added PO ${purchaseOrderId} to receiving queue due to status change`);
+          } else if (shouldBeInQueue && existingPO) {
+            result.updated.push(enhancedPO);
+            console.log(`Updated PO ${purchaseOrderId} in receiving queue due to status change`);
+          } else if (!shouldBeInQueue && existingPO) {
+            result.removed.push(purchaseOrderId);
+            console.log(`Removed PO ${purchaseOrderId} from receiving queue due to status change`);
+          }
+          break;
+
+        case 'cancellation':
+          if (existingPO) {
+            result.removed.push(purchaseOrderId);
+            console.log(`Removed cancelled PO ${purchaseOrderId} from receiving queue`);
+          }
+          break;
+      }
+
+      result.totalAffected = result.added.length + result.updated.length + result.removed.length;
+      
+      console.log(`Integration event processed: ${result.totalAffected} items affected`);
+      return result;
+
+    } catch (error) {
+      console.error('Error processing receiving integration event:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Validate purchase order for receiving readiness
+   */
+  validatePurchaseOrderForReceiving(purchaseOrder: EnhancedPurchaseOrder): ValidationResult {
+    const errors: string[] = [];
+    const warnings: string[] = [];
+
+    // Check required fields
+    if (!purchaseOrder.supplierId || !purchaseOrder.supplierName) {
+      errors.push('Supplier information is missing');
+    }
+
+    if (!purchaseOrder.items || purchaseOrder.items.length === 0) {
+      errors.push('Purchase order has no items');
+    }
+
+    if (!purchaseOrder.total || purchaseOrder.total <= 0) {
+      errors.push('Purchase order total is invalid');
+    }
+
+    // Check status receivability
+    if (!this.isReceivableStatus(purchaseOrder.status)) {
+      errors.push(`Purchase order status '${purchaseOrder.status}' is not receivable`);
+    }
+
+    // Check items
+    purchaseOrder.items?.forEach((item, index) => {
+      if (!item.quantity || item.quantity <= 0) {
+        errors.push(`Item ${index + 1} has invalid quantity`);
+      }
+      if (!item.cost || item.cost <= 0) {
+        errors.push(`Item ${index + 1} has invalid cost`);
+      }
+    });
+
+    // Warnings
+    if (!purchaseOrder.expectedDate) {
+      warnings.push('No expected delivery date set');
+    } else if (purchaseOrder.expectedDate < new Date()) {
+      warnings.push('Expected delivery date is in the past');
+    }
+
+    if (!purchaseOrder.poNumber) {
+      warnings.push('Purchase order number not set');
+    }
+
+    return {
+      isValid: errors.length === 0,
+      errors,
+      warnings
+    };
+  }
+
+  /**
+   * Check if status is receivable
+   */
+  private isReceivableStatus(status: EnhancedPurchaseOrderStatus): boolean {
+    const receivableStatuses: EnhancedPurchaseOrderStatus[] = [
+      'approved',
+      'sent_to_supplier',
+      'partially_received'
+    ];
+    return receivableStatuses.includes(status);
+  }
+
+  /**
+   * Transform database record to enhanced purchase order
+   */
+  private transformToEnhancedPO(order: any): EnhancedPurchaseOrder {
+    const items = Array.isArray(order.items) ? order.items : [];
+    const totalItems = items.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0);
+    const totalReceived = items.reduce((sum, item) => sum + (Number(item.receivedQuantity || item.receivedQty) || 0), 0);
+    
+    return {
+      id: order.id,
+      poNumber: order.po_number || `PO-${order.id.slice(-8)}`,
+      supplierId: order.supplier_id || '',
+      supplierName: order.supplier_name || 'Unknown Supplier',
+      items: items.map((item: any) => ({
+        id: item.id,
+        productId: item.productId,
+        productName: item.productName || 'Unknown Product',
+        sku: item.sku || '',
+        quantity: item.quantity || 0,
+        cost: item.cost || 0,
+        total: (item.quantity || 0) * (item.cost || 0)
+      })),
+      subtotal: order.subtotal || 0,
+      tax: order.tax || 0,
+      total: order.total || 0,
+      status: order.enhanced_status as EnhancedPurchaseOrderStatus || mapLegacyToEnhanced(order.status),
+      expectedDate: order.expected_date ? new Date(order.expected_date) : undefined,
+      expectedDeliveryDate: order.expected_date ? new Date(order.expected_date) : undefined,
+      receivedDate: order.received_date ? new Date(order.received_date) : undefined,
+      createdBy: order.created_by,
+      createdAt: new Date(order.created_at),
+      
+      // Enhanced fields
+      statusHistory: [],
+      receivingHistory: [],
+      validationErrors: [],
+      approvalHistory: [],
+      totalReceived,
+      totalPending: totalItems - totalReceived,
+      isPartiallyReceived: totalReceived > 0 && totalReceived < totalItems,
+      isFullyReceived: totalReceived >= totalItems && totalItems > 0,
+      lastReceivedDate: order.last_received_date ? new Date(order.last_received_date) : undefined,
+      actualDeliveryDate: order.actual_delivery_date ? new Date(order.actual_delivery_date) : undefined,
+      supplierReference: order.supplier_reference,
+      internalNotes: order.internal_notes,
+      attachments: order.attachments || []
+    };
   }
 
   /**

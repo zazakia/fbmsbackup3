@@ -42,10 +42,10 @@ const PayrollManagement: React.FC = () => {
     setEditingEmployee(undefined);
   };
 
-  const totalEmployees = employees.length;
-  const activeEmployees = employees.filter(emp => emp.status === 'Active').length;
-  const totalPayroll = employees.reduce((sum, emp) => {
-    const allowances = emp.allowances.reduce((a, b) => a + b.amount, 0);
+  const totalEmployees = (employees || []).length;
+  const activeEmployees = (employees || []).filter(emp => emp.status === 'Active').length;
+  const totalPayroll = (employees || []).reduce((sum, emp) => {
+    const allowances = (emp.allowances || []).reduce((a, b) => a + b.amount, 0);
     return sum + emp.basicSalary + allowances;
   }, 0);
 
@@ -395,11 +395,11 @@ const PayrollManagement: React.FC = () => {
                 </div>
 
                 {/* Allowances */}
-                {viewingEmployee.allowances.length > 0 && (
+                {(viewingEmployee.allowances || []).length > 0 && (
                   <div>
                     <h3 className="text-lg font-semibold text-gray-800 mb-3">Allowances</h3>
                     <div className="space-y-2">
-                      {viewingEmployee.allowances.map((allowance) => (
+                      {(viewingEmployee.allowances || []).map((allowance) => (
                         <div key={allowance.id} className="flex justify-between items-center p-3 bg-gray-50 rounded">
                           <div>
                             <span className="font-medium">{allowance.name}</span>

@@ -56,6 +56,7 @@ import UserDebugInfo from './components/auth/UserDebugInfo';
 import UserOnboardingTour from './components/help/UserOnboardingTour';
 import { ErrorReporter } from './components/ErrorReporter';
 import { errorMonitor } from './utils/errorMonitor';
+import { resourceRetryService } from './services/ResourceRetryService';
 import { 
   LazyUserRoleManagement, 
   LazySupplierManagement, 

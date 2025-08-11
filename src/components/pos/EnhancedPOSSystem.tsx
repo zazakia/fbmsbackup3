@@ -247,12 +247,12 @@ const EnhancedPOSSystem: React.FC = () => {
     const product = products.find((p: any) => p.barcode === barcode || p.sku === barcode);
     if (product && product.isActive) {
       // addToCart in store returns void; perform validation locally before calling it
-      const validation = validateProductStock(product.id, 1, {
+      const validation = validateProductStock ? validateProductStock(product.id, 1, {
         preventNegative: true,
         validateBeforeUpdate: true
-      } as any);
+      } as any) : { isValid: true, warnings: [], errors: [] };
 
-      if ((validation as any)?.isValid) {
+      if (validation?.isValid) {
         addToCart(product, 1);
         playSound('beep');
         addToast({
@@ -348,17 +348,17 @@ const EnhancedPOSSystem: React.FC = () => {
     const existingItem = (cart as any[]).find((item: any) => item.product.id === product.id);
     if (existingItem) {
       // Validate before updating cart item
-      const validation = validateProductStock(product.id, existingItem.quantity + 1, {
+      const validation = validateProductStock ? validateProductStock(product.id, existingItem.quantity + 1, {
         preventNegative: true,
         validateBeforeUpdate: true
-      });
+      }) : { isValid: true, warnings: [], errors: [] };
       
-      if (validation.isValid) {
+      if (validation?.isValid) {
         updateCartItem(product.id, existingItem.quantity + 1);
         playSound('beep');
         
         // Show warnings if any
-        (validation as any).warnings.forEach((warning: any) => {
+        (validation?.warnings || []).forEach((warning: any) => {
           addToast({
             type: 'warning',
             title: 'Stock Warning',
@@ -371,15 +371,36 @@ const EnhancedPOSSystem: React.FC = () => {
         addToast({
           type: 'error',
           title: 'Cannot Add Product',
-          message: validation.errors[0]?.message || 'Stock validation failed'
+          message: (validation?.errors?.[0])?.message || 'Stock validation failed'
         });
       }
     } else {
-      const validation = addToCart(product, 1);
-      if (validation.isValid) {
+      // Validate before adding to cart
+      const validation = validateProductStock ? validateProductStock(product.id, 1, {
+        preventNegative: true,
+        validateBeforeUpdate: true
+      }) : { isValid: true, warnings: [], errors: [] };
+      
+      if (validation?.isValid) {
+        addToCart(product, 1);
         playSound('beep');
+        
+        // Show warnings if any
+        (validation?.warnings || []).forEach((warning: any) => {
+          addToast({
+            type: 'warning',
+            title: 'Stock Warning',
+            message: warning.message,
+            duration: 4000
+          });
+        });
       } else {
         playSound('error');
+        addToast({
+          type: 'error',
+          title: 'Cannot Add Product',
+          message: validation?.errors?.[0]?.message || 'Stock validation failed'
+        });
       }
     }
   };
@@ -395,16 +416,16 @@ const EnhancedPOSSystem: React.FC = () => {
     } else {
       const product = (products as any[]).find((p: any) => p.id === productId);
       if (product) {
-        const validation = validateProductStock(product.id, newQuantity, {
+        const validation = validateProductStock ? validateProductStock(product.id, newQuantity, {
           preventNegative: true,
           validateBeforeUpdate: true
-        });
+        }) : { isValid: true, warnings: [], errors: [] };
         
-        if ((validation as any)?.isValid) {
+        if (validation?.isValid) {
           updateCartItem(productId, newQuantity);
           
           // Show warnings if any
-          ((validation as any)?.warnings || []).forEach((warning: any) => {
+          (validation?.warnings || []).forEach((warning: any) => {
             if (warning?.message) {
               addToast({
                 type: 'warning',

@@ -74,7 +74,7 @@ const ManagerOperations: React.FC = () => {
 
   const generateMockData = () => {
     // Generate staff schedules
-    const schedules: StaffSchedule[] = employees.slice(0, 6).map((emp, index) => ({
+    const schedules: StaffSchedule[] = (employees || []).slice(0, 6).map((emp, index) => ({
       id: `schedule-${emp.id}-${selectedDate.toISOString()}`,
       employeeId: emp.id,
       employeeName: `${emp.firstName} ${emp.lastName}`,
@@ -131,7 +131,7 @@ const ManagerOperations: React.FC = () => {
       totalStaff: schedules.length,
       customerCount,
       avgTransactionValue: avgTransaction,
-      topProducts: products.slice(0, 5).map(product => ({
+      topProducts: (products || []).slice(0, 5).map(product => ({
         name: product.name,
         quantity: Math.floor(Math.random() * 20) + 1,
         revenue: Math.floor(Math.random() * 10000) + 1000

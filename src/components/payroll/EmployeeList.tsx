@@ -18,7 +18,7 @@ const EmployeeList: React.FC<EmployeeListProps> = ({ onEdit, onDelete, onViewDet
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
   const filteredEmployees = useMemo(() => {
-    const filtered = employees.filter(employee => {
+    const filtered = (employees || []).filter(employee => {
       const matchesSearch = 
         employee.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         employee.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -83,12 +83,12 @@ const EmployeeList: React.FC<EmployeeListProps> = ({ onEdit, onDelete, onViewDet
   };
 
   const departments = useMemo(() => {
-    const depts = new Set(employees.map(emp => emp.department));
+    const depts = new Set((employees || []).map(emp => emp.department));
     return Array.from(depts).sort();
   }, [employees]);
 
   const totalAllowances = (employee: Employee) => {
-    return employee.allowances.reduce((sum, allowance) => sum + allowance.amount, 0);
+    return (employee.allowances || []).reduce((sum, allowance) => sum + allowance.amount, 0);
   };
 
   return (
@@ -99,7 +99,7 @@ const EmployeeList: React.FC<EmployeeListProps> = ({ onEdit, onDelete, onViewDet
           <div>
             <h2 className="text-xl font-semibold text-gray-800">Employees</h2>
             <p className="text-sm text-gray-600">
-              {filteredEmployees.length} of {employees.length} employees
+              {filteredEmployees.length} of {(employees || []).length} employees
             </p>
           </div>
           
@@ -248,9 +248,9 @@ const EmployeeList: React.FC<EmployeeListProps> = ({ onEdit, onDelete, onViewDet
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                   ₱{totalAllowances(employee).toLocaleString()}
-                  {employee.allowances.length > 0 && (
+                  {(employee.allowances || []).length > 0 && (
                     <div className="text-xs text-gray-500">
-                      {employee.allowances.length} allowance{employee.allowances.length > 1 ? 's' : ''}
+                      {(employee.allowances || []).length} allowance{(employee.allowances || []).length > 1 ? 's' : ''}
                     </div>
                   )}
                 </td>

@@ -227,6 +227,33 @@ const SupplierManagement: React.FC = () => {
     }
 
     try {
+      // First check if supplier has any purchase orders
+      const { data: purchaseOrders, error: checkError } = await supabase
+        .from('purchase_orders')
+        .select('id')
+        .eq('supplier_id', supplierId)
+        .limit(1);
+
+      if (checkError) {
+        console.error('Error checking purchase orders:', checkError);
+        addToast({
+          type: 'error',
+          title: 'Error',
+          message: 'Failed to check supplier dependencies'
+        });
+        return;
+      }
+
+      if (purchaseOrders && purchaseOrders.length > 0) {
+        addToast({
+          type: 'error',
+          title: 'Cannot Delete Supplier',
+          message: 'This supplier has existing purchase orders and cannot be deleted. Consider setting the status to inactive instead.'
+        });
+        return;
+      }
+
+      // Proceed with deletion if no purchase orders exist
       const { error } = await supabase
         .from('suppliers')
         .delete()
@@ -234,11 +261,19 @@ const SupplierManagement: React.FC = () => {
 
       if (error) {
         console.error('Error deleting supplier:', error);
-        addToast({
-          type: 'error',
-          title: 'Error',
-          message: 'Failed to delete supplier'
-        });
+        if (error.code === '23503') {
+          addToast({
+            type: 'error',
+            title: 'Cannot Delete Supplier',
+            message: 'This supplier is referenced by existing records and cannot be deleted. Consider setting the status to inactive instead.'
+          });
+        } else {
+          addToast({
+            type: 'error',
+            title: 'Error',
+            message: 'Failed to delete supplier'
+          });
+        }
         return;
       }
 

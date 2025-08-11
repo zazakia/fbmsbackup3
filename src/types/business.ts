@@ -164,6 +164,9 @@ export interface PurchaseOrder {
   receivedDate?: Date;
   createdBy?: string; // Optional to handle cases where user is not authenticated
   createdAt: Date;
+  // Enhanced approval fields
+  approved_by?: string;
+  approved_at?: string;
 }
 
 export interface PurchaseOrderItem {

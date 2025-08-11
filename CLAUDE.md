@@ -269,3 +269,5 @@ These documents provide specific guidance for working with this codebase:
 - `.claude/steering/product.md`: Product purpose, features, and business rules
 - `.claude/steering/tech.md`: Tech stack, build system, and development commands
 - `.claude/steering/structure.md`: Project organization and key file locations
+
+- always reference supabase schema.md for database details and structure to understand tables and fields uses

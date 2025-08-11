@@ -103,6 +103,18 @@ export async function getExpenseCategory(id: string) {
 
 // UPDATE expense category
 export async function updateExpenseCategory(id: string, updates: Partial<Omit<ExpenseCategory, 'id' | 'createdAt'>>) {
+  // Validate UUID format
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!uuidRegex.test(id)) {
+    return { 
+      data: null,
+      error: { 
+        message: `Invalid UUID format for expense category ID: "${id}". Expected format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`,
+        code: 'INVALID_UUID'
+      } 
+    };
+  }
+
   const updateData: Partial<{ name: string; description: string; bir_classification: string; is_active: boolean }> = {};
   
   if (updates.name) updateData.name = updates.name;
@@ -143,6 +155,17 @@ export async function updateExpenseCategory(id: string, updates: Partial<Omit<Ex
 
 // DELETE expense category
 export async function deleteExpenseCategory(id: string) {
+  // Validate UUID format
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!uuidRegex.test(id)) {
+    return { 
+      error: { 
+        message: `Invalid UUID format for expense category ID: "${id}". Expected format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`,
+        code: 'INVALID_UUID'
+      } 
+    };
+  }
+
   const { error } = await supabase
     .from('expense_categories')
     .delete()
