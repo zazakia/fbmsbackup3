@@ -1,4 +1,4 @@
-import React, { memo, useState } from 'react';
+import React, { memo, useMemo, useState } from 'react';
 import { X, BarChart3, LogOut, User, AlertTriangle, HelpCircle } from 'lucide-react';
 import { useSupabaseAuthStore } from '../store/supabaseAuthStore';
 import HelpMenu from './help/HelpMenu';
@@ -27,6 +27,7 @@ const Sidebar: React.FC<SidebarProps> = memo(({
   const { user, logout } = useSupabaseAuthStore();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [showHelpMenu, setShowHelpMenu] = useState(false);
+  const [isDataOpen, setIsDataOpen] = useState(true);
 
   const handleLogout = async () => {
     try {
@@ -62,7 +63,7 @@ const Sidebar: React.FC<SidebarProps> = memo(({
         
         {/* Scrollable Navigation */}
         <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto min-h-0 scrollbar-thin scrollbar-track-gray-100 scrollbar-thumb-gray-300 dark:scrollbar-track-dark-700 dark:scrollbar-thumb-dark-500">
-          {menuItems.map((item) => {
+          {menuItems.filter(mi => mi.id !== 'product-categories').map((item) => {
             const Icon = item.icon;
             return (
               <button
@@ -81,6 +82,42 @@ const Sidebar: React.FC<SidebarProps> = memo(({
               </button>
             );
           })}
+
+          {/* Data group */}
+          {menuItems.some(mi => mi.id === 'product-categories') && (
+            <div className="mt-2">
+              <button
+                onClick={() => setIsDataOpen(!isDataOpen)}
+                className="w-full flex items-center justify-between px-3 py-2 text-xs font-semibold tracking-wide text-gray-600 dark:text-gray-300 uppercase"
+              >
+                <span>Data</span>
+                <svg className={`h-4 w-4 transition-transform ${isDataOpen ? 'rotate-180' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+              </button>
+              {isDataOpen && (
+                <div className="pl-2 space-y-1">
+                  {menuItems.filter(mi => mi.id === 'product-categories').map((item) => {
+                    const Icon = item.icon;
+                    return (
+                      <button
+                        key={item.id}
+                        onClick={() => onModuleChange(item.id)}
+                        className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-left transition-all duration-200 ${
+                          activeModule === item.id
+                            ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300 border-r-4 border-primary-600 dark:border-primary-400'
+                            : 'text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-dark-700 hover:text-gray-900 dark:hover:text-gray-100'
+                        }`}
+                      >
+                        <Icon className={`h-4 w-4 flex-shrink-0 ${
+                          activeModule === item.id ? 'text-primary-700 dark:text-primary-300' : 'text-gray-400 dark:text-gray-500'
+                        }`} />
+                        <span className="text-sm">{item.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
         </nav>
         
         {/* Fixed Footer */}

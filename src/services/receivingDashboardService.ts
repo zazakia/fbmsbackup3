@@ -89,13 +89,14 @@ class ReceivingDashboardService {
       console.log('Fetching receiving queue...');
       
       // Get purchase orders that can be received
+      // Use enhanced_status directly instead of legacy status mapping
       const { data: orders, error } = await supabase
         .from('purchase_orders')
         .select(`
           *,
           items:purchase_order_items(*)
         `)
-        .in('status', ['approved', 'sent', 'partial'])
+        .in('enhanced_status', ['approved', 'sent_to_supplier', 'partially_received'])
         .order('expected_date', { ascending: true, nullsFirst: false });
 
       if (error) {
@@ -127,7 +128,7 @@ class ReceivingDashboardService {
           subtotal: order.subtotal || 0,
           tax: order.tax || 0,
           total: order.total || 0,
-          status: this.mapLegacyStatus(order.status),
+          status: order.enhanced_status as EnhancedPurchaseOrderStatus,
           expectedDate: order.expected_date ? new Date(order.expected_date) : undefined,
           expectedDeliveryDate: order.expected_date ? new Date(order.expected_date) : undefined,
           receivedDate: order.received_date ? new Date(order.received_date) : undefined,
@@ -339,10 +340,11 @@ class ReceivingDashboardService {
     try {
       console.log('Fetching overdue alerts...');
       
+      // Use enhanced_status directly instead of legacy status mapping
       const { data: orders, error } = await supabase
         .from('purchase_orders')
         .select('*')
-        .in('status', ['approved', 'sent', 'partial'])
+        .in('enhanced_status', ['approved', 'sent_to_supplier', 'partially_received'])
         .order('expected_date', { ascending: true });
 
       if (error) {
@@ -404,9 +406,11 @@ class ReceivingDashboardService {
   }
 
   /**
-   * Map legacy status to enhanced status
+   * Map legacy status to enhanced status - DEPRECATED, use enhanced_status directly
+   * @deprecated Use enhanced_status field directly instead of legacy status mapping
    */
   private mapLegacyStatus(status: string): string {
+    console.warn('mapLegacyStatus is deprecated. Use enhanced_status field directly.');
     const statusMap: Record<string, string> = {
       'draft': 'draft',
       'sent': 'sent_to_supplier',

@@ -1,9 +1,11 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { supabase, supabaseAnon } from '../utils/supabase';
-import { AuthState, User, LoginCredentials, RegisterData } from '../types/auth';
+import { AuthState, User, LoginCredentials, RegisterData, UserRole } from '../types/auth';
 
 interface SupabaseAuthStore extends AuthState {
+  // Derived/auth convenience field
+  userRole: UserRole | null;
   login: (credentials: LoginCredentials) => Promise<void>;
   register: (data: RegisterData) => Promise<void>;
   logout: () => Promise<void>;
@@ -29,6 +31,7 @@ export const useSupabaseAuthStore = create<SupabaseAuthStore>()(
   persist(
     (set, get) => ({
       user: null,
+      userRole: null,
       isAuthenticated: false,
       isLoading: false,
       error: null,
@@ -134,6 +137,7 @@ export const useSupabaseAuthStore = create<SupabaseAuthStore>()(
             
             set({
               user,
+              userRole: user.role,
               isAuthenticated: isEmailVerified,
               isLoading: false,
               error: null,
@@ -216,6 +220,7 @@ export const useSupabaseAuthStore = create<SupabaseAuthStore>()(
 
             set({
               user,
+              userRole: user.role,
               isAuthenticated: isEmailVerified,
               isLoading: false,
               error: null,
@@ -246,6 +251,7 @@ export const useSupabaseAuthStore = create<SupabaseAuthStore>()(
           // Clear all auth state
           set({
             user: null,
+            userRole: null,
             isAuthenticated: false,
             isLoading: false,
             error: null,
@@ -268,6 +274,7 @@ export const useSupabaseAuthStore = create<SupabaseAuthStore>()(
           // Force logout locally even if Supabase call fails
           set({
             user: null,
+            userRole: null,
             isAuthenticated: false,
             isLoading: false,
             error: null,
@@ -384,6 +391,7 @@ export const useSupabaseAuthStore = create<SupabaseAuthStore>()(
             
             set({
               user,
+              userRole: user.role,
               isAuthenticated: isEmailVerified,
               error: null,
               hasLoggedOut: false,
@@ -392,6 +400,7 @@ export const useSupabaseAuthStore = create<SupabaseAuthStore>()(
           } else {
             set({
               user: null,
+              userRole: null,
               isAuthenticated: false,
               error: null,
               hasLoggedOut: false
@@ -400,6 +409,7 @@ export const useSupabaseAuthStore = create<SupabaseAuthStore>()(
         } catch (error) {
           set({
             user: null,
+            userRole: null,
             isAuthenticated: false,
             error: error instanceof Error ? error.message : 'Authentication check failed',
             hasLoggedOut: false
@@ -647,6 +657,7 @@ export const useSupabaseAuthStore = create<SupabaseAuthStore>()(
       name: 'fbms-supabase-auth',
       partialize: (state) => ({
         user: state.user,
+        userRole: state.userRole,
         isAuthenticated: state.isAuthenticated,
         hasLoggedOut: state.hasLoggedOut,
         pendingEmailVerification: state.pendingEmailVerification,
@@ -667,6 +678,7 @@ supabaseAnon.auth.onAuthStateChange((event, session) => {
     store.clearError();
     useSupabaseAuthStore.setState({
       user: null,
+      userRole: null,
       isAuthenticated: false,
       isLoading: false,
       error: null,

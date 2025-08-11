@@ -149,7 +149,7 @@ export async function approvePurchaseOrderWithPermission(
     const result = await withApprovalPermission(
       purchaseOrder,
       () => updatePurchaseOrder(id, { 
-        status: 'approved' as PurchaseOrderStatus,
+        status: 'sent' as PurchaseOrderStatus, // Approved POs should be ready for receiving (map to 'sent')
         // Add approval notes if supported in future
       })
     );

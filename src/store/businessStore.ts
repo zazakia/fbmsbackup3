@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { Product, CartItem, Customer, PurchaseOrder, Expense, ExpenseCategory } from '../types/business';
+import { Product, CartItem, Customer, PurchaseOrder, Expense, ExpenseCategory, Category } from '../types/business';
 
 // Unified validation types used across Store and POS
 export type POSStockValidationError = {
@@ -21,7 +21,11 @@ import {
   updateProduct,
   deleteProduct,
   createStockMovement,
-  updateStock
+  updateStock,
+  createCategory as apiCreateCategory,
+  getCategories as apiGetCategories,
+  updateCategory as apiUpdateCategory,
+  deleteCategory as apiDeleteCategory
 } from '../api/products';
 import { BusinessService } from '../services/businessService';
 import { getSales } from '../api/sales';
@@ -42,7 +46,7 @@ export interface BusinessState {
   isLoading: boolean;
   error: string | null;
   // New derived state used by POS
-  categories: Array<{ id: string; name: string }>;
+  categories: Category[];
   // Expenses
   expenseCategories: ExpenseCategory[];
   // Purchasing
@@ -89,6 +93,12 @@ export interface BusinessActions {
   addExpenseCategory: (category: Omit<ExpenseCategory, 'id' | 'createdAt'>) => Promise<void>;
   updateExpenseCategory: (id: string, updates: Partial<Omit<ExpenseCategory, 'id' | 'createdAt'>>) => Promise<void>;
   deleteExpenseCategory: (id: string) => Promise<void>;
+
+  // Product category actions
+  fetchCategories: () => Promise<void>;
+  addCategory: (category: Omit<Category, 'id' | 'createdAt'>) => Promise<void>;
+  updateCategory: (id: string, updates: Partial<Omit<Category, 'id' | 'createdAt'>>) => Promise<void>;
+  deleteCategory: (id: string) => Promise<void>;
 
   // Purchasing actions expected by PurchaseOrderForm
   addPurchaseOrder: (po: Omit<PurchaseOrder, 'id' | 'createdAt'>) => void;
@@ -199,8 +209,7 @@ export const useBusinessStore = create<BusinessStore>()(
             return {
               products,
               isLoading: false,
-              error: null,
-              categories: deriveCategories(products)
+              error: null
             };
           });
         } catch (error) {
@@ -230,8 +239,7 @@ export const useBusinessStore = create<BusinessStore>()(
             return {
               products,
               isLoading: false,
-              error: null,
-              categories: deriveCategories(products)
+              error: null
             };
           });
         } catch (error) {
@@ -259,8 +267,7 @@ export const useBusinessStore = create<BusinessStore>()(
             return {
               products,
               isLoading: false,
-              error: null,
-              categories: deriveCategories(products)
+              error: null
             };
           });
         } catch (error) {
@@ -510,7 +517,7 @@ export const useBusinessStore = create<BusinessStore>()(
                 }
                 return p;
               });
-              return { products, categories: deriveCategories(products) };
+              return { products } as Partial<BusinessState>;
             });
             try { console.info('[Store][createSale] stock deducted (UI updated)', { productId, qty }); } catch {}
           }
@@ -612,6 +619,51 @@ export const useBusinessStore = create<BusinessStore>()(
         } catch (e) {
           console.error('deleteExpenseCategory failed:', e);
         }
+      },
+
+      // Product category actions
+      fetchCategories: async () => {
+        try {
+          const { data, error } = await apiGetCategories();
+          if (error) throw error;
+          set({ categories: Array.isArray(data) ? (data as Category[]) : [] });
+        } catch (e) {
+          console.error('fetchCategories failed:', e);
+        }
+      },
+
+      addCategory: async (category) => {
+        try {
+          const { data, error } = await apiCreateCategory(category);
+          if (error || !data) throw (error as any) || new Error('Failed to create category');
+          set((state) => ({ categories: [data as Category, ...state.categories] }));
+        } catch (e) {
+          console.error('addCategory failed:', e);
+        }
+      },
+
+      updateCategory: async (id, updates) => {
+        try {
+          const { data, error } = await apiUpdateCategory(id, updates);
+          if (error || !data) throw (error as any) || new Error('Failed to update category');
+          set((state) => ({
+            categories: state.categories.map((c) => (c.id === id ? (data as Category) : c))
+          }));
+        } catch (e) {
+          console.error('updateCategory failed:', e);
+        }
+      },
+
+      deleteCategory: async (id) => {
+        try {
+          const { error } = await apiDeleteCategory(id);
+          if (error) throw error;
+          set((state) => ({
+            categories: state.categories.filter((c) => c.id !== id)
+          }));
+        } catch (e) {
+          console.error('deleteCategory failed:', e);
+        }
       }
     }),
     {
@@ -620,7 +672,8 @@ export const useBusinessStore = create<BusinessStore>()(
         products: state.products,
         purchaseOrders: state.purchaseOrders,
         expenses: state.expenses,
-        expenseCategories: state.expenseCategories
+        expenseCategories: state.expenseCategories,
+        categories: state.categories
       })
     }
   )

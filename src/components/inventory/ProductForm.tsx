@@ -8,7 +8,7 @@ interface ProductFormProps {
 }
 
 const ProductForm: React.FC<ProductFormProps> = ({ productId, onClose }) => {
-  const { products, categories, addProduct, updateProduct, getProduct } = useBusinessStore();
+  const { products, categories, addProduct, updateProduct, getProduct, fetchCategories } = useBusinessStore();
   
   const [formData, setFormData] = useState({
     name: '',
@@ -42,6 +42,12 @@ const ProductForm: React.FC<ProductFormProps> = ({ productId, onClose }) => {
           unit: product.unit
         });
       }
+    }
+    // Ensure categories are loaded for dropdown
+    if (!categories || categories.length === 0) {
+      (async () => {
+        try { await fetchCategories(); } catch {}
+      })();
     }
   }, [productId, getProduct]);
 
@@ -233,7 +239,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ productId, onClose }) => {
                 }`}
               >
                 <option value="">Select category</option>
-                {categories.filter(c => c.isActive).map(category => (
+                {(categories || []).filter((c: any) => (c as any).isActive !== false).map((category: any) => (
                   <option key={category.id} value={category.id}>
                     {category.name}
                   </option>

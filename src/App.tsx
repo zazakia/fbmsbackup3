@@ -82,6 +82,7 @@ import {
   LazySalesHistory,
   LazyProductHistory
 } from './utils/lazyComponents';
+import { LazyProductCategories } from './utils/lazyComponents';
 
 const App: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -194,6 +195,7 @@ const App: React.FC = () => {
       { id: 'sales', label: 'Sales & POS', icon: ShoppingCart, module: 'pos' },
       { id: 'sales-history', label: 'Sales History', icon: Receipt, module: 'pos' },
       { id: 'inventory', label: 'Inventory', icon: Package, module: 'inventory' },
+      { id: 'product-categories', label: 'Product Categories', icon: Package, module: 'inventory' },
       { id: 'product-history', label: 'Product History', icon: History, module: 'inventory' },
       { id: 'purchases', label: 'Purchases', icon: Receipt, module: 'purchases' },
       { id: 'customers', label: 'Customers', icon: Users, module: 'customers' },
@@ -290,6 +292,12 @@ const App: React.FC = () => {
           return (
             <PermissionGuard module="inventory">
               <LazyEnhancedInventoryManagement />
+            </PermissionGuard>
+          );
+        case 'product-categories':
+          return (
+            <PermissionGuard module="inventory">
+              <LazyProductCategories />
             </PermissionGuard>
           );
         case 'product-history':

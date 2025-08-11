@@ -150,7 +150,7 @@ export const PurchaseOrderActionButtons: React.FC<PurchaseOrderActionButtonsProp
     const handleClick = () => {
       if (!isDisabled) {
         onClick();
-      } else if (!canPerform.allowed) {
+      } else if (!canPerform.allowed && userRole) {
         // Show permission denied message
         const message = getPurchaseOrderPermissionDeniedMessage(
           userRole as UserRole,
@@ -183,7 +183,7 @@ export const PurchaseOrderActionButtons: React.FC<PurchaseOrderActionButtonsProp
         </button>
         
         {/* Permission tooltip */}
-        {showPermissionTooltip === getPurchaseOrderPermissionDeniedMessage(userRole as UserRole, action, purchaseOrder) && (
+        {userRole && showPermissionTooltip === getPurchaseOrderPermissionDeniedMessage(userRole as UserRole, action, purchaseOrder) && (
           <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 text-sm text-white bg-red-600 rounded-md shadow-lg z-10 max-w-xs">
             <div className="flex items-start gap-2">
               <AlertTriangle className="h-4 w-4 flex-shrink-0 mt-0.5" />
@@ -365,7 +365,7 @@ export const PurchaseOrderActionButtons: React.FC<PurchaseOrderActionButtonsProp
           />
         )}
         
-        {(availableTransitions.includes('partially_received') || availableTransitions.includes('fully_received')) && actions.canReceive && (
+        {(availableTransitions.includes('partially_received') || availableTransitions.includes('fully_received') || availableTransitions.includes('sent_to_supplier')) && actions.canReceive && (
           <PermissionAwareButton
             action="receive"
             onClick={() => handleStatusTransition('partially_received')}

@@ -22,12 +22,16 @@ import {
   Calculator,
   Building2,
   Settings,
-  CheckSquare,
-  InboxIcon
+  CheckSquare
 } from 'lucide-react';
 import { useBusinessStore } from '../../store/businessStore';
 import { useToastStore } from '../../store/toastStore';
 import { Supplier, PurchaseOrder } from '../../types/business';
+import { 
+  getPurchaseOrders,
+  getSuppliers,
+  getPendingReceipts
+} from '../../api/purchases';
 import { formatCurrency, formatDate } from '../../utils/formatters';
 
 interface PurchaseStats {
@@ -75,20 +79,12 @@ const EnhancedPurchaseManagement: React.FC = () => {
   const [analytics, setAnalytics] = useState<PurchaseAnalytics | null>(null);
   const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
-  const [reorderSuggestions, setReorderSuggestions] = useState<Array<{
-    productId: string;
-    productName: string;
-    currentStock: number;
-    reorderPoint: number;
-    suggestedQuantity: number;
-    preferredSupplier?: Supplier;
-    estimatedCost: number;
-  }>>([]);
+  // Reorder suggestions are calculated ad-hoc for notifications only for now
 
 
-  // Initialize mock data
+  // Load data from API
   useEffect(() => {
-    initializeMockData();
+    loadData();
     generateReorderSuggestions();
   }, []);
 
@@ -100,7 +96,7 @@ const EnhancedPurchaseManagement: React.FC = () => {
       .filter(product => product.isActive && product.stock <= product.minStock)
       .map(product => {
         const suggestedQuantity = Math.max(product.minStock * 2 - product.stock, product.minStock);
-        const preferredSupplier = suppliers.find(s => s.name.includes('Metro')); // Mock preferred supplier logic
+        const preferredSupplier = undefined;
         const estimatedCost = product.cost * suggestedQuantity;
 
         return {
@@ -114,8 +110,6 @@ const EnhancedPurchaseManagement: React.FC = () => {
         };
       });
 
-    setReorderSuggestions(suggestions);
-
     if (suggestions.length > 0) {
       addToast({
         type: 'info',
@@ -125,24 +119,24 @@ const EnhancedPurchaseManagement: React.FC = () => {
     }
   };
 
-  const handleCreateReorderPO = (suggestion: typeof reorderSuggestions[0]) => {
-    // This would create a new purchase order with the suggested items
-    addToast({
-      type: 'success',
-      title: 'Purchase Order Created',
-      message: `PO created for ${suggestion.productName}`
-    });
-  };
+  // Reserved for future: creating a PO from a reorder suggestion
+  // const handleCreateReorderPO = (suggestion: typeof reorderSuggestions[0]) => {
+  //   addToast({
+  //     type: 'success',
+  //     title: 'Purchase Order Created',
+  //     message: `PO created for ${suggestion.productName}`
+  //   });
+  // };
 
   // Workflow handlers
-  const handlePOApproval = (po: PurchaseOrder, reason?: string) => {
+  const handlePOApproval = (po: PurchaseOrder) => {
     addToast({
       type: 'success',
       title: 'Purchase Order Approved',
       message: `PO ${po.poNumber} has been approved`
     });
     // Refresh data
-    initializeMockData();
+    loadData();
   };
 
   const handlePOReject = (po: PurchaseOrder, reason: string) => {
@@ -152,7 +146,7 @@ const EnhancedPurchaseManagement: React.FC = () => {
       message: `PO ${po.poNumber} has been rejected: ${reason}`
     });
     // Refresh data
-    initializeMockData();
+    loadData();
   };
 
   const handleReceiveItems = (po: PurchaseOrder) => {
@@ -169,10 +163,10 @@ const EnhancedPurchaseManagement: React.FC = () => {
     setShowReceivingInterface(false);
     setSelectedPOForReceiving(null);
     // Refresh data
-    initializeMockData();
+    loadData();
   };
 
-  const handleWorkflowConfigChange = (config: any) => {
+  const handleWorkflowConfigChange = (_config: any) => {
     addToast({
       type: 'success',
       title: 'Workflow Configuration Updated',
@@ -180,149 +174,102 @@ const EnhancedPurchaseManagement: React.FC = () => {
     });
   };
 
-  const initializeMockData = () => {
-    // Mock suppliers
-    const mockSuppliers: Supplier[] = [
-      {
-        id: 'sup-1',
-        name: 'Metro Supply Corp',
-        contactPerson: 'Juan Dela Cruz',
-        email: 'juan@metrosupply.com',
-        phone: '+63-2-8123-4567',
-        address: '123 Industrial Ave, Pasig City',
-        isActive: true,
-        createdAt: new Date('2023-01-15')
-      },
-      {
-        id: 'sup-2',
-        name: 'Global Trading Inc',
-        contactPerson: 'Maria Santos',
-        email: 'maria@globaltrading.ph',
-        phone: '+63-2-8987-6543',
-        address: '456 Commerce St, Makati City',
-        isActive: true,
-        createdAt: new Date('2023-03-20')
-      },
-      {
-        id: 'sup-3',
-        name: 'Prime Distribution',
-        contactPerson: 'Roberto Garcia',
-        email: 'roberto@primedist.com',
-        phone: '+63-2-8555-1234',
-        address: '789 Warehouse Blvd, Quezon City',
-        isActive: true,
-        createdAt: new Date('2023-02-10')
-      }
-    ];
+  const loadData = async () => {
+    try {
+      const [ordersRes, suppliersRes, pendingRes] = await Promise.all([
+        getPurchaseOrders(200),
+        getSuppliers(),
+        getPendingReceipts(),
+      ]);
 
-    // Mock purchase orders
-    const mockOrders: PurchaseOrder[] = [
-      {
-        id: 'po-1',
-        poNumber: 'PO-2024-001',
-        supplierId: 'sup-1',
-        supplierName: 'Metro Supply Corp',
-        status: 'received',
-        items: [
-          {
-            id: 'poi-1',
-            productId: 'prod-1',
-            productName: 'Office Chair',
-            sku: 'OFC-001',
-            quantity: 10,
-            cost: 2500,
-            total: 25000,
-          }
-        ],
-        subtotal: 25000,
-        tax: 3000,
-        total: 28000,
-        createdBy: 'admin',
-        createdAt: new Date('2024-06-15')
-      },
-      {
-        id: 'po-2',
-        poNumber: 'PO-2024-002',
-        supplierId: 'sup-2',
-        supplierName: 'Global Trading Inc',
-        status: 'sent',
-        items: [
-          {
-            id: 'poi-2',
-            productId: 'prod-2',
-            productName: 'Laptop Computer',
-            sku: 'LAP-001',
-            quantity: 5,
-            cost: 45000,
-            total: 225000
-          }
-        ],
-        subtotal: 225000,
-        tax: 27000,
-        total: 252000,
-        createdBy: 'admin',
-        createdAt: new Date('2024-06-20')
-      }
-    ];
+      const orders = ordersRes.data || [];
+      const supplierList = suppliersRes.data || [];
+      setPurchaseOrders(orders);
+      setSuppliers(supplierList);
 
-    setSuppliers(mockSuppliers);
-    setPurchaseOrders(mockOrders);
+      // Stats
+      const totalPurchases = orders.length;
+      const totalValue = orders.reduce((sum, o) => sum + o.total, 0);
+      const pendingOrders = orders.filter(o => o.status === 'sent' || o.status === 'draft').length;
+      const now = new Date();
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const receivedThisMonth = orders.filter(o => o.status === 'received' && o.receivedDate && new Date(o.receivedDate) >= startOfMonth).length;
+      const averageOrderValue = totalPurchases > 0 ? totalValue / totalPurchases : 0;
 
-    // Calculate stats
-    const totalPurchases = mockOrders.length;
-    const totalValue = mockOrders.reduce((sum, order) => sum + order.total, 0);
-    const pendingOrders = mockOrders.filter(order => order.status === 'sent').length;
-    const receivedThisMonth = mockOrders.filter(order => 
-      order.status === 'received'
-    ).length;
-    
-    // Update workflow counters
-    setPendingApprovalsCount(mockOrders.filter(order => 
-      ['draft', 'pending'].includes(order.status)
-    ).length);
-    setItemsToReceiveCount(mockOrders.filter(order => 
-      order.status === 'sent'
-    ).length);
+      // On-time delivery rate
+      const receivedWithDates = orders.filter(o => o.status === 'received' && o.receivedDate && o.expectedDate);
+      const onTimeCount = receivedWithDates.filter(o => new Date(o.receivedDate!) <= new Date(o.expectedDate!)).length;
+      const onTimeDeliveryRate = receivedWithDates.length > 0 ? Math.round((onTimeCount / receivedWithDates.length) * 1000) / 10 : 0;
+
+      // Monthly trend: compare current month value vs previous month
+      const prevStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const prevEnd = new Date(now.getFullYear(), now.getMonth(), 0);
+      const currentMonthValue = orders.filter(o => new Date(o.createdAt) >= startOfMonth && o.status !== 'cancelled').reduce((s, o) => s + o.total, 0);
+      const prevMonthValue = orders.filter(o => new Date(o.createdAt) >= prevStart && new Date(o.createdAt) <= prevEnd && o.status !== 'cancelled').reduce((s, o) => s + o.total, 0);
+      const monthlyTrend = prevMonthValue > 0 ? ((currentMonthValue - prevMonthValue) / prevMonthValue) * 100 : 0;
+
+      // Top suppliers by total value
+      const supplierTotals = new Map<string, number>();
+      orders.forEach(o => {
+        supplierTotals.set(o.supplierId, (supplierTotals.get(o.supplierId) || 0) + o.total);
+      });
+      const topSupplierIds = Array.from(supplierTotals.entries()).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([id]) => id);
+      const topSuppliers = supplierList.filter(s => topSupplierIds.includes(s.id));
 
     setStats({
       totalPurchases,
       totalValue,
       pendingOrders,
       receivedThisMonth,
-      topSuppliers: mockSuppliers.slice(0, 3),
-      averageOrderValue: totalValue / totalPurchases,
-      onTimeDeliveryRate: 85.5,
-      monthlyTrend: 12.5
-    });
+        topSuppliers,
+        averageOrderValue,
+        onTimeDeliveryRate,
+        monthlyTrend,
+      });
 
-    // Mock analytics
+      // Counters
+      setPendingApprovalsCount(orders.filter(o => ['draft', 'pending'].includes(o.status as any)).length);
+      setItemsToReceiveCount((pendingRes.data || []).length || orders.filter(o => ['sent', 'partial', 'approved'].includes(o.status as any)).length);
+
+      // Minimal analytics (non-mock)
+      const categoryMap = new Map<string, number>();
+      orders.forEach(o => {
+        if (o.status !== 'cancelled') {
+          const key = o.supplierName || 'Unknown';
+          categoryMap.set(key, (categoryMap.get(key) || 0) + o.total);
+        }
+      });
+      const totalAnalyticsValue = Array.from(categoryMap.values()).reduce((s, v) => s + v, 0);
+      const categorySpending = Array.from(categoryMap.entries())
+        .map(([category, amount]) => ({ category, amount, percentage: totalAnalyticsValue > 0 ? (amount / totalAnalyticsValue) * 100 : 0 }))
+        .sort((a, b) => b.amount - a.amount)
+        .slice(0, 10);
+
+      const seasonalTrends = Array.from({ length: 6 }).map((_, idx) => {
+        const monthDate = new Date(now.getFullYear(), now.getMonth() - (5 - idx), 1);
+        const nextMonth = new Date(now.getFullYear(), now.getMonth() - (5 - idx) + 1, 1);
+        const monthOrders = orders.filter(o => new Date(o.createdAt) >= monthDate && new Date(o.createdAt) < nextMonth && o.status !== 'cancelled');
+        const amount = monthOrders.reduce((s, o) => s + o.total, 0);
+        return { month: monthDate.toLocaleString('en-US', { month: 'short' }), amount, orders: monthOrders.length };
+      });
+
+      const totalUnits = orders.flatMap(o => o.items || []).reduce((s, i) => s + (Number(i.quantity) || 0), 0);
+      const totalCost = totalValue;
+      const averageCostPerUnit = totalUnits > 0 ? totalCost / totalUnits : 0;
+
     setAnalytics({
-      categorySpending: [
-        { category: 'Office Supplies', amount: 125000, percentage: 35 },
-        { category: 'IT Equipment', amount: 180000, percentage: 50 },
-        { category: 'Furniture', amount: 55000, percentage: 15 }
-      ],
-      supplierPerformance: mockSuppliers.map(supplier => ({
-        supplier,
-        totalOrders: Math.floor(Math.random() * 20) + 5,
-        totalValue: Math.floor(Math.random() * 300000) + 100000,
-        onTimeDelivery: Math.floor(Math.random() * 20) + 80,
-        averageDeliveryDays: Math.floor(Math.random() * 10) + 5
-      })),
-      seasonalTrends: [
-        { month: 'Jan', amount: 45000, orders: 8 },
-        { month: 'Feb', amount: 52000, orders: 12 },
-        { month: 'Mar', amount: 48000, orders: 10 },
-        { month: 'Apr', amount: 61000, orders: 15 },
-        { month: 'May', amount: 58000, orders: 13 },
-        { month: 'Jun', amount: 72000, orders: 18 }
-      ],
+        categorySpending,
+        supplierPerformance: [],
+        seasonalTrends,
       costAnalysis: {
-        totalCost: 280000,
-        averageCostPerUnit: 1250,
-        savingsOpportunities: 15000
-      }
-    });
+          totalCost,
+          averageCostPerUnit,
+          savingsOpportunities: 0,
+        },
+      });
+    } catch (err) {
+      console.error('Failed to load purchases data:', err);
+    }
   };
 
   const filteredOrders = purchaseOrders.filter(order => {

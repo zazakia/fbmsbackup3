@@ -473,7 +473,7 @@ class ApprovalWorkflowService {
     const statusMap: Record<EnhancedPurchaseOrderStatus, string> = {
       'draft': 'draft',
       'pending_approval': 'pending',
-      'approved': 'approved',
+      'approved': 'sent', // Approved POs should be ready for receiving (map to 'sent')
       'sent_to_supplier': 'sent',
       'partially_received': 'partial',
       'fully_received': 'received',

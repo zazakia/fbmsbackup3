@@ -22,7 +22,7 @@ export const ReceivingInterface: React.FC<ReceivingInterfaceProps> = ({
   purchaseOrder,
   onReceiptComplete,
   onClose,
-  existingReceipts = []
+  existingReceipts
 }) => {
   const { user } = useSupabaseAuthStore();
   const [receivingService] = useState(() => new ReceivingService());
@@ -36,7 +36,8 @@ export const ReceivingInterface: React.FC<ReceivingInterfaceProps> = ({
   
   // Calculate previously received quantities
   const calculatePreviouslyReceived = (productId: string): number => {
-    return existingReceipts.reduce((total, receipt) => {
+    const receipts = existingReceipts ?? [];
+    return receipts.reduce((total, receipt) => {
       const item = receipt.items.find(item => item.productId === productId);
       return total + (item?.receivedQuantity || 0);
     }, 0);

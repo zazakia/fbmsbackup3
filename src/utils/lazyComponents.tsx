@@ -81,6 +81,18 @@ const MODULE_CONFIGS: Record<string, ModuleConfig> = {
     priority: 'high',
     estimatedSize: 300000 // 300KB
   },
+  productCategories: {
+    id: 'product-categories',
+    name: 'Product Categories',
+    component: 'CategoryManager',
+    path: '/product-categories',
+    requiredPermissions: ['inventory'],
+    requiredRole: 'employee',
+    timeout: 3000,
+    retryable: true,
+    priority: 'medium',
+    estimatedSize: 120000
+  },
   
   purchases: {
     id: 'purchases',
@@ -202,6 +214,12 @@ export const LazyEnhancedPOSSystem = createEnhancedLazyComponent(
 export const LazyEnhancedInventoryManagement = createEnhancedLazyComponent(
   MODULE_CONFIGS.inventory,
   () => import('../components/inventory/EnhancedInventoryManagement')
+);
+
+// Product Categories
+export const LazyProductCategories = createEnhancedLazyComponent(
+  MODULE_CONFIGS.productCategories,
+  () => import('../components/inventory/CategoryManager')
 );
 
 export const LazyEnhancedPurchaseManagement = createEnhancedLazyComponent(

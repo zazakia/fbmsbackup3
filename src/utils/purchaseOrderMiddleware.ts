@@ -41,8 +41,8 @@ export function getCurrentUserContext(): UserContext | null {
   return {
     userId: user.id,
     userRole: userRole as UserRole,
-    email: user.email || undefined,
-    fullName: user.user_metadata?.full_name || undefined
+    email: (user as any).email || undefined,
+    fullName: (user as any).user_metadata?.full_name || undefined
   };
 }
 

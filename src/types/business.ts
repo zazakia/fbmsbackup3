@@ -159,6 +159,7 @@ export interface PurchaseOrder {
   tax: number;
   total: number;
   status: PurchaseOrderStatus;
+  enhancedStatus?: EnhancedPurchaseOrderStatus;
   expectedDate?: Date;
   receivedDate?: Date;
   createdBy?: string; // Optional to handle cases where user is not authenticated

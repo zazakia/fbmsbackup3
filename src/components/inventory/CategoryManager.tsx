@@ -1,9 +1,25 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Plus, Edit, Trash2, Tag } from 'lucide-react';
 import { useBusinessStore } from '../../store/businessStore';
 
 const CategoryManager: React.FC = () => {
-  const { categories, addCategory, updateCategory, deleteCategory } = useBusinessStore();
+  const { categories, addCategory, updateCategory, deleteCategory, fetchCategories } = useBusinessStore();
+  const [loading, setLoading] = useState(false);
+  useEffect(() => {
+    // Load categories on mount if empty
+    const load = async () => {
+      if (!categories || categories.length === 0) {
+        setLoading(true);
+        try {
+          await fetchCategories();
+        } finally {
+          setLoading(false);
+        }
+      }
+    };
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [showForm, setShowForm] = useState(false);
   const [editingCategory, setEditingCategory] = useState<string | null>(null);
   const [formData, setFormData] = useState({
@@ -12,7 +28,7 @@ const CategoryManager: React.FC = () => {
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const activeCategories = categories.filter(c => c.isActive);
+  const activeCategories = (categories || []).filter((c: any) => (c as any).isActive !== false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -152,7 +168,10 @@ const CategoryManager: React.FC = () => {
 
       {/* Categories List */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {activeCategories.map((category) => (
+        {loading && (
+          <div className="text-gray-500">Loading categories...</div>
+        )}
+        {!loading && activeCategories.map((category) => (
           <div key={category.id} className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
             <div className="flex items-start justify-between">
               <div className="flex items-center">

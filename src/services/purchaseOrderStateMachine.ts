@@ -263,7 +263,8 @@ export class PurchaseOrderStateMachine {
     const statusMap: Record<EnhancedPurchaseOrderStatus, string> = {
       'draft': 'draft',
       'pending_approval': 'draft', // Map back to draft for legacy compatibility
-      'approved': 'draft', // Map back to draft for legacy compatibility
+      // After approval, treat as ready for receiving in legacy status model
+      'approved': 'sent',
       'sent_to_supplier': 'sent',
       'partially_received': 'partial',
       'fully_received': 'received',

@@ -71,13 +71,14 @@ export const ApprovalQueue: React.FC<ApprovalQueueProps> = ({
       // or make multiple calls and merge the results
     };
 
-    if (hasPurchaseOrderPermission(userRole as UserRole, 'approve')) {
+    if (userRole && hasPurchaseOrderPermission(userRole as UserRole, 'approve')) {
       loadPendingOrders();
     }
   }, [userRole, loadPurchaseOrdersByStatus]);
 
   // Filter and sort purchase orders
   const filteredPOs = useMemo(() => {
+    if (!userRole) return [];
     let filtered = purchaseOrders.filter(po => 
       ['draft', 'pending', 'pending_approval'].includes(po.status) &&
       hasPurchaseOrderPermission(userRole as UserRole, 'approve', po, po.total)
@@ -242,6 +243,16 @@ export const ApprovalQueue: React.FC<ApprovalQueueProps> = ({
       default: return <CheckCircle2 className="h-4 w-4" />;
     }
   };
+
+  if (!userRole) {
+    return (
+      <div className="text-center py-8">
+        <XCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
+        <h3 className="text-lg font-medium text-gray-900 mb-2">Authentication Required</h3>
+        <p className="text-gray-600">Please log in to access the approval queue.</p>
+      </div>
+    );
+  }
 
   if (!hasPurchaseOrderPermission(userRole as UserRole, 'approve')) {
     return (

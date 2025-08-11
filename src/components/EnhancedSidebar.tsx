@@ -182,6 +182,7 @@ const EnhancedSidebar: React.FC<SidebarProps> = memo(({
   const { user, logout } = useSupabaseAuthStore();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [showHelpMenu, setShowHelpMenu] = useState(false);
+  const [isDataOpen, setIsDataOpen] = useState(true);
 
   // Enhanced module change handler with loading management
   const handleModuleChange = useCallback(async (moduleId: ModuleId) => {
@@ -263,7 +264,7 @@ const EnhancedSidebar: React.FC<SidebarProps> = memo(({
         
         {/* Scrollable Navigation */}
         <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto min-h-0 scrollbar-thin scrollbar-track-gray-100 scrollbar-thumb-gray-300 dark:scrollbar-track-dark-700 dark:scrollbar-thumb-dark-500">
-          {menuItems.map((item) => (
+          {menuItems.filter(mi => mi.id !== 'product-categories').map((item) => (
             <MenuItemButton
               key={item.id}
               item={item}
@@ -273,6 +274,33 @@ const EnhancedSidebar: React.FC<SidebarProps> = memo(({
               isMobile={false}
             />
           ))}
+
+          {/* Data group */}
+          {menuItems.some(mi => mi.id === 'product-categories') && (
+            <div className="mt-2">
+              <button
+                onClick={() => setIsDataOpen(!isDataOpen)}
+                className="w-full flex items-center justify-between px-3 py-2 text-xs font-semibold tracking-wide text-gray-600 dark:text-gray-300 uppercase"
+              >
+                <span>Data</span>
+                <svg className={`h-4 w-4 transition-transform ${isDataOpen ? 'rotate-180' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+              </button>
+              {isDataOpen && (
+                <div className="pl-2 space-y-1">
+                  {menuItems.filter(mi => mi.id === 'product-categories').map((item) => (
+                    <MenuItemButton
+                      key={item.id}
+                      item={item}
+                      isActive={activeModule === item.id}
+                      onClick={handleModuleChange}
+                      onMobileClick={handleMobileModuleChange}
+                      isMobile={false}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </nav>
         
         {/* Fixed Footer */}

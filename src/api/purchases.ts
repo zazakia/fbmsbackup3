@@ -370,6 +370,7 @@ export async function getPurchaseOrders(limit?: number, offset?: number) {
       tax,
       total,
       status,
+      enhanced_status,
       expected_date,
       received_date,
       created_by,
@@ -397,6 +398,7 @@ export async function getPurchaseOrders(limit?: number, offset?: number) {
       tax: po.tax,
       total: po.total,
       status: po.status,
+      enhancedStatus: po.enhanced_status,
       expectedDate: po.expected_date ? new Date(po.expected_date) : undefined,
       receivedDate: po.received_date ? new Date(po.received_date) : undefined,
       createdBy: po.created_by,
@@ -422,6 +424,7 @@ export async function getPurchaseOrder(id: string) {
       tax,
       total,
       status,
+      enhanced_status,
       expected_date,
       received_date,
       created_by,
@@ -442,6 +445,7 @@ export async function getPurchaseOrder(id: string) {
         tax: data.tax,
         total: data.total,
         status: data.status,
+        enhancedStatus: data.enhanced_status,
         expectedDate: data.expected_date ? new Date(data.expected_date) : undefined,
         receivedDate: data.received_date ? new Date(data.received_date) : undefined,
         createdBy: data.created_by,
@@ -466,6 +470,7 @@ export async function updatePurchaseOrder(id: string, updates: Partial<Omit<Purc
     supplier_name: string;
     expected_date: string;
     status: string;
+    enhanced_status: string;
     notes: string;
     items: PurchaseOrderItem[];
     total: number;
@@ -483,6 +488,7 @@ export async function updatePurchaseOrder(id: string, updates: Partial<Omit<Purc
   if (updates.tax !== undefined) updateData.tax = updates.tax;
   if (updates.total !== undefined) updateData.total = updates.total;
   if (updates.status) updateData.status = updates.status;
+  if (updates.enhancedStatus) updateData.enhanced_status = updates.enhancedStatus;
   if (updates.expectedDate !== undefined) updateData.expected_date = updates.expectedDate?.toISOString() as string;
   if (updates.receivedDate !== undefined) updateData.received_date = updates.receivedDate ? updates.receivedDate.toISOString() : null;
   if (updates.createdBy !== undefined) updateData.created_by = updates.createdBy ?? null;
@@ -501,6 +507,7 @@ export async function updatePurchaseOrder(id: string, updates: Partial<Omit<Purc
       tax,
       total,
       status,
+      enhanced_status,
       expected_date,
       received_date,
       created_by,
@@ -520,6 +527,7 @@ export async function updatePurchaseOrder(id: string, updates: Partial<Omit<Purc
         tax: data.tax,
         total: data.total,
         status: data.status,
+        enhancedStatus: data.enhanced_status,
         expectedDate: data.expected_date ? new Date(data.expected_date) : undefined,
         receivedDate: data.received_date ? new Date(data.received_date) : undefined,
         createdBy: data.created_by,
@@ -609,6 +617,7 @@ export async function getPurchaseOrdersBySupplier(supplierId: string) {
       tax,
       total,
       status,
+      enhanced_status,
       expected_date,
       received_date,
       created_by,
@@ -628,6 +637,7 @@ export async function getPurchaseOrdersBySupplier(supplierId: string) {
       tax: po.tax,
       total: po.total,
       status: po.status,
+      enhancedStatus: po.enhanced_status,
       expectedDate: po.expected_date ? new Date(po.expected_date) : undefined,
       receivedDate: po.received_date ? new Date(po.received_date) : undefined,
       createdBy: po.created_by,
@@ -653,6 +663,7 @@ export async function getPurchaseOrdersByStatus(status: PurchaseOrderStatus) {
       tax,
       total,
       status,
+      enhanced_status,
       expected_date,
       received_date,
       created_by,
@@ -672,6 +683,7 @@ export async function getPurchaseOrdersByStatus(status: PurchaseOrderStatus) {
       tax: po.tax,
       total: po.total,
       status: po.status,
+      enhancedStatus: po.enhanced_status,
       expectedDate: po.expected_date ? new Date(po.expected_date) : undefined,
       receivedDate: po.received_date ? new Date(po.received_date) : undefined,
       createdBy: po.created_by,
@@ -754,7 +766,7 @@ export async function receivePurchaseOrder(
     const po = current.data;
 
     // Validate PO status - only allow receiving for appropriate statuses
-    if (!['draft', 'sent', 'partial'].includes(po.status)) {
+    if (!['draft', 'sent', 'partial', 'approved'].includes(po.status)) {
       return { 
         data: null, 
         error: new Error(`Cannot receive items for purchase order in status: ${po.status}`) 
@@ -1785,19 +1797,25 @@ export async function approvePurchaseOrder(request: ApprovalRequest): Promise<{d
 
     // Determine new status based on action
     let newStatus: PurchaseOrderStatus;
+    let newEnhancedStatus: string;
     let auditAction: PurchaseOrderAuditAction;
 
     if (request.action === 'approve') {
-      newStatus = 'sent'; // Map to existing 'sent' status (could be 'approved' in enhanced workflow)
+      newStatus = 'sent'; // Map to existing 'sent' status for backward compatibility
+      newEnhancedStatus = 'approved'; // Set enhanced status to 'approved' for receiving workflow
       auditAction = PurchaseOrderAuditAction.APPROVED;
     } else {
       newStatus = 'cancelled';
+      newEnhancedStatus = 'cancelled';
       auditAction = PurchaseOrderAuditAction.CANCELLED;
     }
 
-    // Update the purchase order status
+    // Update the purchase order status - update both legacy and enhanced status fields
     const updateResult = await updatePurchaseOrder(request.purchaseOrderId, {
-      status: newStatus
+      status: newStatus,
+      enhanced_status: newEnhancedStatus,
+      approved_by: request.approvedBy,
+      approved_at: new Date().toISOString()
     });
 
     if (updateResult.error) {
@@ -1816,6 +1834,7 @@ export async function approvePurchaseOrder(request: ApprovalRequest): Promise<{d
           approvalLevel: request.approvalLevel || validationResult.data?.userLevel || 1,
           originalStatus: po.status,
           newStatus,
+          newEnhancedStatus,
           approvalAmount: po.total
         }
       });
@@ -1826,7 +1845,7 @@ export async function approvePurchaseOrder(request: ApprovalRequest): Promise<{d
         auditAction,
         auditContext,
         { status: po.status },
-        { status: newStatus, approvedBy: request.approvedBy }
+        { status: newStatus, enhanced_status: newEnhancedStatus, approvedBy: request.approvedBy }
       );
     } catch (auditError) {
       console.warn('Failed to log approval audit:', auditError);
