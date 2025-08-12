@@ -668,7 +668,7 @@ export const useSupabaseAuthStore = create<SupabaseAuthStore>()(
 );
 
 // Set up auth state listener
-supabaseAnon.auth.onAuthStateChange((event, session) => {
+supabaseAnon.auth.onAuthStateChange(async (event, session) => {
   const store = useSupabaseAuthStore.getState();
   
   console.log('Auth state change:', event, !!session);
@@ -684,8 +684,12 @@ supabaseAnon.auth.onAuthStateChange((event, session) => {
       error: null,
       hasLoggedOut: true
     });
-  } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-    store.checkAuth();
+  } else if (event === 'TOKEN_REFRESHED') {
+    // Handle successful token refresh
+    console.log('✅ Token refreshed successfully');
+    await store.checkAuth();
+  } else if (event === 'SIGNED_IN') {
+    await store.checkAuth();
     
     // If this is an OAuth login, we need to create user profile if it doesn't exist
     if (event === 'SIGNED_IN' && session?.user?.app_metadata?.provider !== 'email') {

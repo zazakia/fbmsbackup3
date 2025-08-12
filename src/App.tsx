@@ -46,6 +46,8 @@ import './utils/devCommands'; // Initialize dev commands
 import './utils/debugUser'; // Debug utilities  
 import './utils/adminAccessTest'; // Admin access testing
 import './utils/adminAccessFix'; // Admin access fix utilities
+import { authErrorHandler, handleAuthError } from './utils/authErrorHandler';
+import type { AuthErrorHandlerOptions } from './utils/authErrorHandler';
 import './styles/mobile-responsive.css'; // Mobile responsive styles
 import TestDashboard from './components/test/TestDashboard';
 import AdminDashboard from './components/admin/AdminDashboard';
@@ -109,6 +111,9 @@ const App: React.FC = () => {
     if (!isOAuthCallback) {
       setupDevAuth(); // Setup development authentication
     }
+    
+    // Initialize auth error handler for URL parameters
+    authErrorHandler.handleUrlAuthErrors();
     
     // Initialize error monitoring
     const updateErrorCount = () => {

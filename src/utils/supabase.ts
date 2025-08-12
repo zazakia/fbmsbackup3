@@ -42,6 +42,67 @@ if (!isValidUrl(supabaseUrl) || !supabaseAnonKey) {
   throw new Error(msg);
 }
 
+// Enhanced error handler for auth and HTTP errors
+const handleSupabaseError = async (input: RequestInfo, init?: RequestInit) => {
+  const res = await fetch(input as RequestInfo, init as RequestInit);
+  
+  if (!res.ok) {
+    try {
+      const body = await res.clone().json().catch(() => null);
+      
+      // Check for auth errors
+      if (body && body.error) {
+        const errorMessage = body.error.message || body.error;
+        
+        // Handle refresh token errors specifically
+        if (errorMessage.includes('refresh_token_not_found') || 
+            errorMessage.includes('Invalid Refresh Token') ||
+            errorMessage.includes('Refresh Token Not Found')) {
+          console.warn('🔄 Refresh token error detected, clearing invalid session...');
+          
+          // Clear invalid tokens from storage
+          const authKeys = Object.keys(localStorage).filter(key => 
+            key.includes('supabase.auth') || 
+            key.startsWith('sb-') ||
+            key.includes('refresh_token') ||
+            key.includes('access_token')
+          );
+          
+          authKeys.forEach(key => {
+            localStorage.removeItem(key);
+            console.log('🗑️ Removed invalid token:', key);
+          });
+          
+          // Clear session storage as well
+          sessionStorage.clear();
+          
+          // Force a clean auth state
+          if (typeof window !== 'undefined' && window.location) {
+            console.log('🔄 Redirecting to clear session...');
+            // Small delay to prevent infinite loops
+            setTimeout(() => {
+              window.location.href = window.location.origin + '?auth_error=token_expired';
+            }, 100);
+          }
+        }
+      }
+      
+      if (ENV.DEV) {
+        console.error('Supabase HTTP error', {
+          status: res.status,
+          statusText: res.statusText,
+          url: typeof input === 'string' ? input : (input as Request).url,
+          body
+        });
+      }
+    } catch (err) {
+      // Ignore JSON parsing errors
+    }
+  }
+  
+  return res;
+};
+
 // Create the main Supabase client
 export const supabase = createClient(
   supabaseUrl,
@@ -50,27 +111,12 @@ export const supabase = createClient(
     auth: {
       autoRefreshToken: true,
       persistSession: true,
-      detectSessionInUrl: true
+      detectSessionInUrl: true,
+      // Add custom token refresh error handling
+      debug: ENV.DEV
     },
     global: {
-      // Surface detailed errors from PostgREST
-      fetch: async (input, init) => {
-        const res = await fetch(input as RequestInfo, init as RequestInit);
-        if (!res.ok && ENV.DEV) {
-          try {
-            const body = await res.clone().json().catch(() => null);
-            console.error('Supabase HTTP error', {
-              status: res.status,
-              statusText: res.statusText,
-              url: typeof input === 'string' ? input : (input as Request).url,
-              body
-            });
-          } catch {
-            // ignore
-          }
-        }
-        return res;
-      }
+      fetch: handleSupabaseError
     },
     db: {
       schema: 'public'
