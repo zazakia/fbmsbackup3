@@ -109,17 +109,21 @@ const App: React.FC = () => {
   useEffect(() => {
     initializeTheme();
     
-    // Test Supabase connection first
-    testSupabaseConnection().then((result) => {
-      if (!result.connected) {
-        addToast({
-          type: 'error',
-          title: 'Database Connection Error',
-          message: `Failed to connect to database: ${result.error}`,
-          duration: 10000
-        });
-      }
-    });
+    // Test Supabase connection after a brief delay to allow initialization
+    setTimeout(() => {
+      testSupabaseConnection().then((result) => {
+        if (!result.connected) {
+          addToast({
+            type: 'error',
+            title: 'Database Connection Error',
+            message: `Failed to connect to database: ${result.error}`,
+            duration: 10000
+          });
+        } else {
+          console.log('✅ Database connection verified');
+        }
+      });
+    }, 1000); // 1 second delay
     
     if (!isOAuthCallback) {
       setupDevAuth(); // Setup development authentication

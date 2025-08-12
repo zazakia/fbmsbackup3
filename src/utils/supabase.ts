@@ -189,20 +189,36 @@ export async function testSupabaseConnection() {
   console.log('🔍 Testing Supabase connection...');
   
   try {
-    // Test basic connectivity
-    const { data, error } = await supabase.from('users').select('count', { count: 'exact', head: true });
+    // Test with a simple REST API call to check if Supabase is accessible
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
     
-    if (error) {
-      console.error('❌ Supabase connection failed:', error.message);
-      console.error('Error details:', error);
-      return { connected: false, error: error.message };
+    const response = await fetch(`${supabaseUrl}/rest/v1/`, {
+      method: 'HEAD',
+      headers: {
+        'apikey': supabaseAnonKey,
+        'Authorization': `Bearer ${supabaseAnonKey}`
+      },
+      signal: controller.signal
+    });
+    
+    clearTimeout(timeoutId);
+    
+    if (response.ok) {
+      console.log('✅ Supabase connection successful');
+      console.log('📊 Database service is accessible');
+      return { connected: true, error: null };
+    } else {
+      const error = `HTTP ${response.status}: ${response.statusText}`;
+      console.error('❌ Supabase connection failed:', error);
+      return { connected: false, error };
     }
     
-    console.log('✅ Supabase connection successful');
-    console.log('📊 Database responsive, user count query completed');
-    return { connected: true, error: null };
-    
   } catch (error: any) {
+    if (error.name === 'AbortError') {
+      console.error('❌ Supabase connection test timed out');
+      return { connected: false, error: 'Connection timeout' };
+    }
     console.error('❌ Supabase connection test failed:', error.message);
     return { connected: false, error: error.message };
   }
