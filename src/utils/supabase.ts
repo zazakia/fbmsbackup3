@@ -22,18 +22,45 @@ function isValidUrl(value: string | undefined | null): boolean {
 const supabaseUrl = import.meta.env.VITE_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_PUBLIC_SUPABASE_ANON_KEY;
 
-// Supabase client configuration
-if (ENV.DEV) {
-  console.log('Environment:', ENV.MODE);
-  console.log('Supabase URL:', supabaseUrl);
-  console.log('Supabase URL valid:', isValidUrl(supabaseUrl));
-}
+// Enhanced debug logging for connection issues
+console.log('🔧 Supabase Configuration Debug:');
+console.log('Environment:', ENV.MODE);
+console.log('Environment vars available:', {
+  hasUrl: !!supabaseUrl,
+  hasKey: !!supabaseAnonKey,
+  urlValue: supabaseUrl,
+  keyLength: supabaseAnonKey?.length || 0
+});
+console.log('Supabase URL valid:', isValidUrl(supabaseUrl));
 
 // Guard against invalid configuration to avoid "new URL(): Invalid URL" deep in SDK
 if (!isValidUrl(supabaseUrl) || !supabaseAnonKey) {
-  const msg = `Supabase configuration invalid. URL: ${supabaseUrl}, Has key: ${!!supabaseAnonKey}`;
-  // Log a clear error; throw to stop app early with actionable message
-  console.error(msg, { supabaseUrl, hasAnonKey: !!supabaseAnonKey });
+  const msg = `❌ Supabase configuration invalid. URL: ${supabaseUrl}, Has key: ${!!supabaseAnonKey}`;
+  
+  // Create helpful error message with debugging info
+  const debugInfo = {
+    supabaseUrl,
+    hasAnonKey: !!supabaseAnonKey,
+    keyLength: supabaseAnonKey?.length || 0,
+    envVars: {
+      VITE_PUBLIC_SUPABASE_URL: import.meta.env.VITE_PUBLIC_SUPABASE_URL,
+      hasVITE_PUBLIC_SUPABASE_ANON_KEY: !!import.meta.env.VITE_PUBLIC_SUPABASE_ANON_KEY
+    }
+  };
+  
+  console.error('🔥 CRITICAL: Supabase Configuration Error');
+  console.error('📋 Check your .env.local file and ensure these variables are set:');
+  console.error('   - VITE_PUBLIC_SUPABASE_URL');
+  console.error('   - VITE_PUBLIC_SUPABASE_ANON_KEY');
+  console.error('🔍 Debug info:', debugInfo);
+  
+  // Show user-friendly error
+  if (typeof window !== 'undefined') {
+    setTimeout(() => {
+      alert('Database Configuration Error!\n\nThe application cannot connect to the database because environment variables are missing or invalid.\n\nPlease check the console for more details.');
+    }, 1000);
+  }
+  
   throw new Error(msg);
 }
 
@@ -155,4 +182,28 @@ export async function isSupabaseAuthenticated() {
 export async function getCurrentUser() {
   const { data: { user } } = await supabase.auth.getUser();
   return user;
+}
+
+// Function to test Supabase connection on app initialization
+export async function testSupabaseConnection() {
+  console.log('🔍 Testing Supabase connection...');
+  
+  try {
+    // Test basic connectivity
+    const { data, error } = await supabase.from('users').select('count', { count: 'exact', head: true });
+    
+    if (error) {
+      console.error('❌ Supabase connection failed:', error.message);
+      console.error('Error details:', error);
+      return { connected: false, error: error.message };
+    }
+    
+    console.log('✅ Supabase connection successful');
+    console.log('📊 Database responsive, user count query completed');
+    return { connected: true, error: null };
+    
+  } catch (error: any) {
+    console.error('❌ Supabase connection test failed:', error.message);
+    return { connected: false, error: error.message };
+  }
 }

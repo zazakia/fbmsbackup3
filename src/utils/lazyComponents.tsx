@@ -311,6 +311,16 @@ export const LazyHelpModule = lazy(() =>
   import('../components/help/HelpModule')
 );
 
+// Purchase Order Form
+export const LazyPurchaseOrderForm = lazy(() => 
+  import('../components/purchases/PurchaseOrderForm')
+);
+
+// Logout Test Component
+export const LazyLogoutTest = lazy(() => 
+  import('../components/test/LogoutTest')
+);
+
 /**
  * Get module configuration by ID
  */

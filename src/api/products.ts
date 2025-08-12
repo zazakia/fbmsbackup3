@@ -1,5 +1,6 @@
 import { supabase } from '../utils/supabase';
 import { Product, Category } from '../types/business';
+import { createProductMovement } from './productHistory'; // Import the new function
 
 // PRODUCT CRUD OPERATIONS
 
@@ -26,32 +27,40 @@ export async function createProduct(product: Omit<Product, 'id' | 'createdAt' | 
   const { data, error } = await supabase
     .from('products')
     .insert([payload])
-    .select(`
-      id,
-      name,
-      description,
-      sku,
-      barcode,
-      category,
-      price,
-      cost,
-      stock,
-      min_stock,
-      unit,
-      is_active,
-      created_at,
-      updated_at
-    `)
+    .select() // Select all columns to get the full product data back
     .single();
 
   if (error) {
     console.error('[persist][products.insert] error', { code: (error as any)?.code, message: error.message, details: (error as any)?.details, hint: (error as any)?.hint });
+    return { data: null, error };
   }
+  
   if (data && import.meta.env.DEV) {
     console.debug('[persist][products.insert] success', { id: data.id });
   }
 
+  // After successfully creating the product, log the initial stock movement
   if (data) {
+    try {
+      await createProductMovement({
+        productId: data.id,
+        productName: data.name,
+        productSku: data.sku,
+        type: 'creation', // New movement type for product creation
+        quantity: data.stock,
+        previousStock: 0, // Initial stock is always from 0
+        newStock: data.stock,
+        unitCost: data.cost,
+        totalValue: data.cost * data.stock,
+        reason: 'Initial product creation',
+        performedBy: 'system', // System-performed action
+        status: 'completed' // This is an immediate, completed action
+      });
+    } catch (movementError) {
+      // Log movement error but don't fail product creation
+      console.warn('Could not create initial stock movement:', movementError);
+    }
+
     return {
       data: {
         id: data.id,
@@ -73,7 +82,7 @@ export async function createProduct(product: Omit<Product, 'id' | 'createdAt' | 
     };
   }
 
-  return { data: null, error };
+  return { data: null, error: new Error('Product creation succeeded but failed to return data') };
 }
 
 // READ ALL products

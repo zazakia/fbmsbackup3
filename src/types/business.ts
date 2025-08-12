@@ -796,6 +796,7 @@ export type ProductMovementType =
   | 'shrinkage'          // Inventory shrinkage
   | 'recount'            // Physical count adjustment
   | 'initial_stock'      // Initial stock entry
+  | 'creation'           // Product creation (initial stock)
   | 'purchase';          // Purchase orders (stock increase)
 
 export type MovementStatus = 'pending' | 'approved' | 'completed' | 'cancelled' | 'rejected';

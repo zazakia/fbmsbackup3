@@ -20,9 +20,9 @@ import { useBusinessStore } from '../../store/businessStore';
 import { useToastStore } from '../../store/toastStore';
 import type { Product, Sale, PurchaseOrder, JournalEntry, Account, CartItem } from '../../types/business';
 
-// Import the actual forms we'll test
-import EnhancedPOSSystem from '../pos/EnhancedPOSSystem';
-import PurchaseOrderForm from '../purchases/PurchaseOrderForm';
+// Import the actual forms we'll test (using lazy components)
+import { LazyEnhancedPOSSystem } from '../../utils/lazyComponents';
+import { LazyPurchaseOrderForm } from '../../utils/lazyComponents';
 
 // Import monitoring components
 import InventoryMonitor from './InventoryMonitor';
@@ -254,7 +254,9 @@ const LiveIntegrationTest: React.FC = () => {
       case 'sales-accounting':
         return (
           <div className="h-full">
-            <EnhancedPOSSystem />
+            <React.Suspense fallback={<div className="p-4 text-center">Loading POS System...</div>}>
+              <LazyEnhancedPOSSystem />
+            </React.Suspense>
           </div>
         );
       case 'purchase-inventory':
@@ -279,10 +281,12 @@ const LiveIntegrationTest: React.FC = () => {
                 </button>
               </div>
             ) : (
-              <PurchaseOrderForm
-                poId={null}
-                onClose={() => setShowPOForm(false)}
-              />
+              <React.Suspense fallback={<div className="p-4 text-center">Loading Purchase Order Form...</div>}>
+                <LazyPurchaseOrderForm
+                  poId={null}
+                  onClose={() => setShowPOForm(false)}
+                />
+              </React.Suspense>
             )}
           </div>
         );

@@ -39,7 +39,7 @@ import { useThemeStore } from './store/themeStore';
 import { useSupabaseAuthStore } from './store/supabaseAuthStore';
 import { useSettingsStore } from './store/settingsStore';
 import { canAccessModule } from './utils/permissions';
-import { setupDevAuth } from './utils/supabase';
+import { setupDevAuth, testSupabaseConnection } from './utils/supabase';
 import { NavigationProvider } from './contexts/NavigationContext';
 import { useSecurity } from './hooks/useSecurity';
 import './utils/devCommands'; // Initialize dev commands
@@ -108,6 +108,19 @@ const App: React.FC = () => {
   // Initialize theme, error monitoring, and development auth on app load
   useEffect(() => {
     initializeTheme();
+    
+    // Test Supabase connection first
+    testSupabaseConnection().then((result) => {
+      if (!result.connected) {
+        addToast({
+          type: 'error',
+          title: 'Database Connection Error',
+          message: `Failed to connect to database: ${result.error}`,
+          duration: 10000
+        });
+      }
+    });
+    
     if (!isOAuthCallback) {
       setupDevAuth(); // Setup development authentication
     }

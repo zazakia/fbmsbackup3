@@ -241,14 +241,16 @@ export const useSupabaseAuthStore = create<SupabaseAuthStore>()(
         set({ isLoading: true });
         
         try {
-          // Sign out from Supabase
-          const { error } = await supabaseAnon.auth.signOut();
+          // Import enhanced logout dynamically to avoid circular dependencies
+          const { enhancedLogout } = await import('../utils/logoutFix');
           
-          if (error) {
-            console.warn('Supabase logout error:', error.message);
+          const result = await enhancedLogout();
+          
+          if (!result.success && result.errors) {
+            console.warn('Logout completed with issues:', result.errors);
           }
           
-          // Clear all auth state
+          // The enhanced logout already sets the auth state, but ensure it's set
           set({
             user: null,
             userRole: null,
@@ -256,22 +258,26 @@ export const useSupabaseAuthStore = create<SupabaseAuthStore>()(
             isLoading: false,
             error: null,
             hasLoggedOut: true,
-            pendingEmailVerification: false
+            pendingEmailVerification: false,
+            passwordResetSent: false
           });
           
-          // Clear persisted state
-          localStorage.removeItem('fbms-supabase-auth');
-          
-          // Clear any other stored auth data
-          localStorage.removeItem('supabase.auth.token');
-          sessionStorage.clear();
-          
-          console.log('Logout successful');
+          console.log('Enhanced logout completed:', result.message);
           
         } catch (error) {
-          console.error('Logout error:', error);
+          console.error('Enhanced logout failed, falling back to basic logout:', error);
           
-          // Force logout locally even if Supabase call fails
+          // Fallback to basic logout if enhanced logout fails
+          try {
+            const { error: signOutError } = await supabaseAnon.auth.signOut();
+            if (signOutError) {
+              console.warn('Basic logout Supabase error:', signOutError.message);
+            }
+          } catch (basicError) {
+            console.warn('Basic logout also failed:', basicError);
+          }
+          
+          // Force clear auth state regardless
           set({
             user: null,
             userRole: null,
@@ -279,17 +285,20 @@ export const useSupabaseAuthStore = create<SupabaseAuthStore>()(
             isLoading: false,
             error: null,
             hasLoggedOut: true,
-            pendingEmailVerification: false
+            pendingEmailVerification: false,
+            passwordResetSent: false
           });
           
-          // Clear persisted state
-          localStorage.removeItem('fbms-supabase-auth');
+          // Clear storage
+          try {
+            localStorage.removeItem('fbms-supabase-auth');
+            localStorage.removeItem('supabase.auth.token');
+            sessionStorage.clear();
+          } catch (storageError) {
+            console.warn('Storage cleanup failed:', storageError);
+          }
           
-          // Clear any other stored auth data
-          localStorage.removeItem('supabase.auth.token');
-          sessionStorage.clear();
-          
-          console.log('Forced local logout completed');
+          console.log('Fallback logout completed');
         }
       },
 
@@ -667,67 +676,152 @@ export const useSupabaseAuthStore = create<SupabaseAuthStore>()(
   )
 );
 
-// Set up auth state listener
+// Set up auth state listener with enhanced logout handling
+let isProcessingAuthChange = false;
+let authChangeTimeout: NodeJS.Timeout | null = null;
+
 supabaseAnon.auth.onAuthStateChange(async (event, session) => {
+  // Prevent multiple simultaneous auth state changes
+  if (isProcessingAuthChange) {
+    console.log('⏳ Auth state change already in progress, skipping...', event);
+    return;
+  }
+  
+  // Clear any pending auth change timeout
+  if (authChangeTimeout) {
+    clearTimeout(authChangeTimeout);
+    authChangeTimeout = null;
+  }
+  
+  isProcessingAuthChange = true;
   const store = useSupabaseAuthStore.getState();
   
-  console.log('Auth state change:', event, !!session);
+  console.log('🔄 Auth state change:', event, !!session);
   
-  if (event === 'SIGNED_OUT' || !session) {
-    // Only clear state, don't call logout() to avoid infinite loop
-    store.clearError();
-    useSupabaseAuthStore.setState({
-      user: null,
-      userRole: null,
-      isAuthenticated: false,
-      isLoading: false,
-      error: null,
-      hasLoggedOut: true
-    });
-  } else if (event === 'TOKEN_REFRESHED') {
-    // Handle successful token refresh
-    console.log('✅ Token refreshed successfully');
-    await store.checkAuth();
-  } else if (event === 'SIGNED_IN') {
-    await store.checkAuth();
-    
-    // If this is an OAuth login, we need to create user profile if it doesn't exist
-    if (event === 'SIGNED_IN' && session?.user?.app_metadata?.provider !== 'email') {
-      // Handle OAuth user profile creation
-      const handleOAuthProfile = async () => {
-        if (!session?.user) return;
+  try {
+    if (event === 'SIGNED_OUT' || !session) {
+      // Handle logout - prevent infinite loops by checking current state
+      if (!store.hasLoggedOut || store.isAuthenticated) {
+        console.log('🚪 Processing SIGNED_OUT event...');
         
-        // Check if user profile exists
-        const { data: existingProfile } = await supabase
-          .from('users')
-          .select('id')
-          .eq('id', session.user.id)
-          .maybeSingle();
+        // Clear error state first
+        store.clearError();
         
-        if (!existingProfile) {
-          // Create user profile for OAuth user - SECURITY: No automatic admin assignment
-          const email = session.user.email || '';
-          
-          const { error: profileError } = await supabase
-            .from('users')
-            .insert({
-              id: session.user.id,
-              email: email,
-              first_name: session.user.user_metadata?.first_name || 
-                         session.user.user_metadata?.full_name?.split(' ')[0] || '',
-              last_name: session.user.user_metadata?.last_name || 
-                        session.user.user_metadata?.full_name?.split(' ').slice(1).join(' ') || '',
-              role: 'employee', // Default to lowest privilege role for security
-              is_active: true,
-            });
-          
-          if (profileError) {
-            console.warn('Failed to create OAuth user profile:', profileError.message);
-          }
+        // Set the logged out state
+        useSupabaseAuthStore.setState({
+          user: null,
+          userRole: null,
+          isAuthenticated: false,
+          isLoading: false,
+          error: null,
+          hasLoggedOut: true,
+          pendingEmailVerification: false
+        });
+        
+        // Dispatch logout event for other components to react
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('auth:signed-out', {
+            detail: { timestamp: new Date().toISOString() }
+          }));
         }
-      };
+        
+        console.log('✅ SIGNED_OUT processed successfully');
+      } else {
+        console.log('🔄 Already logged out, skipping SIGNED_OUT processing');
+      }
       
-      handleOAuthProfile();
+    } else if (event === 'TOKEN_REFRESHED') {
+      // Handle successful token refresh
+      console.log('✅ Token refreshed successfully');
+      
+      // Only refresh if we're currently authenticated
+      if (store.isAuthenticated && !store.hasLoggedOut) {
+        try {
+          await store.checkAuth();
+        } catch (refreshError) {
+          console.warn('⚠️ Auth check failed after token refresh:', refreshError);
+        }
+      }
+      
+    } else if (event === 'SIGNED_IN') {
+      console.log('🔑 Processing SIGNED_IN event...');
+      
+      // Reset any logout state
+      useSupabaseAuthStore.setState({ hasLoggedOut: false });
+      
+      // Check auth to populate user data
+      try {
+        await store.checkAuth();
+      } catch (signInError) {
+        console.error('❌ Auth check failed after sign in:', signInError);
+      }
+      
+      // Handle OAuth user profile creation for non-email providers
+      if (session?.user?.app_metadata?.provider !== 'email') {
+        const handleOAuthProfile = async () => {
+          if (!session?.user) return;
+          
+          try {
+            // Check if user profile exists
+            const { data: existingProfile } = await supabase
+              .from('users')
+              .select('id')
+              .eq('id', session.user.id)
+              .maybeSingle();
+            
+            if (!existingProfile) {
+              console.log('🆕 Creating OAuth user profile...');
+              
+              // Create user profile for OAuth user - SECURITY: No automatic admin assignment
+              const email = session.user.email || '';
+              
+              const { error: profileError } = await supabase
+                .from('users')
+                .insert({
+                  id: session.user.id,
+                  email: email,
+                  first_name: session.user.user_metadata?.first_name || 
+                             session.user.user_metadata?.full_name?.split(' ')[0] || '',
+                  last_name: session.user.user_metadata?.last_name || 
+                            session.user.user_metadata?.full_name?.split(' ').slice(1).join(' ') || '',
+                  role: 'employee', // Default to lowest privilege role for security
+                  is_active: true,
+                });
+              
+              if (profileError) {
+                console.warn('⚠️ Failed to create OAuth user profile:', profileError.message);
+              } else {
+                console.log('✅ OAuth user profile created successfully');
+              }
+            }
+          } catch (oauthError) {
+            console.warn('⚠️ OAuth profile handling error:', oauthError);
+          }
+        };
+        
+        // Handle OAuth profile creation without blocking
+        handleOAuthProfile();
+      }
+      
+      console.log('✅ SIGNED_IN processed successfully');
+      
+    } else {
+      console.log('🔄 Unknown auth event:', event);
     }
+    
+  } catch (authError) {
+    console.error('🚨 Auth state change error:', authError);
+    
+    // If there's an error, ensure we don't get stuck in loading state
+    if (store.isLoading) {
+      useSupabaseAuthStore.setState({ isLoading: false });
+    }
+    
+  } finally {
+    // Reset processing flag with a small delay to prevent race conditions
+    authChangeTimeout = setTimeout(() => {
+      isProcessingAuthChange = false;
+      console.log('🔓 Auth state change processing unlocked');
+    }, 100);
   }
 });
