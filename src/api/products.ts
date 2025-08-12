@@ -46,15 +46,15 @@ export async function createProduct(product: Omit<Product, 'id' | 'createdAt' | 
         productId: data.id,
         productName: data.name,
         productSku: data.sku,
-        type: 'creation', // New movement type for product creation
+        type: 'initial_stock',
         quantity: data.stock,
-        previousStock: 0, // Initial stock is always from 0
+        previousStock: 0,
         newStock: data.stock,
         unitCost: data.cost,
         totalValue: data.cost * data.stock,
         reason: 'Initial product creation',
-        performedBy: 'system', // System-performed action
-        status: 'completed' // This is an immediate, completed action
+        performedBy: 'system',
+        status: 'completed',
       });
     } catch (movementError) {
       // Log movement error but don't fail product creation
@@ -709,63 +709,4 @@ export async function getActiveCategories() {
   }
 
   return { data: null, error };
-}
-
-// Fetch stock movements for a product with optional filters
-// CREATE stock movement
-export async function createStockMovement(movement: {
-  productId: string;
-  type: 'sale' | 'purchase' | 'adjustment' | 'transfer' | 'return';
-  quantity: number;
-  previousStock: number;
-  newStock: number;
-  userId: string;
-  reference?: string;
-  notes?: string;
-}) {
-  const { data, error } = await supabase
-    .from('stock_movements')
-    .insert([{
-      product_id: movement.productId,
-      type: movement.type,
-      quantity: movement.quantity,
-      previous_stock: movement.previousStock,
-      new_stock: movement.newStock,
-      user_id: movement.userId,
-      reference: movement.reference,
-      notes: movement.notes
-    }])
-    .select()
-    .single();
-
-  if (error) return { data: null, error };
-  return { data, error: null };
-}
-
-export async function getStockMovements(productId: string, filters?: { startDate?: Date; endDate?: Date; type?: string; userId?: string; }) {
-  let query = supabase
-    .from('stock_movements')
-    .select('*')
-    .eq('product_id', productId)
-    .order('created_at', { ascending: false });
-
-  if (filters?.type) {
-    query = query.eq('type', filters.type);
-  }
-  if (filters?.userId) {
-    query = query.eq('user_id', filters.userId);
-  }
-  if (filters?.startDate) {
-    query = query.gte('created_at', filters.startDate.toISOString());
-  }
-  if (filters?.endDate) {
-    query = query.lte('created_at', filters.endDate.toISOString());
-  }
-
-  const { data, error } = await query;
-  if (error) return { data: null, error };
-  return {
-    data: (data || []).map((m: Record<string, unknown>) => ({ ...m, created_at: new Date(m.created_at as string) })),
-    error: null
-  };
 }
