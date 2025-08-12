@@ -245,20 +245,65 @@ export interface EnvironmentConfig {
   VITE_API_BASE_URL?: string;
 }
 
-// Production configuration - hardcoded for security
-const PRODUCTION_CONFIG = {
-  VITE_PUBLIC_SUPABASE_URL: 'https://coqjcziquviehgyifhek.supabase.co',
-  VITE_PUBLIC_SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNvcWpjemlxdXZpZWhneWlmaGVrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk0MDUzOTMsImV4cCI6MjA2NDk4MTM5M30.NSdUfHdeXLwBCcY9UO4s3LoSEBm4AuU0Jh5BLIcoQ5E'
-};
-
-// Validate environment variables - now uses hardcoded production config
+// Validate environment variables
 export const validateEnvironment = (): EnvironmentConfig => {
   const env = import.meta.env;
   
+  // Required environment variables
+  const requiredVars = [
+    'VITE_PUBLIC_SUPABASE_URL',
+    'VITE_PUBLIC_SUPABASE_ANON_KEY'
+  ];
+  
+  const missing = requiredVars.filter(varName => !env[varName]);
+  
+  if (missing.length > 0) {
+    throw createError(
+      ERROR_CODES.UNKNOWN_ERROR,
+      `Missing required environment variables: ${missing.join(', ')}`,
+      { missing }
+    );
+  }
+  
+  // Validate Supabase URL format - allow HTTP for local development
+  const isHttpLocalhost = env.VITE_PUBLIC_SUPABASE_URL.startsWith('http://localhost') || 
+                           env.VITE_PUBLIC_SUPABASE_URL.startsWith('http://127.0.0.1');
+  const isInDevelopment = env.NODE_ENV === 'development' || env.DEV || import.meta.env.DEV || !env.NODE_ENV;
+  const isLocalDevelopment = isHttpLocalhost && isInDevelopment;
+  
+  // Skip HTTPS validation for local development
+  const requiresHttps = !isLocalDevelopment;
+     
+  if (requiresHttps && !env.VITE_PUBLIC_SUPABASE_URL.startsWith('https://')) {
+    throw createError(
+      ERROR_CODES.UNKNOWN_ERROR,
+      'VITE_PUBLIC_SUPABASE_URL must start with https:// (except for local development)',
+      { 
+        url: env.VITE_PUBLIC_SUPABASE_URL, 
+        environment: env.NODE_ENV,
+        isDev: env.DEV,
+        isMetaDev: import.meta.env.DEV,
+        isLocalDevelopment,
+        isHttpLocalhost,
+        isInDevelopment,
+        requiresHttps
+      }
+    );
+  }
+  
+  // Validate Supabase key format (basic check)
+  if (env.VITE_PUBLIC_SUPABASE_ANON_KEY.length < 100) {
+    throw createError(
+      ERROR_CODES.UNKNOWN_ERROR,
+      'VITE_PUBLIC_SUPABASE_ANON_KEY appears to be invalid',
+      { keyLength: env.VITE_PUBLIC_SUPABASE_ANON_KEY.length }
+    );
+  }
+  
   return {
     NODE_ENV: env.NODE_ENV as 'development' | 'production' | 'test',
-    VITE_PUBLIC_SUPABASE_URL: PRODUCTION_CONFIG.VITE_PUBLIC_SUPABASE_URL,
-    VITE_PUBLIC_SUPABASE_ANON_KEY: PRODUCTION_CONFIG.VITE_PUBLIC_SUPABASE_ANON_KEY,
+    VITE_PUBLIC_SUPABASE_URL: env.VITE_PUBLIC_SUPABASE_URL,
+    VITE_PUBLIC_SUPABASE_ANON_KEY: env.VITE_PUBLIC_SUPABASE_ANON_KEY,
     VITE_ENABLE_ANALYTICS: env.VITE_ENABLE_ANALYTICS,
     VITE_SENTRY_DSN: env.VITE_SENTRY_DSN,
     VITE_API_BASE_URL: env.VITE_API_BASE_URL

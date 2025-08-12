@@ -216,12 +216,12 @@ const DatabaseTest: React.FC = () => {
         </div>
         
         <div>
-          <h3 className="text-lg font-semibold mb-2">Configuration</h3>
+          <h3 className="text-lg font-semibold mb-2">Environment</h3>
           <div className="bg-gray-50 border rounded-lg p-4">
             <div className="space-y-1 text-sm">
-              <div><strong>Database Mode:</strong> ✅ Remote (Production)</div>
-              <div><strong>Supabase URL:</strong> ✅ https://coqjcziquviehgyifhek.supabase.co</div>
-              <div><strong>Connection:</strong> ✅ Hardcoded (Secure)</div>
+              <div><strong>Supabase URL:</strong> {import.meta.env.VITE_PUBLIC_SUPABASE_URL ? '✅ Set' : '❌ Missing'}</div>
+              <div><strong>Anon Key:</strong> {import.meta.env.VITE_PUBLIC_SUPABASE_ANON_KEY ? '✅ Set' : '❌ Missing'}</div>
+              <div><strong>Current URL:</strong> {import.meta.env.VITE_PUBLIC_SUPABASE_URL}</div>
             </div>
           </div>
         </div>

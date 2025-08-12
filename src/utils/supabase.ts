@@ -18,20 +18,13 @@ function isValidUrl(value: string | undefined | null): boolean {
   }
 }
 
-// Production Supabase configuration - ALWAYS use remote/live connection
-const PRODUCTION_CONFIG = {
-  url: 'https://coqjcziquviehgyifhek.supabase.co',
-  anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNvcWpjemlxdXZpZWhneWlmaGVrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk0MDUzOTMsImV4cCI6MjA2NDk4MTM5M30.NSdUfHdeXLwBCcY9UO4s3LoSEBm4AuU0Jh5BLIcoQ5E'
-};
-
-// Force production URLs - ignore any local environment variables
-const supabaseUrl = PRODUCTION_CONFIG.url;
-const supabaseAnonKey = PRODUCTION_CONFIG.anonKey;
+// Supabase configuration from environment variables
+const supabaseUrl = import.meta.env.VITE_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_PUBLIC_SUPABASE_ANON_KEY;
 
 // Supabase client configuration
 if (ENV.DEV) {
   console.log('Environment:', ENV.MODE);
-  console.log('Database mode: remote (production)');
   console.log('Supabase URL:', supabaseUrl);
   console.log('Supabase URL valid:', isValidUrl(supabaseUrl));
 }
