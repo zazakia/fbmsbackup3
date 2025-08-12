@@ -14,6 +14,7 @@ import {
   PartialReceivingConfig,
   QualityCheckConfig
 } from '../../../types/purchaseOrderConfig';
+import { testDb } from '../../../test/database/testDatabase';
 
 // Mock the workflow config service
 vi.mock('../../../services/purchaseOrderWorkflowConfigService', () => ({
@@ -86,26 +87,26 @@ describe('ReceivingToleranceService', () => {
 
   const mockPurchaseOrder: PurchaseOrder = {
     id: 'po-001',
-    poNumber: 'PO-2024-001',
-    supplierName: 'Test Supplier',
+    po_number: 'PO-2024-001',
+    supplier_name: 'Test Supplier',
     total: 10000,
     status: 'approved',
     items: [
       {
         id: 'item-1',
-        productId: 'product-1',
-        productName: 'Test Product A',
+        product_id: 'product-1',
+        product_name: 'Test Product A',
         quantity: 100,
-        unitPrice: 50,
-        totalPrice: 5000
+        unit_price: 50,
+        total_price: 5000
       },
       {
         id: 'item-2',
-        productId: 'product-2',
-        productName: 'Test Product B',
+        product_id: 'product-2',
+        product_name: 'Test Product B',
         quantity: 50,
-        unitPrice: 100,
-        totalPrice: 5000
+        unit_price: 100,
+        total_price: 5000
       }
     ]
   } as PurchaseOrder;
@@ -122,7 +123,7 @@ describe('ReceivingToleranceService', () => {
     previousReceiptsCount: 0
   };
 
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
     
     vi.mocked(purchaseOrderWorkflowConfigService.getConfig).mockReturnValue({
@@ -138,8 +139,9 @@ describe('ReceivingToleranceService', () => {
     service = new ReceivingToleranceService();
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     vi.restoreAllMocks();
+    await db.cleanUp();
   });
 
   describe('Over-Receiving Validation', () => {
@@ -769,7 +771,7 @@ describe('ReceivingToleranceService', () => {
       expect(stats.damagedItems).toBe(1);
       expect(stats.expiredItems).toBe(1);
       expect(stats.completionPercentage).toBe(100); // All items have received quantities > 0
-      expect(stats.totalVariance).toBe(30); // (100-100) + (25-50) + (80-75) = 0 - 25 + 5 = -20... Wait, let me recalculate: 0 + (-25) + 5 = -20. Actually that's wrong calculation, let me fix it.
+      expect(stats.totalVariance).toBe(-20); // (100-100) + (25-50) + (80-75) = 0 - 25 + 5 = -20
     });
 
     it('should generate receiving recommendations', () => {
@@ -797,7 +799,7 @@ describe('ReceivingToleranceService', () => {
         }
       ];
 
-      const recommendations = service.generateReceivingRecommendations(mockValidation, receiptItems);
+      const recommendations = service.generateReceivingRecommendations(mockValidation as any, receiptItems);
 
       expect(recommendations).toContain('Review warning messages before proceeding');
       expect(recommendations).toContain('Obtain required approvals before completing receipt');

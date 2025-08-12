@@ -81,10 +81,44 @@ const EnhancedInventoryManagement: React.FC = () => {
   const { 
     products, 
     categories, 
+    fetchProducts,
+    fetchCategories,
     updateStock
   } = useBusinessStore();
   
   const { addToast } = useToastStore();
+
+  // Load products and categories on component mount - force refresh to ensure data consistency
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        // Always fetch fresh data to ensure consistency between different ports/instances
+        const port = window.location.port;
+        console.log(`🔄 Inventory (Port ${port}): Loading fresh data from database`);
+        
+        if (fetchProducts) {
+          await fetchProducts();
+          console.log(`✅ Inventory (Port ${port}): Products loaded successfully - ${products.length} products`);
+        }
+        
+        if (fetchCategories) {
+          await fetchCategories();
+          console.log(`✅ Inventory (Port ${port}): Categories loaded successfully - ${categories.length} categories`);
+        }
+      } catch (error) {
+        const port = window.location.port;
+        console.error(`❌ Inventory (Port ${port}): Failed to load data:`, error);
+        addToast({ 
+          type: 'error', 
+          title: 'Data Loading Error', 
+          message: 'Failed to load inventory data. Please refresh the page.' 
+        });
+      }
+    };
+    
+    // Load data immediately, regardless of cache status to ensure consistency
+    loadData();
+  }, [fetchProducts, fetchCategories, addToast]); // Remove products.length and categories.length from deps
 
   // Calculate enhanced inventory statistics
   useEffect(() => {
@@ -216,7 +250,7 @@ const EnhancedInventoryManagement: React.FC = () => {
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          product.sku.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          (product.barcode && product.barcode.includes(searchTerm));
-    const matchesCategory = selectedCategory === 'all' || product.categoryId === selectedCategory;
+    const matchesCategory = selectedCategory === 'all' || product.category === selectedCategory;
     
     let matchesStockFilter = true;
     switch (stockFilter) {
@@ -273,6 +307,26 @@ const EnhancedInventoryManagement: React.FC = () => {
           <p className="text-gray-600 dark:text-gray-400 mt-1">Advanced inventory control with smart analytics and alerts</p>
         </div>
         <div className="flex space-x-3">
+          <button
+            onClick={async () => {
+              try {
+                addToast({ title: 'Refreshing', message: 'Reloading inventory data...', type: 'info', duration: 2000 });
+                await Promise.all([
+                  fetchProducts?.(),
+                  fetchCategories?.()
+                ]);
+                addToast({ title: 'Success', message: 'Inventory data refreshed successfully', type: 'success', duration: 3000 });
+              } catch (error) {
+                console.error('Failed to refresh data:', error);
+                addToast({ title: 'Error', message: 'Failed to refresh data', type: 'error', duration: 5000 });
+              }
+            }}
+            className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors flex items-center"
+            title="Force refresh data from database"
+          >
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Refresh Data
+          </button>
           <button
             onClick={() => addToast({ title: 'Coming Soon', message: 'Batch management coming soon', type: 'info', duration: 3000 })}
             className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center"
@@ -485,9 +539,9 @@ const EnhancedInventoryManagement: React.FC = () => {
                     className="flex-1 sm:flex-none px-3 sm:px-4 py-2 border border-gray-300 dark:border-dark-600 rounded-lg bg-white dark:bg-dark-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
                   >
                     <option value="all">All Categories</option>
-                    {categories.map(category => (
-                      <option key={category.id} value={category.id}>
-                        {category.name}
+                    {[...new Set(products.map(p => p.category))].filter(Boolean).map(category => (
+                      <option key={category} value={category}>
+                        {category}
                       </option>
                     ))}
                   </select>
@@ -520,7 +574,7 @@ const EnhancedInventoryManagement: React.FC = () => {
                   </thead>
                   <tbody>
                     {filteredProducts.map(product => {
-                      const category = categories.find(c => c.id === product.categoryId);
+                      const category = categories.find(c => c.name === product.category);
                       return (
                         <tr key={product.id} className="border-b border-gray-100 dark:border-dark-700 hover:bg-gray-50 dark:hover:bg-dark-700/50">
                           <td className="py-3 px-4">
@@ -585,7 +639,7 @@ const EnhancedInventoryManagement: React.FC = () => {
               {/* Products Cards - Mobile */}
               <div className="lg:hidden space-y-3">
                 {filteredProducts.map(product => {
-                  const category = categories.find(c => c.id === product.categoryId);
+                  const category = categories.find(c => c.name === product.category);
                   return (
                     <div key={product.id} className="bg-white dark:bg-dark-700 border border-gray-200 dark:border-dark-600 rounded-lg p-4">
                       <div className="flex items-start justify-between mb-3">

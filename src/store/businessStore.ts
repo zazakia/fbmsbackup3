@@ -106,6 +106,7 @@ export interface BusinessActions {
   addCategory: (category: Omit<Category, 'id' | 'createdAt'>) => Promise<void>;
   updateCategory: (id: string, updates: Partial<Omit<Category, 'id' | 'createdAt'>>) => Promise<void>;
   deleteCategory: (id: string) => Promise<void>;
+  getCategory: (categoryNameOrId: string) => Category | undefined;
 
   // Purchasing actions expected by PurchaseOrderForm
   addPurchaseOrder: (po: Omit<PurchaseOrder, 'id' | 'createdAt'>) => void;
@@ -744,6 +745,12 @@ export const useBusinessStore = create<BusinessStore>()(
         } catch (e) {
           console.error('deleteCategory failed:', e);
         }
+      },
+
+      getCategory: (categoryNameOrId) => {
+        const { categories } = get();
+        // Try to find by ID first, then by name
+        return categories.find(c => c.id === categoryNameOrId || c.name === categoryNameOrId);
       },
 
       // Supplier actions

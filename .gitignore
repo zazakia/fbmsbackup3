@@ -58,6 +58,9 @@ Thumbs.db
 .Trashes
 ehthumbs.db
 
+
+# Crush
+.crush/
 # IDE files
 *.swp
 *.swo

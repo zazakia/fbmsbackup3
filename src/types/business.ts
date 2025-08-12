@@ -177,6 +177,13 @@ export interface PurchaseOrderItem {
   quantity: number;
   cost: number;
   total: number;
+  // Enhanced receiving fields
+  receivedQuantity?: number;
+  pendingQuantity?: number;
+  qualityStatus?: 'pending' | 'approved' | 'rejected';
+  batchNumber?: string;
+  expiryDate?: Date;
+  serialNumbers?: string[];
 }
 
 export interface ExpenseCategory {

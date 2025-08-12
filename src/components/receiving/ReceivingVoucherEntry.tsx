@@ -219,57 +219,147 @@ const ReceivingVoucherEntry: React.FC = () => {
     try {
       addToast({ type: 'info', title: 'Processing', message: 'Updating inventory...' });
       console.log('🔄 Starting inventory update for', items.length, 'items');
+      
+      // Enhanced diagnostics - log user and items info
+      console.log('User info:', { id: user?.id, email: user?.email });
+      console.log('Items to process:', items.map(item => ({
+        id: item.productId,
+        name: item.productName,
+        quantity: item.quantity
+      })));
+
+      // Early validation
+      if (!user?.id) {
+        throw new Error('User not authenticated - cannot update inventory');
+      }
+      
+      if (items.length === 0) {
+        throw new Error('No items to process');
+      }
 
       for (const item of items) {
         try {
           console.log(`📦 Processing item: ${item.productName} (ID: ${item.productId})`);
           
-          // Update product stock
+          // Enhanced validation for item data
+          if (!item.productId || item.productId.trim() === '') {
+            console.error('❌ Invalid product ID for item:', item);
+            errors.push(`${item.productName || 'Unknown product'}: Invalid product ID`);
+            errorCount++;
+            continue;
+          }
+          
+          if (item.quantity <= 0) {
+            console.error('❌ Invalid quantity for item:', item);
+            errors.push(`${item.productName}: Invalid quantity (${item.quantity})`);
+            errorCount++;
+            continue;
+          }
+          
+          // Check if product exists first
+          console.log(`🔍 Checking if product exists: ${item.productId}`);
           const { data: currentProduct, error: fetchError } = await supabase
             .from('products')
-            .select('stock, name')
+            .select('id, stock, name, is_active')
             .eq('id', item.productId)
             .single();
 
           if (fetchError) {
-            console.error('❌ Error fetching product:', item.productName, fetchError);
-            errors.push(`Failed to fetch ${item.productName}: ${fetchError.message}`);
+            console.error('❌ Error fetching product:', item.productName, {
+              error: fetchError,
+              code: fetchError.code,
+              message: fetchError.message,
+              details: fetchError.details,
+              hint: fetchError.hint
+            });
+            errors.push(`Failed to fetch ${item.productName}: ${fetchError.message} (${fetchError.code})`);
+            errorCount++;
+            continue;
+          }
+          
+          if (!currentProduct) {
+            console.error('❌ Product not found in database:', item.productId);
+            errors.push(`Product not found: ${item.productName} (ID: ${item.productId})`);
+            errorCount++;
+            continue;
+          }
+          
+          if (!currentProduct.is_active) {
+            console.error('❌ Product is inactive:', item.productName);
+            errors.push(`Product is inactive: ${item.productName}`);
             errorCount++;
             continue;
           }
 
           const oldStock = currentProduct.stock || 0;
-          const newStock = oldStock + item.quantity;
+          // Ensure quantities are integers for database compatibility
+          const quantityToAdd = Math.round(Math.abs(item.quantity)); // Convert to positive integer
+          const newStock = oldStock + quantityToAdd;
           
-          console.log(`📊 ${item.productName}: ${oldStock} → ${newStock} (+${item.quantity})`);
+          console.log(`📊 ${item.productName}: ${oldStock} → ${newStock} (+${quantityToAdd})`);
 
-          const { error: updateError } = await supabase
+          // Update product stock with enhanced error details
+          const { data: updatedProduct, error: updateError } = await supabase
             .from('products')
-            .update({ stock: newStock })
-            .eq('id', item.productId);
+            .update({ 
+              stock: newStock,
+              updated_at: new Date().toISOString() // Force updated timestamp
+            })
+            .eq('id', item.productId)
+            .select('id, stock')
+            .single();
 
           if (updateError) {
-            console.error('❌ Error updating product stock:', item.productName, updateError);
-            errors.push(`Failed to update ${item.productName}: ${updateError.message}`);
+            console.error('❌ Error updating product stock:', item.productName, {
+              error: updateError,
+              code: updateError.code,
+              message: updateError.message,
+              details: updateError.details,
+              hint: updateError.hint,
+              oldStock,
+              newStock,
+              quantityToAdd
+            });
+            errors.push(`Failed to update ${item.productName}: ${updateError.message} (${updateError.code})`);
+            errorCount++;
+            continue;
+          }
+          
+          // Verify the update was successful
+          if (!updatedProduct || updatedProduct.stock !== newStock) {
+            console.error('❌ Stock update verification failed:', {
+              expected: newStock,
+              actual: updatedProduct?.stock,
+              product: item.productName
+            });
+            errors.push(`Stock update verification failed for ${item.productName}`);
             errorCount++;
             continue;
           }
 
-          // Create stock movement record
-          const { error: movementError } = await supabase
-            .from('stock_movements')
-            .insert([{
-              product_id: item.productId,
-              change: item.quantity,
-              type: 'receiving',
-              user_id: user?.id,
-              reason: `Receiving voucher - ${receivingRecord.notes || 'Item received'}`,
-              resulting_stock: newStock
-            }]);
+          // Create stock movement record (non-critical - don't fail if this fails)
+          try {
+            const { error: movementError } = await supabase
+              .from('stock_movements')
+              .insert([{
+                product_id: item.productId,
+                change: quantityToAdd, // Use the same rounded integer value
+                type: 'receiving',
+                user_id: user.id,
+                reason: `Receiving voucher - ${receivingRecord.notes || 'Item received'}`,
+                resulting_stock: newStock,
+                created_at: new Date().toISOString()
+              }]);
 
-          if (movementError) {
-            console.error('⚠️ Stock updated but movement record failed:', item.productName, movementError);
-            // Don't count this as error since stock was updated successfully
+            if (movementError) {
+              console.error('⚠️ Stock updated but movement record failed:', item.productName, movementError);
+              // Don't count this as error since stock was updated successfully
+            } else {
+              console.log('📝 Stock movement recorded successfully');
+            }
+          } catch (movementError) {
+            console.error('⚠️ Non-critical error creating movement record:', movementError);
+            // Don't fail the inventory update for this
           }
 
           console.log(`✅ Successfully updated ${item.productName}`);
@@ -277,7 +367,7 @@ const ReceivingVoucherEntry: React.FC = () => {
 
         } catch (itemError) {
           console.error('❌ Unexpected error processing item:', item.productName, itemError);
-          errors.push(`Unexpected error with ${item.productName}: ${itemError}`);
+          errors.push(`Unexpected error with ${item.productName}: ${itemError instanceof Error ? itemError.message : String(itemError)}`);
           errorCount++;
         }
       }
@@ -290,8 +380,16 @@ const ReceivingVoucherEntry: React.FC = () => {
       } else if (successCount > 0 && errorCount > 0) {
         addToast({ type: 'warning', title: 'Partial Success', message: `Updated ${successCount} items, ${errorCount} failed. Check console for details.` });
       } else {
-        addToast({ type: 'error', title: 'Update Failed', message: `Failed to update any items. Check console for details.` });
-        throw new Error(`All ${errorCount} inventory updates failed`);
+        // Enhanced error reporting for complete failure
+        const errorSummary = errors.length > 0 ? errors.join('; ') : 'Unknown error';
+        addToast({ 
+          type: 'error', 
+          title: 'Update Failed', 
+          message: `Failed to update any items. First error: ${errors[0] || 'Unknown'}`,
+          duration: 10000 // Longer duration for critical errors
+        });
+        console.error('📋 Complete error list:', errors);
+        throw new Error(`All ${errorCount} inventory updates failed. Errors: ${errorSummary}`);
       }
 
       if (errors.length > 0) {
@@ -300,7 +398,12 @@ const ReceivingVoucherEntry: React.FC = () => {
 
     } catch (error) {
       console.error('❌ Critical error updating inventory:', error);
-      addToast({ type: 'error', title: 'Critical Error', message: 'Failed to update inventory. Check console for details.' });
+      addToast({ 
+        type: 'error', 
+        title: 'Critical Error', 
+        message: `Failed to update inventory: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        duration: 10000
+      });
       throw error;
     }
   };
@@ -428,6 +531,13 @@ const ReceivingVoucherEntry: React.FC = () => {
 
     setLoading(true);
     try {
+      let finalStatus = status;
+      // If the receiving record status is 'completed' but the button clicked is not 'completed',
+      // it means we are saving an already completed record, so we just save it without re-updating inventory.
+      if (receivingRecord.status === 'completed' && status !== 'completed') {
+        finalStatus = 'completed'; 
+      }
+
       let purchaseOrderId = receivingRecord.purchase_order_id;
       
       // If no PO is selected, create a dummy PO for manual entry
@@ -446,7 +556,7 @@ const ReceivingVoucherEntry: React.FC = () => {
         notes: `${receivingRecord.notes}\n\nItems:\n${items.map(item => 
           `${item.productName} - Qty: ${item.quantity}, Cost: ₱${item.unitCost.toFixed(2)}, Total: ₱${item.totalCost.toFixed(2)}`
         ).join('\n')}\n\nTotal Amount: ₱${getTotalAmount().toFixed(2)}`,
-        status
+        status: finalStatus,
       };
 
       // Save receiving record
@@ -464,7 +574,7 @@ const ReceivingVoucherEntry: React.FC = () => {
       console.log('✅ Receiving record saved successfully:', data);
 
       // Update inventory if status is completed
-      if (status === 'completed') {
+      if (finalStatus === 'completed') {
         await updateInventory();
         // Refresh product data to show updated inventory
         if (fetchProducts) {
@@ -477,7 +587,7 @@ const ReceivingVoucherEntry: React.FC = () => {
         }
         addToast({ type: 'success', title: 'Success', message: 'Receiving completed and inventory updated' });
       } else {
-        addToast({ type: 'success', title: 'Record Saved', message: `Receiving record ${status === 'cancelled' ? 'cancelled' : 'saved'}` });
+        addToast({ type: 'success', title: 'Record Saved', message: `Receiving record ${finalStatus === 'cancelled' ? 'cancelled' : 'saved'}` });
       }
       
       // Reset form
@@ -505,7 +615,7 @@ const ReceivingVoucherEntry: React.FC = () => {
 
   return (
     <div className="p-6 max-w-6xl mx-auto">
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+      <div className="bg-gradient-to-br from-green-50 to-emerald-100 dark:from-green-900/20 dark:to-emerald-900/30 dark:bg-gray-800 rounded-lg shadow-lg p-6">
         <div className="flex items-center gap-3 mb-6">
           <Package className="h-6 w-6 text-blue-600" />
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Receiving Voucher Entry</h1>

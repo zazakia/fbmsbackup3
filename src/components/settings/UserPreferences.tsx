@@ -29,14 +29,30 @@ const UserPreferences: React.FC = () => {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    loadSettings();
+    if (user?.id) {
+      loadSettings();
+    } else {
+      setLoading(false); // Stop loading if no valid user
+    }
   }, [user]);
 
   const loadSettings = async () => {
-    if (!user?.id) return;
+    // Double check user exists and has valid ID
+    if (!user?.id || typeof user.id !== 'string' || user.id.trim() === '') {
+      console.warn('Cannot load settings: Invalid user or user ID', { user, userId: user?.id });
+      setLoading(false);
+      return;
+    }
 
     setLoading(true);
     try {
+      console.log('Loading user settings for user:', user.id);
+      // Log user object for debugging
+      console.debug('Current user object:', {
+        id: user.id,
+        role: user.role,
+        email: user.email
+      });
       const result = await settingsAPI.getUserSettings(user.id);
       if (result.success && result.data) {
         // Ensure the settings have all required nested properties

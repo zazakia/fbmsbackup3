@@ -4,6 +4,13 @@ import { PurchaseOrder, PurchaseOrderItem, PartialReceiptItem, ReceivingRecord }
 import { useSupabaseAuthStore } from '../../store/supabaseAuthStore';
 import { ReceivingService } from '../../services/receivingService';
 import { formatCurrency, formatDate } from '../../utils/formatters';
+import { ValidatedUserSelector } from '../common/ValidatedUserSelector';
+import { 
+  getCurrentValidatedUser, 
+  validateUserId,
+  handleForeignKeyError,
+  UserValidationResult 
+} from '../../utils/userValidation';
 
 interface ReceivingInterfaceProps {
   purchaseOrder: PurchaseOrder;
@@ -33,6 +40,12 @@ export const ReceivingInterface: React.FC<ReceivingInterfaceProps> = ({
   const [isProcessing, setIsProcessing] = useState(false);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [showConfirmation, setShowConfirmation] = useState(false);
+  
+  // Enhanced user validation state
+  const [receivedBy, setReceivedBy] = useState<string>('');
+  const [receivedByName, setReceivedByName] = useState<string>('');
+  const [userValidationResult, setUserValidationResult] = useState<UserValidationResult | null>(null);
+  const [autoRetryOnError, setAutoRetryOnError] = useState(true);
   
   // Calculate previously received quantities
   const calculatePreviouslyReceived = (productId: string): number => {
@@ -136,8 +149,13 @@ export const ReceivingInterface: React.FC<ReceivingInterfaceProps> = ({
     }
     
     // Check if user is provided (required for audit trail)
-    if (!user?.id) {
-      errors.push('User authentication required for receiving operations');
+    if (!receivedBy && !user?.id) {
+      errors.push('Please select who is receiving the items');
+    }
+    
+    // Warn if user validation failed but allow system fallback
+    if (receivedBy && userValidationResult && !userValidationResult.isValid && !autoRetryOnError) {
+      errors.push(`Selected user is invalid: ${userValidationResult.error}`);
     }
     
     setValidationErrors(errors);
@@ -162,10 +180,14 @@ export const ReceivingInterface: React.FC<ReceivingInterfaceProps> = ({
           condition: item.condition
         }));
 
+      // Use validated user or fallback to current user
+      const effectiveUserId = receivedBy || user?.id;
+      const effectiveUserName = receivedByName || user?.email || 'Unknown User';
+
       const result = await receivingService.processReceipt(
         purchaseOrder.id,
         receiptData,
-        user!.id,
+        effectiveUserId!,
         notes
       );
 
@@ -174,9 +196,37 @@ export const ReceivingInterface: React.FC<ReceivingInterfaceProps> = ({
       } else {
         setValidationErrors(result.errors?.map(e => e.message) || ['Unknown error occurred']);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error processing receipt:', error);
-      setValidationErrors(['Failed to process receipt. Please try again.']);
+      
+      // Handle foreign key constraint violations with auto-retry
+      const errorHandler = await handleForeignKeyError(error, 'processing receipt');
+      
+      if (errorHandler.shouldRetry && autoRetryOnError) {
+        try {
+          console.log('Retrying with system user fallback...');
+          
+          // Retry with system user
+          const result = await receivingService.processReceipt(
+            purchaseOrder.id,
+            receiptData,
+            errorHandler.fallbackUserId!,
+            notes + (notes ? '\n\n' : '') + '[SYSTEM NOTE: Auto-recovery used due to user validation error]'
+          );
+          
+          if (result.success) {
+            console.warn('Receipt processed with system user fallback');
+            onReceiptComplete(result.receivingRecord!);
+            return; // Success with retry
+          }
+        } catch (retryError) {
+          console.error('Retry failed:', retryError);
+        }
+      }
+      
+      setValidationErrors([
+        errorHandler.errorMessage || 'Failed to process receipt. Please try again.'
+      ]);
     } finally {
       setIsProcessing(false);
       setShowConfirmation(false);
@@ -384,19 +434,59 @@ export const ReceivingInterface: React.FC<ReceivingInterfaceProps> = ({
           </table>
         </div>
 
-        {/* Notes Section */}
-        <div className="p-4 border-t border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700">
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            <FileText className="h-4 w-4 inline mr-2" />
-            Receiving Notes (Optional)
-          </label>
-          <textarea
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            rows={3}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-800 dark:text-white"
-            placeholder="Add any notes about the received items, damages, or special conditions..."
-          />
+        {/* User Selection and Notes Section */}
+        <div className="p-4 border-t border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 space-y-4">
+          {/* User Selector */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <User className="h-4 w-4 inline mr-2" />
+              Received By <span className="text-red-500">*</span>
+            </label>
+            <ValidatedUserSelector
+              selectedUserId={receivedBy}
+              selectedUserName={receivedByName}
+              onUserSelect={(userId, userName) => {
+                setReceivedBy(userId);
+                setReceivedByName(userName);
+              }}
+              onValidationResult={setUserValidationResult}
+              placeholder="Select who is receiving the items..."
+              required
+              allowSystemFallback
+              showValidationStatus
+              className="max-w-md"
+            />
+            {userValidationResult && !userValidationResult.isValid && (
+              <div className="mt-2 p-2 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-lg">
+                <div className="flex items-start">
+                  <AlertCircle className="h-4 w-4 text-yellow-600 mr-2 mt-0.5" />
+                  <div className="text-sm text-yellow-700 dark:text-yellow-300">
+                    <strong>User Validation Warning:</strong> {userValidationResult.error}
+                    {autoRetryOnError && (
+                      <span className="block mt-1">
+                        System will automatically use a valid fallback user to prevent errors.
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Notes */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <FileText className="h-4 w-4 inline mr-2" />
+              Receiving Notes (Optional)
+            </label>
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              rows={3}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-800 dark:text-white"
+              placeholder="Add any notes about the received items, damages, or special conditions..."
+            />
+          </div>
         </div>
 
         {/* Footer Actions */}
@@ -404,8 +494,13 @@ export const ReceivingInterface: React.FC<ReceivingInterfaceProps> = ({
           <div className="flex items-center justify-between">
             <div className="text-sm text-gray-600 dark:text-gray-300">
               <div className="flex items-center space-x-4">
-                <span>Receiving as: {user?.email || 'Unknown User'}</span>
+                <span>Receiving as: {receivedByName || user?.email || 'Unknown User'}</span>
                 <span>Date: {formatDate(new Date())}</span>
+                {userValidationResult && !userValidationResult.isValid && (
+                  <span className="text-yellow-600 dark:text-yellow-400">
+                    ⚠ Using system fallback
+                  </span>
+                )}
               </div>
             </div>
             <div className="flex items-center space-x-3">

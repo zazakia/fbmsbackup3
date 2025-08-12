@@ -171,7 +171,6 @@ const App: React.FC = () => {
       'inventory': 'inventory',
       'product-history': 'inventory',
       'purchases': 'purchases',
-      'receiving': 'purchases',
       'receiving-voucher': 'purchases',
       'customers': 'customers',
       'customer-transactions': 'customerTransactions',
@@ -201,7 +200,6 @@ const App: React.FC = () => {
       { id: 'product-categories', label: 'Product Categories', icon: Package, module: 'inventory' },
       { id: 'product-history', label: 'Product History', icon: History, module: 'inventory' },
       { id: 'purchases', label: 'Purchases', icon: Receipt, module: 'purchases' },
-      { id: 'receiving', label: 'Receiving', icon: Package, module: 'purchases' },
       { id: 'receiving-voucher', label: 'Receiving Voucher', icon: Receipt, module: 'purchases' },
       { id: 'customers', label: 'Customers', icon: Users, module: 'customers' },
       { id: 'customer-transactions', label: 'Customer Transactions', icon: Users, module: 'customers' },
@@ -317,12 +315,6 @@ const App: React.FC = () => {
           return (
             <PermissionGuard module="purchases">
               <LazyEnhancedPurchaseManagement />
-            </PermissionGuard>
-          );
-        case 'receiving':
-          return (
-            <PermissionGuard module="purchases">
-              <LazyReceivingModule />
             </PermissionGuard>
           );
         case 'receiving-voucher':

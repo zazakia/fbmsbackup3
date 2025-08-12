@@ -3,21 +3,13 @@ import {
   Search, 
   ShoppingCart, 
   User, 
-  CreditCard, 
-  WifiOff, 
-  Wifi, 
-  CloudOff, 
-  Cloud,
-  AlertCircle,
-  CheckCircle,
-  Clock,
-  Sync,
+  CreditCard,
+  WifiOff,
   X
 } from 'lucide-react';
 import { useBusinessStore } from '../../store/businessStore';
 import { useSupabaseAuthStore } from '../../store/supabaseAuthStore';
 import { useToastStore } from '../../store/toastStore';
-import { useOfflineStore } from '../../store/offlineStore';
 import { PaymentMethod, Customer, Sale } from '../../types/business';
 import { formatCurrency } from '../../utils/formatters';
 import ProductGrid from './ProductGrid';
@@ -26,7 +18,7 @@ import CustomerSelector from './CustomerSelector';
 import PaymentModal from './PaymentModal';
 import ReceiptModal from './ReceiptModal';
 
-const OfflinePOSSystem: React.FC = () => {
+const OnlinePOSSystem: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
@@ -34,7 +26,7 @@ const OfflinePOSSystem: React.FC = () => {
   const [showCustomerSelector, setShowCustomerSelector] = useState(false);
   const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [completedSale, setCompletedSale] = useState<Sale | null>(null);
-  const [showOfflineIndicator, setShowOfflineIndicator] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const { 
     products, 
@@ -45,67 +37,43 @@ const OfflinePOSSystem: React.FC = () => {
     getCartTax, 
     getCartTotal,
     clearCart,
-    createSale,
-    createOfflineSale
+    createSale
   } = useBusinessStore();
   
   const { user } = useSupabaseAuthStore();
   const { addToast } = useToastStore();
   
-  const {
-    isOnline,
-    isOfflineMode,
-    pendingTransactions,
-    syncStatus,
-    setOnlineStatus,
-    toggleOfflineMode,
-    addPendingTransaction,
-    retryFailedTransactions,
-    offlineData
-  } = useOfflineStore();
+  // Check internet connectivity periodically
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
 
-  // Monitor online/offline status
   useEffect(() => {
     const handleOnline = () => {
-      setOnlineStatus(true);
+      setIsOnline(true);
       addToast({
         type: 'success',
         title: 'Connection Restored',
-        message: 'You are back online. Syncing pending transactions...'
+        message: 'Internet connection restored.'
       });
     };
 
     const handleOffline = () => {
-      setOnlineStatus(false);
-      setShowOfflineIndicator(true);
+      setIsOnline(false);
       addToast({
-        type: 'warning',
+        type: 'error',
         title: 'Connection Lost',
-        message: 'You are now offline. Transactions will be saved locally.'
+        message: 'Internet connection lost. Please reconnect to continue using the POS system.',
+        duration: 10000
       });
     };
 
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
-    // Initial status check
-    setOnlineStatus(navigator.onLine);
-
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
-  }, [setOnlineStatus, addToast]);
-
-  // Auto-hide offline indicator after 5 seconds
-  useEffect(() => {
-    if (showOfflineIndicator) {
-      const timer = setTimeout(() => {
-        setShowOfflineIndicator(false);
-      }, 5000);
-      return () => clearTimeout(timer);
-    }
-  }, [showOfflineIndicator]);
+  }, [addToast]);
 
   const filteredProducts = useMemo(() => 
     products.filter(product => {
@@ -116,6 +84,15 @@ const OfflinePOSSystem: React.FC = () => {
     }), [products, searchTerm, selectedCategory]);
 
   const handleCompleteSale = useCallback(async (paymentMethod: PaymentMethod, cashReceived?: number) => {
+    if (!isOnline) {
+      addToast({
+        type: 'error',
+        title: 'No Internet Connection',
+        message: 'Cannot process sales while offline. Please reconnect to the internet.'
+      });
+      return;
+    }
+
     if (cart.length === 0) {
       addToast({
         type: 'error',
@@ -151,14 +128,15 @@ const OfflinePOSSystem: React.FC = () => {
       return;
     }
 
+    setIsProcessing(true);
+
     try {
-      // Generate receipt number and offline ID
+      // Generate receipt number and ID
       const receiptNumber = `RCP-${Date.now()}`;
-      const offlineId = `offline-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      const saleId = `sale-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       
       // Create sale data
       const saleData = {
-        offlineId, // Add offline ID for tracking
         customerId: selectedCustomer?.id,
         customerName: selectedCustomer ? `${selectedCustomer.firstName} ${selectedCustomer.lastName}` : 'Walk-in Customer',
         items: cart.map(item => ({
@@ -181,56 +159,22 @@ const OfflinePOSSystem: React.FC = () => {
         receiptNumber,
         cashReceived,
         change: cashReceived ? cashReceived - total : undefined,
-        notes: isOnline ? '' : 'Created offline',
+        notes: '',
         createdAt: new Date()
       };
 
-      // If offline or offline mode is enabled, create offline sale
-      if (!isOnline || isOfflineMode) {
-        // Create offline sale using business store
-        const offlineSale = createOfflineSale(saleData);
-        
-        // Add to pending transactions for later sync
-        addPendingTransaction({
-          type: 'sale',
-          data: saleData
-        });
-
-        addToast({
-          type: 'success',
-          title: 'Sale Saved Offline',
-          message: `Sale saved locally. Will sync when connection is restored.`
-        });
-      } else {
-        // Try to process online
-        try {
-          await createSale(saleData);
-          
-          addToast({
-            type: 'success',
-            title: 'Sale Completed',
-            message: `Receipt: ${receiptNumber} - Total: ₱${total.toFixed(2)}`
-          });
-        } catch (error) {
-          // If online processing fails, save offline
-          const offlineSale = createOfflineSale(saleData);
-          
-          addPendingTransaction({
-            type: 'sale',
-            data: saleData
-          });
-
-          addToast({
-            type: 'warning',
-            title: 'Sale Saved Offline',
-            message: 'Online processing failed. Sale saved locally for later sync.'
-          });
-        }
-      }
+      // Process sale online only
+      await createSale(saleData);
+      
+      addToast({
+        type: 'success',
+        title: 'Sale Completed',
+        message: `Receipt: ${receiptNumber} - Total: ₱${total.toFixed(2)}`
+      });
 
       // Create sale object for receipt
       const saleForReceipt: Sale = {
-        id: offlineId,
+        id: saleId,
         ...saleData,
         invoiceNumber: `INV-${Date.now()}`
       };
@@ -246,113 +190,34 @@ const OfflinePOSSystem: React.FC = () => {
       addToast({
         type: 'error',
         title: 'Sale Failed',
-        message: 'Failed to process the sale. Please try again.'
+        message: 'Failed to process the sale. Please check your internet connection and try again.'
       });
+    } finally {
+      setIsProcessing(false);
     }
-  }, [cart, selectedCustomer, getCartSubtotal, getCartTax, getCartTotal, clearCart, addToast, user?.id, isOnline, isOfflineMode, addPendingTransaction, products]);
-
-  const handleSyncNow = useCallback(async () => {
-    if (!isOnline) {
-      addToast({
-        type: 'error',
-        title: 'No Connection',
-        message: 'Cannot sync while offline'
-      });
-      return;
-    }
-
-    if (pendingTransactions.length === 0) {
-      addToast({
-        type: 'info',
-        title: 'Nothing to Sync',
-        message: 'No pending transactions to sync'
-      });
-      return;
-    }
-
-    try {
-      await retryFailedTransactions();
-      addToast({
-        type: 'success',
-        title: 'Sync Complete',
-        message: 'All pending transactions have been synced'
-      });
-    } catch (error) {
-      addToast({
-        type: 'error',
-        title: 'Sync Failed',
-        message: 'Failed to sync some transactions'
-      });
-    }
-  }, [isOnline, pendingTransactions.length, retryFailedTransactions, addToast]);
+  }, [cart, selectedCustomer, getCartSubtotal, getCartTax, getCartTotal, clearCart, addToast, user?.id, isOnline, createSale]);
 
   return (
     <div className="h-full flex bg-gray-50 dark:bg-dark-950 relative">
-      {/* Offline/Online Status Indicator */}
-      <div className="fixed top-4 right-4 z-50 flex items-center space-x-2">
-        {/* Connection Status */}
-        <div className={`flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-          isOnline 
-            ? 'bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-200 border border-green-200 dark:border-green-800'
-            : 'bg-red-100 dark:bg-red-900/20 text-red-800 dark:text-red-200 border border-red-200 dark:border-red-800'
-        } ${showOfflineIndicator ? 'animate-pulse' : ''}`}>
-          {isOnline ? (
-            <>
-              <Wifi className="h-4 w-4 mr-2" />
-              Online
-            </>
-          ) : (
-            <>
-              <WifiOff className="h-4 w-4 mr-2" />
-              Offline
-            </>
-          )}
-        </div>
-
-        {/* Offline Mode Toggle */}
-        <button
-          onClick={toggleOfflineMode}
-          className={`flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-            isOfflineMode
-              ? 'bg-orange-100 dark:bg-orange-900/20 text-orange-800 dark:text-orange-200 border border-orange-200 dark:border-orange-800'
-              : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700'
-          }`}
-          title={isOfflineMode ? 'Disable offline mode' : 'Enable offline mode'}
-        >
-          {isOfflineMode ? (
-            <>
-              <CloudOff className="h-4 w-4 mr-2" />
-              Offline Mode
-            </>
-          ) : (
-            <>
-              <Cloud className="h-4 w-4 mr-2" />
-              Online Mode
-            </>
-          )}
-        </button>
-
-        {/* Pending Transactions Indicator */}
-        {pendingTransactions.length > 0 && (
-          <div className="flex items-center space-x-2">
-            <div className="bg-yellow-100 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-200 px-3 py-2 rounded-lg text-sm font-medium border border-yellow-200 dark:border-yellow-800">
-              <Clock className="h-4 w-4 mr-2 inline" />
-              {pendingTransactions.length} pending
+      {/* Connection Warning when offline */}
+      {!isOnline && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+          <div className="bg-white dark:bg-dark-800 rounded-lg p-6 max-w-md mx-4 text-center">
+            <div className="text-red-500 mb-4">
+              <WifiOff className="h-12 w-12 mx-auto" />
             </div>
-            
-            {isOnline && (
-              <button
-                onClick={handleSyncNow}
-                disabled={syncStatus === 'syncing'}
-                className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center"
-              >
-                <Sync className={`h-4 w-4 mr-2 ${syncStatus === 'syncing' ? 'animate-spin' : ''}`} />
-                {syncStatus === 'syncing' ? 'Syncing...' : 'Sync Now'}
-              </button>
-            )}
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+              No Internet Connection
+            </h3>
+            <p className="text-gray-600 dark:text-gray-300 mb-4">
+              The POS system requires an internet connection to process sales and access live data from Supabase.
+            </p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Please check your internet connection and try again.
+            </p>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Left Panel - Products */}
       <div className="flex-1 flex flex-col">
@@ -468,13 +333,13 @@ const OfflinePOSSystem: React.FC = () => {
           <div className="space-y-2">
             <button
               onClick={() => setShowPaymentModal(true)}
-              disabled={cart.length === 0}
+              disabled={cart.length === 0 || !isOnline}
               className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
             >
               <CreditCard className="h-4 w-4 mr-2" />
               Process Payment
-              {(!isOnline || isOfflineMode) && (
-                <span className="ml-2 text-xs bg-yellow-500 text-yellow-900 px-2 py-1 rounded">
+              {!isOnline && (
+                <span className="ml-2 text-xs bg-red-500 text-white px-2 py-1 rounded">
                   Offline
                 </span>
               )}
