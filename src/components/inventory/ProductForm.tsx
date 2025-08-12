@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, Package } from 'lucide-react';
+import { X, Save, Package, AlertCircle } from 'lucide-react';
 import { useBusinessStore } from '../../store/businessStore';
+import { useToastStore } from '../../store/toastStore';
 
 interface ProductFormProps {
   productId?: string | null;
@@ -9,6 +10,7 @@ interface ProductFormProps {
 
 const ProductForm: React.FC<ProductFormProps> = ({ productId, onClose }) => {
   const { products, categories, addProduct, updateProduct, getProduct, fetchCategories } = useBusinessStore();
+  const { addToast } = useToastStore();
   
   const [formData, setFormData] = useState({
     name: '',
@@ -24,6 +26,8 @@ const ProductForm: React.FC<ProductFormProps> = ({ productId, onClose }) => {
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string>('');
 
   useEffect(() => {
     if (productId) {
@@ -101,6 +105,9 @@ const ProductForm: React.FC<ProductFormProps> = ({ productId, onClose }) => {
       return;
     }
 
+    setIsSubmitting(true);
+    setSubmitError('');
+
     const productData = {
       name: formData.name.trim(),
       description: formData.description.trim() || undefined,
@@ -119,15 +126,39 @@ const ProductForm: React.FC<ProductFormProps> = ({ productId, onClose }) => {
     };
 
     try {
+      console.log('🚀 Attempting to save product:', productData);
+      
       if (productId) {
         await updateProduct(productId, productData);
+        addToast({
+          type: 'success',
+          title: 'Success',
+          message: 'Product updated successfully!',
+          duration: 3000
+        });
       } else {
         await addProduct(productData);
+        addToast({
+          type: 'success',
+          title: 'Success', 
+          message: 'Product created successfully!',
+          duration: 3000
+        });
       }
       onClose();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving product:', error);
-      // Handle error (could show toast notification)
+      const errorMessage = error.message || 'Failed to save product';
+      setSubmitError(errorMessage);
+      
+      addToast({
+        type: 'error',
+        title: 'Error',
+        message: `Failed to save product: ${errorMessage}`,
+        duration: 5000
+      });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -364,21 +395,36 @@ const ProductForm: React.FC<ProductFormProps> = ({ productId, onClose }) => {
             </div>
           )}
 
+          {/* Error Message */}
+          {submitError && (
+            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
+              <div className="flex items-start space-x-2">
+                <AlertCircle className="h-5 w-5 text-red-500 mt-0.5" />
+                <div>
+                  <h4 className="text-sm font-medium text-red-800 dark:text-red-200">Error saving product</h4>
+                  <p className="text-sm text-red-600 dark:text-red-300">{submitError}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Actions */}
           <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200 dark:border-gray-700">
             <button
               type="button"
               onClick={onClose}
               className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              disabled={isSubmitting}
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-4 py-2 bg-blue-600 dark:bg-blue-700 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-800 transition-colors flex items-center"
+              className="px-4 py-2 bg-blue-600 dark:bg-blue-700 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-800 transition-colors flex items-center disabled:opacity-50"
+              disabled={isSubmitting}
             >
               <Save className="h-4 w-4 mr-2" />
-              {productId ? 'Update Product' : 'Add Product'}
+              {isSubmitting ? 'Saving...' : (productId ? 'Update Product' : 'Add Product')}
             </button>
           </div>
         </form>

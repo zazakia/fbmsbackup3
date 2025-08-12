@@ -26,6 +26,7 @@ import ReportsTest from './ReportsTest';
 import IntegrationTest from './IntegrationTest';
 import LiveIntegrationTest from './LiveIntegrationTest';
 import TestDataCleanup from './TestDataCleanup';
+import ProductCreationTest from './ProductCreationTest';
 
 interface TestSuite {
   id: string;
@@ -63,6 +64,16 @@ const TestDashboard: React.FC = () => {
       component: ProductCRUDTest,
       category: 'core',
       estimatedTime: '3-4 min',
+      complexity: 'intermediate'
+    },
+    {
+      id: 'product-creation-debug',
+      name: 'Product Creation Debug',
+      description: 'Debug product creation issues and database permissions',
+      icon: Settings,
+      component: ProductCreationTest,
+      category: 'system',
+      estimatedTime: '1-2 min',
       complexity: 'intermediate'
     },
     {
