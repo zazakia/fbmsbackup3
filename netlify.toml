@@ -1,5 +1,5 @@
 [build]
-  command = "pnpm run build"
+  command = "npm run build"
   publish = "dist"
   functions = "netlify/functions"
 
@@ -31,7 +31,7 @@
   status = 200
 
 [dev]
-  command = "pnpm run dev"
+  command = "npm run dev"
   port = 5180
   publish = "dist"
 
