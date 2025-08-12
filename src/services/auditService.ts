@@ -146,24 +146,8 @@ export class AuditService {
             savedEntry.id = data.id;
           }
 
-          // Also log to status history table for status changes
-          if (action === PurchaseOrderAuditAction.STATUS_CHANGED) {
-            await supabase
-              .from('purchase_order_status_history')
-              .insert([{
-                purchase_order_id: purchaseOrderId,
-                purchase_order_number: purchaseOrderNumber,
-                from_status: oldValues?.status as string,
-                to_status: newValues?.status as string,
-                changed_by: context.performedBy,
-                changed_by_name: context.performedByName,
-                change_reason: context.reason,
-                change_timestamp: savedEntry.timestamp.toISOString(),
-                metadata: savedEntry.metadata,
-                ip_address: context.ipAddress,
-                user_agent: context.userAgent
-              }]);
-          }
+          // Note: Using purchase_order_audit_logs table which exists in the database
+          // The 'audit_logs' table is not available in the current schema
         } catch (dbError) {
           console.warn('Database audit logging failed:', dbError);
           // Continue with in-memory logging

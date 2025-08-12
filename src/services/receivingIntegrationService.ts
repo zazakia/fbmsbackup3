@@ -88,20 +88,22 @@ class ReceivingIntegrationService {
       await receivingDashboardService.getReceivingQueue();
 
       // Log integration event
-      const auditLogId = await auditService.logPurchaseOrderAction({
+      const auditResult = await auditService.logPurchaseOrderAudit(
         purchaseOrderId,
-        purchaseOrderNumber: purchaseOrderId.slice(-8),
-        action: 'receiving_integration',
-        performedBy: approvalContext.approvedBy,
-        performedByName: approvalContext.approvedBy,
-        timestamp: approvalContext.approvedAt,
-        reason: `Approved PO integrated with receiving queue: ${approvalContext.reason}`,
-        metadata: {
-          integrationEventId: eventId,
-          receivingQueueChange: 'added',
-          approverRole: approvalContext.userRole
+        purchaseOrderId.slice(-8),
+        'receiving_integration',
+        {
+          performedBy: approvalContext.approvedBy,
+          performedByName: approvalContext.approvedBy,
+          reason: `Approved PO integrated with receiving queue: ${approvalContext.reason}`,
+          metadata: {
+            integrationEventId: eventId,
+            receivingQueueChange: 'added',
+            approverRole: approvalContext.userRole
+          }
         }
-      });
+      );
+      const auditLogId = auditResult.success ? auditResult.data?.id : undefined;
 
       // Send notification to receiving team
       const notificationsSent = await this.notifyReceivingTeam(
@@ -166,21 +168,23 @@ class ReceivingIntegrationService {
       }
 
       // Log integration event
-      const auditLogId = await auditService.logPurchaseOrderAction({
+      const auditResult = await auditService.logPurchaseOrderAudit(
         purchaseOrderId,
-        purchaseOrderNumber: purchaseOrderId.slice(-8),
-        action: 'receiving_integration',
-        performedBy: context.changedBy,
-        performedByName: context.changedBy,
-        timestamp: context.changedAt,
-        reason: `Status change integrated with receiving queue: ${previousStatus} -> ${newStatus}`,
-        metadata: {
-          integrationEventId: eventId,
-          receivingQueueChange,
-          previousStatus,
-          newStatus
+        purchaseOrderId.slice(-8),
+        'receiving_integration',
+        {
+          performedBy: context.changedBy,
+          performedByName: context.changedBy,
+          reason: `Status change integrated with receiving queue: ${previousStatus} -> ${newStatus}`,
+          metadata: {
+            integrationEventId: eventId,
+            receivingQueueChange,
+            previousStatus,
+            newStatus
+          }
         }
-      });
+      );
+      const auditLogId = auditResult.success ? auditResult.data?.id : undefined;
 
       // Send notifications if needed
       let notificationsSent = 0;

@@ -14,6 +14,7 @@ import {
   deletePurchaseOrder,
   getPurchaseOrdersBySupplier,
   getPurchaseOrdersByStatus,
+  getPurchaseOrdersForApproval,
   getNextPONumber,
   receivePurchaseOrder
 } from '../api/purchases';
@@ -43,6 +44,7 @@ interface PurchaseOrderState {
   loadPurchaseOrder: (id: string) => Promise<void>;
   loadPurchaseOrdersBySupplier: (supplierId: string) => Promise<void>;
   loadPurchaseOrdersByStatus: (status: PurchaseOrderStatus) => Promise<void>;
+  loadPurchaseOrdersForApproval: () => Promise<void>;
   
   // CRUD operations
   createPO: (purchaseOrder: Omit<PurchaseOrder, 'id' | 'createdAt'>) => Promise<void>;
@@ -197,6 +199,34 @@ export const usePurchaseOrderStore = create<PurchaseOrderState>()(
           });
         } catch (error) {
           const formattedError = ErrorHandlingService.formatDatabaseError(error, 'load-status-pos');
+          ErrorHandlingService.logError(formattedError);
+          set({
+            loading: false,
+            error: formattedError.message
+          });
+        }
+      },
+
+      // Load purchase orders for approval queue (using enhanced statuses)
+      loadPurchaseOrdersForApproval: async () => {
+        set({ loading: true, error: null });
+        
+        try {
+          console.log('🔍 Store: Loading purchase orders for approval...');
+          const { data, error } = await getPurchaseOrdersForApproval();
+          
+          if (error) {
+            throw error;
+          }
+          
+          console.log('🔍 Store: Received approval queue data:', data?.length || 0, 'orders');
+          set({
+            purchaseOrders: data || [],
+            statusFilter: null, // Clear status filter since we're using custom logic
+            loading: false
+          });
+        } catch (error) {
+          const formattedError = ErrorHandlingService.formatDatabaseError(error, 'load-approval-queue');
           ErrorHandlingService.logError(formattedError);
           set({
             loading: false,

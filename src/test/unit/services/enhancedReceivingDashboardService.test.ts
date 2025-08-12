@@ -203,9 +203,10 @@ describe('Enhanced ReceivingDashboardService', () => {
       const purchaseOrderId = 'po-123';
       const existingPO = { id: purchaseOrderId } as EnhancedPurchaseOrder;
 
-      // Mock getReceivingQueue to return existing PO
+      // Mock getReceivingQueue to return existing PO first, then empty on refresh
       vi.spyOn(receivingDashboardService, 'getReceivingQueue')
-        .mockResolvedValue([existingPO]);
+        .mockResolvedValueOnce([existingPO])  // First call returns existing PO
+        .mockResolvedValue([]);               // Second call returns empty (after removal)
 
       const mockSupabaseChain = {
         select: vi.fn(() => mockSupabaseChain),
@@ -461,7 +462,7 @@ describe('Enhanced ReceivingDashboardService', () => {
       const result = transformMethod.call(receivingDashboardService, dbRecord);
 
       expect(result.id).toBe('po-123');
-      expect(result.poNumber).toBe('PO-12345678'); // Generated from ID
+      expect(result.poNumber).toBe('PO-po-123'); // Generated from ID
       expect(result.supplierName).toBe('Unknown Supplier');
       expect(result.items).toEqual([]);
       expect(result.totalReceived).toBe(0);

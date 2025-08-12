@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { Product, CartItem, Customer, PurchaseOrder, Expense, ExpenseCategory, Category } from '../types/business';
+import { Product, CartItem, Customer, PurchaseOrder, Expense, ExpenseCategory, Category, Supplier } from '../types/business';
 
 // Unified validation types used across Store and POS
 export type POSStockValidationError = {
@@ -14,6 +14,7 @@ export type POSStockValidationError = {
 };
 
 export type StockValidationResult = { isValid: boolean; errors: POSStockValidationError[]; warnings: POSStockValidationError[] };
+
 import { supabase } from '../utils/supabase';
 import { validateProductStock as stockValidationUtil } from '../utils/stockValidation';
 import { createValidationMixin } from './businessStoreValidation';
@@ -26,7 +27,8 @@ import {
   createCategory as apiCreateCategory,
   getCategories as apiGetCategories,
   updateCategory as apiUpdateCategory,
-  deleteCategory as apiDeleteCategory
+  deleteCategory as apiDeleteCategory,
+  getProducts as apiGetProducts
 } from '../api/products';
 import { BusinessService } from '../services/businessService';
 import { getSales } from '../api/sales';
@@ -52,12 +54,16 @@ export interface BusinessState {
   expenseCategories: ExpenseCategory[];
   // Purchasing
   purchaseOrders: PurchaseOrder[];
+  suppliers: Supplier[];
 }
 
 export interface BusinessActions {
   // Customer actions
   fetchCustomers: () => Promise<void>;
   updateCustomer: (id: string, updates: Partial<Customer>) => Promise<void>;
+  
+  // Product data loading
+  fetchProducts: () => Promise<void>;
  
   // Stock validation actions (temporarily relaxed to any to unblock diagnostics)
   validateProductStock: any;
@@ -105,6 +111,13 @@ export interface BusinessActions {
   addPurchaseOrder: (po: Omit<PurchaseOrder, 'id' | 'createdAt'>) => void;
   updatePurchaseOrder: (id: string, updates: Partial<PurchaseOrder>) => void;
   getPurchaseOrder: (id: string) => PurchaseOrder | undefined;
+  refreshPurchaseOrders: () => Promise<void>;
+
+  // Supplier actions
+  fetchSuppliers: () => Promise<void>;
+  addSupplier: (supplier: Omit<Supplier, 'id' | 'createdAt'>) => Promise<void>;
+  updateSupplier: (id: string, updates: Partial<Supplier>) => Promise<void>;
+  
 
   // Utility actions
   clearError: () => void;
@@ -128,9 +141,45 @@ export const useBusinessStore = create<BusinessStore>()(
       categories: [],
       expenseCategories: [],
       purchaseOrders: [],
+      suppliers: [],
 
       // Add validation mixin
       ...createValidationMixin(get),
+
+      // Product data loading
+      fetchProducts: async () => {
+        set({ isLoading: true, error: null });
+        try {
+          const { data: productsData, error } = await apiGetProducts();
+          if (error) throw error;
+
+          // Transform API response to match Product interface
+          const transformedProducts: Product[] = (productsData || []).map((product: any) => ({
+            id: product.id,
+            name: product.name,
+            description: product.description,
+            sku: product.sku,
+            barcode: product.barcode,
+            category: product.category,
+            price: product.price,
+            cost: product.cost,
+            stock: product.stock,
+            minStock: product.min_stock,
+            unit: product.unit,
+            isActive: product.is_active,
+            createdAt: new Date(product.created_at),
+            updatedAt: new Date(product.updated_at)
+          })) as Product[];
+
+          set({ products: transformedProducts, isLoading: false, error: null });
+          console.log('🔄 Products refreshed from database:', transformedProducts.length);
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : 'Failed to fetch products';
+          set({ error: errorMessage, isLoading: false });
+          console.error('Error fetching products:', error);
+          throw error;
+        }
+      },
 
       // Customer actions
       fetchCustomers: async () => {
@@ -320,6 +369,27 @@ export const useBusinessStore = create<BusinessStore>()(
 
       getPurchaseOrder: (id: string) => {
         return (get().purchaseOrders || []).find((p) => p.id === id);
+      },
+      
+      refreshPurchaseOrders: async () => {
+        try {
+          const { getPurchaseOrders } = await import('../api/purchases');
+          const { data, error } = await getPurchaseOrders();
+          
+          if (error) {
+            console.error('Error fetching purchase orders:', error);
+            set({ error: error.message || 'Failed to fetch purchase orders' });
+            return;
+          }
+          
+          if (data) {
+            console.log('🔄 Refreshed purchase orders:', data.length);
+            set({ purchaseOrders: data, error: null });
+          }
+        } catch (err) {
+          console.error('Error in refreshPurchaseOrders:', err);
+          set({ error: 'Failed to refresh purchase orders' });
+        }
       },
       
       // Cart actions
@@ -674,7 +744,47 @@ export const useBusinessStore = create<BusinessStore>()(
         } catch (e) {
           console.error('deleteCategory failed:', e);
         }
-      }
+      },
+
+      // Supplier actions
+      fetchSuppliers: async () => {
+        set({ isLoading: true });
+        try {
+          // Mock suppliers for now - in real app this would be a Supabase call
+          const mockSuppliers: Supplier[] = [
+            { id: '1', name: 'ABC Supplies', contactPerson: 'John Doe', email: 'john@abc.com', phone: '+639123456789', isActive: true, createdAt: new Date() },
+            { id: '2', name: 'XYZ Trading', contactPerson: 'Jane Smith', email: 'jane@xyz.com', phone: '+639987654321', isActive: true, createdAt: new Date() }
+          ];
+          set({ suppliers: mockSuppliers, isLoading: false });
+        } catch (e) {
+          console.error('fetchSuppliers failed:', e);
+          set({ isLoading: false, error: 'Failed to load suppliers' });
+        }
+      },
+
+      addSupplier: async (supplier) => {
+        try {
+          const newSupplier: Supplier = {
+            id: `supplier-${Date.now()}`,
+            ...supplier,
+            createdAt: new Date()
+          };
+          set((state) => ({ suppliers: [...state.suppliers, newSupplier] }));
+        } catch (e) {
+          console.error('addSupplier failed:', e);
+        }
+      },
+
+      updateSupplier: async (id, updates) => {
+        try {
+          set((state) => ({
+            suppliers: state.suppliers.map((s) => (s.id === id ? { ...s, ...updates } : s))
+          }));
+        } catch (e) {
+          console.error('updateSupplier failed:', e);
+        }
+      },
+
     }),
     {
       name: 'fbms-business',
@@ -683,7 +793,8 @@ export const useBusinessStore = create<BusinessStore>()(
         purchaseOrders: state.purchaseOrders,
         expenses: state.expenses,
         expenseCategories: state.expenseCategories,
-        categories: state.categories
+        categories: state.categories,
+        suppliers: state.suppliers
       })
     }
   )

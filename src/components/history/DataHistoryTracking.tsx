@@ -107,28 +107,32 @@ const DataHistoryTracking: React.FC = () => {
   const loadHistory = async () => {
     setLoading(true);
     try {
+      // Note: Using purchase_order_audit_logs since audit_logs table doesn't exist
       let query = supabase
-        .from('audit_logs')
+        .from('purchase_order_audit_logs')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('timestamp', { ascending: false });
 
-      // Apply filters
-      if (filters.table !== 'all') {
-        query = query.eq('table_name', filters.table);
+      // Apply filters - adapting to purchase_order_audit_logs schema
+      if (filters.table !== 'all' && filters.table !== 'purchases') {
+        // This table only contains purchase order audit logs, so filter out non-purchase requests
+        setHistory([]);
+        setLoading(false);
+        return;
       }
 
       if (filters.operation !== 'all') {
-        query = query.eq('operation', filters.operation);
+        query = query.eq('action', filters.operation.toLowerCase());
       }
 
       if (filters.userId !== 'all') {
-        query = query.eq('user_id', filters.userId);
+        query = query.eq('performed_by', filters.userId);
       }
 
       if (filters.dateRange !== 'all') {
         const daysAgo = new Date();
         daysAgo.setDate(daysAgo.getDate() - parseInt(filters.dateRange));
-        query = query.gte('created_at', daysAgo.toISOString());
+        query = query.gte('timestamp', daysAgo.toISOString());
       }
 
       const { data, error } = await query.limit(1000);

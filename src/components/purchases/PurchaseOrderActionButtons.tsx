@@ -332,8 +332,8 @@ export const PurchaseOrderActionButtons: React.FC<PurchaseOrderActionButtonsProp
   // Default variant
   return (
     <div className="flex items-center gap-3">
-      <StatusIndicator status={purchaseOrder.status} />
-      
+      <StatusIndicator purchaseOrder={purchaseOrder} />
+
       <div className="flex items-center gap-2">
         {/* Always show view button */}
         <button

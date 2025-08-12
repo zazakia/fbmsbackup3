@@ -48,7 +48,7 @@ export const ApprovalQueue: React.FC<ApprovalQueueProps> = ({
     purchaseOrders,
     loading,
     error,
-    loadPurchaseOrdersByStatus
+    loadPurchaseOrdersForApproval
   } = usePurchaseOrderStore();
 
   const [selectedPOs, setSelectedPOs] = useState<string[]>([]);
@@ -65,24 +65,39 @@ export const ApprovalQueue: React.FC<ApprovalQueueProps> = ({
   // Load pending purchase orders on mount
   useEffect(() => {
     const loadPendingOrders = async () => {
-      // Load both draft and pending_approval status orders
-      await loadPurchaseOrdersByStatus('draft' as any);
-      // Note: In a real implementation, you'd want to modify the API to support multiple statuses
-      // or make multiple calls and merge the results
+      console.log('🔍 ApprovalQueue: Loading purchase orders for approval...');
+      await loadPurchaseOrdersForApproval();
     };
 
     if (userRole && hasPurchaseOrderPermission(userRole as UserRole, 'approve')) {
       loadPendingOrders();
     }
-  }, [userRole, loadPurchaseOrdersByStatus]);
+  }, [userRole, loadPurchaseOrdersForApproval]);
 
   // Filter and sort purchase orders
   const filteredPOs = useMemo(() => {
     if (!userRole) return [];
-    let filtered = purchaseOrders.filter(po => 
-      ['draft', 'pending', 'pending_approval'].includes(po.status) &&
-      hasPurchaseOrderPermission(userRole as UserRole, 'approve', po, po.total)
-    );
+    console.log('🔍 ApprovalQueue: Filtering purchase orders...', purchaseOrders.length, 'total orders');
+    
+    // Since we're loading orders specifically for approval, we primarily need to filter by permissions
+    let filtered = purchaseOrders.filter(po => {
+      // Enhanced status check - these should be orders with enhanced_status 'draft' or 'pending_approval'
+      const isApprovable = ['draft', 'pending_approval'].includes(po.status) || 
+                          ['draft', 'pending', 'pending_approval'].includes(po.status);
+      const hasPermission = hasPurchaseOrderPermission(userRole as UserRole, 'approve', po, po.total);
+      
+      console.log('🔍 ApprovalQueue: Order filter check:', {
+        poNumber: po.poNumber,
+        status: po.status,
+        isApprovable,
+        hasPermission,
+        included: isApprovable && hasPermission
+      });
+      
+      return isApprovable && hasPermission;
+    });
+    
+    console.log('🔍 ApprovalQueue: Filtered to', filtered.length, 'approvable orders');
 
     // Apply search filter
     if (filters.searchTerm) {

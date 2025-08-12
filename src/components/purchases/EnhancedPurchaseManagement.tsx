@@ -4,6 +4,8 @@ import SupplierForm from './SupplierForm';
 import { ApprovalQueue } from './ApprovalQueue';
 import { WorkflowConfigurationPanel } from './WorkflowConfigurationPanel';
 import { ReceivingInterface } from './ReceivingInterface';
+import ReceivingList from './ReceivingList';
+import { approvalWorkflowService } from '../../services/approvalWorkflowService';
 import { 
   Plus, 
   Search, 
@@ -26,14 +28,16 @@ import {
 } from 'lucide-react';
 import { useBusinessStore } from '../../store/businessStore';
 import { useToastStore } from '../../store/toastStore';
+import { useSupabaseAuthStore } from '../../store/supabaseAuthStore';
 import { Supplier, PurchaseOrder } from '../../types/business';
+import { UserRole } from '../../types/auth';
 import { 
   getPurchaseOrders,
   getSuppliers,
   getPendingReceipts
 } from '../../api/purchases';
 import { formatCurrency, formatDate } from '../../utils/formatters';
-import { getReceivableStatuses, isReceivableStatus } from '../../utils/statusMappings';
+import { getReceivableStatuses, isReceivableStatus, isReceivableEnhancedStatus } from '../../utils/statusMappings';
 
 interface PurchaseStats {
   totalPurchases: number;
@@ -130,15 +134,66 @@ const EnhancedPurchaseManagement: React.FC = () => {
   // };
 
   // Workflow handlers
-  const handlePOApproval = (po: PurchaseOrder) => {
-    console.log('🔍 DEBUG: PO approved:', po.poNumber, 'Current status:', po.status);
-    addToast({
-      type: 'success',
-      title: 'Purchase Order Approved',
-      message: `PO ${po.poNumber} has been approved`
-    });
-    // Refresh data
-    loadData();
+  const handlePOApproval = async (po: PurchaseOrder, reason?: string) => {
+    const { user } = useSupabaseAuthStore.getState();
+    
+    if (!user) {
+      addToast({
+        type: 'error',
+        title: 'Authentication Required',
+        message: 'Please log in to approve purchase orders'
+      });
+      return;
+    }
+
+    console.log('🔍 DEBUG: Approving PO:', po.poNumber, 'Current status:', po.status);
+    console.log('🔍 DEBUG: User role:', user.role);
+
+    try {
+      // Create approval request
+      const approvalRequest = {
+        purchaseOrderId: po.id,
+        reason: reason || 'Manual approval from purchase management',
+        comments: 'Approved via purchase management interface',
+        userId: user.id,
+        userEmail: user.email || 'unknown@user.com',
+        timestamp: new Date().toISOString()
+      };
+
+      console.log('🔍 DEBUG: Sending approval request:', approvalRequest);
+
+      // Call the approval workflow service (which includes receiving integration)
+      const result = await approvalWorkflowService.approvePurchaseOrder(
+        po,
+        approvalRequest,
+        user.role as UserRole
+      );
+
+      console.log('🔍 DEBUG: Approval result:', result);
+
+      if (result.success) {
+        addToast({
+          type: 'success',
+          title: 'Purchase Order Approved',
+          message: `PO ${po.poNumber} has been approved and added to receiving queue`
+        });
+        // Refresh data to show updated status
+        loadData();
+      } else {
+        addToast({
+          type: 'error',
+          title: 'Approval Failed',
+          message: result.error || 'Failed to approve purchase order'
+        });
+      }
+    } catch (error) {
+      console.error('🚨 Error approving purchase order:', error);
+      addToast({
+        type: 'error',
+        title: 'Approval Error',
+        message: error instanceof Error ? error.message : 'An unexpected error occurred'
+      });
+    }
   };
 
   const handlePOReject = (po: PurchaseOrder, reason: string) => {
@@ -166,6 +221,80 @@ const EnhancedPurchaseManagement: React.FC = () => {
     setSelectedPOForReceiving(null);
     // Refresh data
     loadData();
+  };
+
+  const handleReceiveOrder = async (orderId: string) => {
+    try {
+      const po = purchaseOrders.find(p => p.id === orderId);
+      if (!po) {
+        addToast({
+          type: 'error',
+          title: 'Error',
+          message: 'Purchase order not found'
+        });
+        return;
+      }
+
+      // Update purchase order status to received
+      await updatePurchaseOrder(orderId, {
+        status: 'received',
+        enhancedStatus: 'received',
+        receivedDate: new Date().toISOString(),
+        receivedBy: user?.email || 'system'
+      });
+
+      addToast({
+        type: 'success',
+        title: 'Order Received',
+        message: `Successfully marked ${po.poNumber} as fully received`
+      });
+
+      // Refresh data
+      loadData();
+    } catch (error) {
+      console.error('Error receiving order:', error);
+      addToast({
+        type: 'error',
+        title: 'Error',
+        message: 'Failed to mark order as received'
+      });
+    }
+  };
+
+  const handleMarkPartiallyReceived = async (orderId: string) => {
+    try {
+      const po = purchaseOrders.find(p => p.id === orderId);
+      if (!po) {
+        addToast({
+          type: 'error',
+          title: 'Error',
+          message: 'Purchase order not found'
+        });
+        return;
+      }
+
+      // Update purchase order status to partially received
+      await updatePurchaseOrder(orderId, {
+        status: 'partial',
+        enhancedStatus: 'partially_received'
+      });
+
+      addToast({
+        type: 'success',
+        title: 'Order Updated',
+        message: `Successfully marked ${po.poNumber} as partially received`
+      });
+
+      // Refresh data
+      loadData();
+    } catch (error) {
+      console.error('Error marking order as partially received:', error);
+      addToast({
+        type: 'error',
+        title: 'Error',
+        message: 'Failed to mark order as partially received'
+      });
+    }
   };
 
   const handleWorkflowConfigChange = (_config: any) => {
@@ -721,36 +850,10 @@ const EnhancedPurchaseManagement: React.FC = () => {
                   </div>
                 </div>
                 
-                <div className="space-y-4">
-                  <h4 className="font-medium text-gray-900 dark:text-gray-100">Orders Ready for Receiving</h4>
-                  {purchaseOrders
-                    .filter(po => isReceivableStatus(po.status))
-                    .map(po => (
-                    <div key={po.id} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                      <div>
-                        <p className="font-medium text-gray-900 dark:text-gray-100">{po.poNumber}</p>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">{po.supplierName} • {po.items.length} items</p>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{formatCurrency(po.total)}</span>
-                        <button
-                          onClick={() => handleReceiveItems(po)}
-                          className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
-                        >
-                          Receive Items
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                  
-                  {purchaseOrders.filter(po => isReceivableStatus(po.status)).length === 0 && (
-                    <div className="text-center py-8">
-                      <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                      <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No Items to Receive</h3>
-                      <p className="text-gray-500 dark:text-gray-400">All purchase orders have been received or are pending approval.</p>
-                    </div>
-                  )}
-                </div>
+                <ReceivingList 
+                  onReceiveOrder={handleReceiveOrder}
+                  onMarkPartiallyReceived={handleMarkPartiallyReceived}
+                />
               </div>
             </div>
           )}

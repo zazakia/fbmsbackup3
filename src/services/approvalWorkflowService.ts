@@ -91,10 +91,39 @@ class ApprovalWorkflowService {
         };
       }
 
-      // Check valid status transition
-      const currentStatus = this.mapLegacyToEnhanced(purchaseOrder.status);
+      // Check and handle proper status transitions  
+      const currentStatus = purchaseOrder.enhancedStatus || this.mapLegacyToEnhanced(purchaseOrder.status);
+      
+      // If the PO is in draft, first transition it to pending_approval
+      if (currentStatus === 'draft') {
+        const canTransitionToPending = purchaseOrderStateMachine.canTransition(
+          currentStatus,
+          'pending_approval'
+        );
+        
+        if (!canTransitionToPending) {
+          return {
+            success: false,
+            purchaseOrderId: purchaseOrder.id,
+            error: `Cannot move purchase order from ${currentStatus} to pending approval`
+          };
+        }
+        
+        // Update to pending_approval first
+        await this.updatePurchaseOrderStatus(
+          purchaseOrder.id,
+          'pending_approval',
+          request
+        );
+        
+        // Update the purchase order enhanced status for the next check
+        purchaseOrder.enhancedStatus = 'pending_approval';
+      }
+      
+      // Now check if we can transition to approved
+      const updatedStatus = purchaseOrder.enhancedStatus || this.mapLegacyToEnhanced(purchaseOrder.status);
       const canTransitionToApproved = purchaseOrderStateMachine.canTransition(
-        currentStatus,
+        updatedStatus,
         'approved'
       );
 
@@ -102,7 +131,7 @@ class ApprovalWorkflowService {
         return {
           success: false,
           purchaseOrderId: purchaseOrder.id,
-          error: `Cannot approve purchase order in status: ${currentStatus}`
+          error: `Cannot approve purchase order in status: ${updatedStatus}`
         };
       }
 
@@ -119,17 +148,18 @@ class ApprovalWorkflowService {
       );
 
       // Log the approval in audit trail
-      await auditService.logPurchaseOrderAction({
-        purchaseOrderId: purchaseOrder.id,
-        purchaseOrderNumber: purchaseOrder.poNumber,
-        action: 'status_changed',
-        performedBy: request.userId,
-        performedByName: request.userEmail,
-        timestamp: new Date(request.timestamp),
-        oldValues: { status: previousStatus },
-        newValues: { status: newStatus },
-        reason: `Approved: ${request.reason}${request.comments ? ` - ${request.comments}` : ''}`
-      });
+      await auditService.logPurchaseOrderAudit(
+        purchaseOrder.id,
+        purchaseOrder.poNumber,
+        'status_changed',
+        {
+          performedBy: request.userId,
+          performedByName: request.userEmail,
+          reason: `Approved: ${request.reason}${request.comments ? ` - ${request.comments}` : ''}`
+        },
+        { status: previousStatus },
+        { status: newStatus }
+      );
 
       // Send approval notification
       await notificationService.sendApprovalDecision(
@@ -223,21 +253,22 @@ class ApprovalWorkflowService {
     const failureCount = results.length - successCount;
 
     // Log bulk approval action
-    await auditService.logPurchaseOrderAction({
-      purchaseOrderId: 'BULK_OPERATION',
-      purchaseOrderNumber: `Bulk Approval (${purchaseOrders.length} orders)`,
-      action: 'bulk_approved',
-      performedBy: request.userId,
-      performedByName: request.userEmail,
-      timestamp: new Date(request.timestamp),
-      reason: `Bulk approval: ${request.reason}${request.comments ? ` - ${request.comments}` : ''}`,
-      metadata: {
-        purchaseOrderIds: request.purchaseOrderIds,
-        successCount,
-        failureCount,
-        totalAmount: purchaseOrders.reduce((sum, po) => sum + po.total, 0)
+    await auditService.logPurchaseOrderAudit(
+      'BULK_OPERATION',
+      `Bulk Approval (${purchaseOrders.length} orders)`,
+      'bulk_approved',
+      {
+        performedBy: request.userId,
+        performedByName: request.userEmail,
+        reason: `Bulk approval: ${request.reason}${request.comments ? ` - ${request.comments}` : ''}`,
+        metadata: {
+          purchaseOrderIds: request.purchaseOrderIds,
+          successCount,
+          failureCount,
+          totalAmount: purchaseOrders.reduce((sum, po) => sum + po.total, 0)
+        }
       }
-    });
+    );
 
     // Send bulk approval notification
     if (successCount > 0) {
@@ -262,40 +293,42 @@ class ApprovalWorkflowService {
         console.log(`Bulk receiving integration completed for ${successCount} approved purchase orders`);
         
         // Log bulk integration success
-        await auditService.logPurchaseOrderAction({
-          purchaseOrderId: 'BULK_INTEGRATION',
-          purchaseOrderNumber: `Bulk Integration (${successCount} orders)`,
-          action: 'bulk_receiving_integration',
-          performedBy: request.userId,
-          performedByName: request.userEmail,
-          timestamp: new Date(),
-          reason: `Bulk receiving integration for ${successCount} approved purchase orders`,
-          metadata: {
-            successfulApprovals: successCount,
-            totalProcessed: purchaseOrders.length,
-            approvedPurchaseOrderIds: purchaseOrders
-              .filter((_, index) => results[index].success)
-              .map(po => po.id)
+        await auditService.logPurchaseOrderAudit(
+          'BULK_INTEGRATION',
+          `Bulk Integration (${successCount} orders)`,
+          'bulk_receiving_integration',
+          {
+            performedBy: request.userId,
+            performedByName: request.userEmail,
+            reason: `Bulk receiving integration for ${successCount} approved purchase orders`,
+            metadata: {
+              successfulApprovals: successCount,
+              totalProcessed: purchaseOrders.length,
+              approvedPurchaseOrderIds: purchaseOrders
+                .filter((_, index) => results[index].success)
+                .map(po => po.id)
+            }
           }
-        });
+        );
       } catch (integrationError) {
         // Batch integration failure should not affect approval results
         console.error('Bulk receiving integration failed:', integrationError);
         
         // Log the failure for monitoring
-        await auditService.logPurchaseOrderAction({
-          purchaseOrderId: 'BULK_INTEGRATION_FAILED',
-          purchaseOrderNumber: `Failed Bulk Integration (${successCount} orders)`,
-          action: 'bulk_receiving_integration_failed',
-          performedBy: request.userId,
-          performedByName: request.userEmail,
-          timestamp: new Date(),
-          reason: `Bulk receiving integration failed: ${integrationError instanceof Error ? integrationError.message : 'Unknown error'}`,
-          metadata: {
-            successfulApprovals: successCount,
-            errorDetails: integrationError instanceof Error ? integrationError.stack : String(integrationError)
+        await auditService.logPurchaseOrderAudit(
+          'BULK_INTEGRATION_FAILED',
+          `Failed Bulk Integration (${successCount} orders)`,
+          'bulk_receiving_integration_failed',
+          {
+            performedBy: request.userId,
+            performedByName: request.userEmail,
+            reason: `Bulk receiving integration failed: ${integrationError instanceof Error ? integrationError.message : 'Unknown error'}`,
+            metadata: {
+              successfulApprovals: successCount,
+              errorDetails: integrationError instanceof Error ? integrationError.stack : String(integrationError)
+            }
           }
-        }).catch(auditError => {
+        ).catch(auditError => {
           console.error('Failed to log bulk integration failure:', auditError);
         });
       }
@@ -334,7 +367,7 @@ class ApprovalWorkflowService {
       }
 
       // Check valid status transition to cancelled
-      const currentStatus = this.mapLegacyToEnhanced(purchaseOrder.status);
+      const currentStatus = purchaseOrder.enhancedStatus || this.mapLegacyToEnhanced(purchaseOrder.status);
       const canTransitionToCancelled = purchaseOrderStateMachine.canTransition(
         currentStatus,
         'cancelled'
@@ -360,17 +393,18 @@ class ApprovalWorkflowService {
       );
 
       // Log the rejection in audit trail
-      await auditService.logPurchaseOrderAction({
-        purchaseOrderId: purchaseOrder.id,
-        purchaseOrderNumber: purchaseOrder.poNumber,
-        action: 'status_changed',
-        performedBy: request.userId,
-        performedByName: request.userEmail,
-        timestamp: new Date(request.timestamp),
-        oldValues: { status: previousStatus },
-        newValues: { status: newStatus },
-        reason: `Rejected: ${request.reason} - ${request.comments}`
-      });
+      await auditService.logPurchaseOrderAudit(
+        purchaseOrder.id,
+        purchaseOrder.poNumber,
+        'status_changed',
+        {
+          performedBy: request.userId,
+          performedByName: request.userEmail,
+          reason: `Rejected: ${request.reason} - ${request.comments}`
+        },
+        { status: previousStatus },
+        { status: newStatus }
+      );
 
       // Send rejection notification
       await notificationService.sendApprovalDecision(
@@ -549,8 +583,39 @@ class ApprovalWorkflowService {
     newStatus: string,
     request: any
   ) {
-    // In a real implementation, this would call the purchase order API
-    console.log(`Updating PO ${purchaseOrderId} status to ${newStatus}`, request);
+    // Import supabase client
+    const { supabase } = await import('../utils/supabase');
+    
+    try {
+      // Update both legacy status and enhanced_status in database
+      const updates: any = {
+        enhanced_status: newStatus
+      };
+
+      // Add approval fields for approved status
+      if (newStatus === 'approved') {
+        updates.approved_by = request.userId;
+        updates.approved_at = new Date().toISOString();
+      }
+
+      const { data, error } = await supabase
+        .from('purchase_orders')
+        .update(updates)
+        .eq('id', purchaseOrderId)
+        .select()
+        .single();
+
+      if (error) {
+        console.error(`Failed to update PO ${purchaseOrderId} status:`, error);
+        throw error;
+      }
+
+      console.log(`✅ Successfully updated PO ${purchaseOrderId} status to ${newStatus}`, data);
+      return data;
+    } catch (error) {
+      console.error(`Error updating PO ${purchaseOrderId} status:`, error);
+      throw error;
+    }
   }
 
   /**

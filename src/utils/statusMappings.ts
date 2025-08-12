@@ -56,7 +56,7 @@ export const isReceivableStatus = (status: PurchaseOrderStatus): boolean => {
  * Get enhanced statuses that should appear in receiving queue
  */
 export const getReceivableEnhancedStatuses = (): EnhancedPurchaseOrderStatus[] => {
-  return ['sent_to_supplier', 'partially_received'];
+  return ['approved', 'sent_to_supplier', 'partially_received'];
 };
 
 /**

@@ -263,6 +263,11 @@ export const LazyCloudBackup = createEnhancedLazyComponent(
   () => import('../components/backup/CloudBackup')
 );
 
+export const LazyReceivingModule = createEnhancedLazyComponent(
+  MODULE_CONFIGS.receiving,
+  () => import('../modules/receiving/ReceivingModule')
+);
+
 // Standard lazy components (maintaining backward compatibility)
 export const LazyBranchManagement = lazy(() => import('../components/branches/BranchManagement'));
 export const LazySettingsPage = lazy(() => import('../components/settings/SettingsPage'));

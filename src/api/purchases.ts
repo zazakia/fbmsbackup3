@@ -667,6 +667,7 @@ export async function getPurchaseOrdersByStatus(status: PurchaseOrderStatus) {
       tax,
       total,
       status,
+      enhanced_status,
       expected_date,
       received_date,
       created_by,
@@ -692,6 +693,64 @@ export async function getPurchaseOrdersByStatus(status: PurchaseOrderStatus) {
       createdBy: po.created_by,
       createdAt: new Date(po.created_at)
     }));
+    return { data: transformedData, error: null };
+  }
+
+  return { data: null, error };
+}
+
+/**
+ * Get purchase orders for approval queue using enhanced statuses
+ */
+export async function getPurchaseOrdersForApproval() {
+  console.log('🔍 Loading purchase orders for approval queue...');
+  
+  const { data, error } = await supabase
+    .from('purchase_orders')
+    .select(`
+      id,
+      po_number,
+      supplier_id,
+      supplier_name,
+      items,
+      subtotal,
+      tax,
+      total,
+      status,
+      enhanced_status,
+      expected_date,
+      received_date,
+      created_by,
+      created_at
+    `)
+    .in('enhanced_status', ['draft', 'pending_approval'])
+    .order('created_at', { ascending: true }); // Oldest first for approval queue
+  
+  console.log('🔍 DEBUG: Approval queue query results:', { 
+    count: data?.length || 0, 
+    error: error?.message,
+    statuses: data?.map(po => ({ id: po.id, enhanced_status: po.enhanced_status, status: po.status }))
+  });
+
+  if (data) {
+    const transformedData = data.map(po => ({
+      id: po.id,
+      poNumber: po.po_number,
+      supplierId: po.supplier_id,
+      supplierName: po.supplier_name,
+      items: po.items || [],
+      subtotal: po.subtotal || 0,
+      tax: po.tax || 0,
+      total: po.total || 0,
+      status: po.enhanced_status || po.status, // Use enhanced_status as primary status
+      enhancedStatus: po.enhanced_status,
+      expectedDate: po.expected_date ? new Date(po.expected_date) : undefined,
+      receivedDate: po.received_date ? new Date(po.received_date) : undefined,
+      createdBy: po.created_by,
+      createdAt: new Date(po.created_at)
+    }));
+
+    console.log('🔍 DEBUG: Transformed approval queue data:', transformedData.length, 'orders');
     return { data: transformedData, error: null };
   }
 
