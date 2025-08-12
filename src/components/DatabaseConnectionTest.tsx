@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Database, CheckCircle, XCircle, AlertCircle, RefreshCw, Settings, Wifi } from 'lucide-react';
+import { Database, CheckCircle, XCircle, AlertCircle, RefreshCw, Wifi } from 'lucide-react';
 import { supabase } from '../utils/supabase';
-import { useSettingsStore } from '../store/settingsStore';
 
 const DatabaseConnectionTest: React.FC = () => {
   const [status, setStatus] = useState<'checking' | 'connected' | 'error'>('checking');
@@ -9,41 +8,11 @@ const DatabaseConnectionTest: React.FC = () => {
   const [stats, setStats] = useState<{ products: number; customers: number; users: number }>({ 
     products: 0, customers: 0, users: 0 
   });
-  const [databaseMode, setDatabaseModeLocal] = useState<'local' | 'remote'>('remote');
-  const [showFixPrompt, setShowFixPrompt] = useState(false);
-  const { setDatabaseMode } = useSettingsStore();
+  const [databaseMode] = useState<'remote'>('remote'); // Always use remote in production
 
   const checkConnection = async () => {
     setStatus('checking');
-    setDetails('Testing database connection...');
-    
-    // Check current database mode from localStorage
-    try {
-      const stored = localStorage.getItem('fbms-settings-store');
-      if (stored) {
-        const settings = JSON.parse(stored);
-        const mode = settings?.state?.database?.mode || 'remote';
-        setDatabaseModeLocal(mode);
-        
-        // If we're in local mode but local Supabase is down, show fix prompt
-        if (mode === 'local') {
-          try {
-            const testLocal = await fetch('http://127.0.0.1:54321/rest/v1/', {
-              headers: { 'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxvY2FsaG9zdCIsInJvbGUiOiJhbm9uIiwiaWF0IjoxNjQxNzY5MjAwLCJleHAiOjE5NTcxMjkyMDB9.IotU_8FMxp8nZx4Pf0FJYCe9NdLOEBDw8oGOEQ4wHHw' },
-              signal: AbortSignal.timeout(3000)
-            });
-            if (!testLocal.ok) throw new Error('Local Supabase not responding');
-          } catch (error) {
-            setShowFixPrompt(true);
-            setStatus('error');
-            setDetails('Local Supabase is not running. Click "Switch to Remote" to fix this.');
-            return;
-          }
-        }
-      }
-    } catch (error) {
-      console.warn('Error checking database mode:', error);
-    }
+    setDetails('Testing remote database connection...');
     
     try {
       // Test products table
@@ -100,10 +69,7 @@ const DatabaseConnectionTest: React.FC = () => {
     }
   };
 
-  const handleSwitchToRemote = () => {
-    console.log('🔧 Switching to remote database mode...');
-    setDatabaseMode('remote');
-  };
+  // Removed handleSwitchToRemote - always use remote in production
 
   useEffect(() => {
     checkConnection();
@@ -149,15 +115,6 @@ const DatabaseConnectionTest: React.FC = () => {
           </div>
         </div>
         <div className="flex space-x-2">
-          {showFixPrompt && (
-            <button 
-              onClick={handleSwitchToRemote}
-              className="text-xs px-3 py-1 bg-red-600 text-white border border-red-700 rounded hover:bg-red-700 flex items-center space-x-1"
-            >
-              <Settings className="h-3 w-3" />
-              <span>Switch to Remote</span>
-            </button>
-          )}
           <button 
             onClick={checkConnection}
             disabled={status === 'checking'}

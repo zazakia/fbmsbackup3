@@ -28,16 +28,10 @@ interface MenuVisibilitySettings {
   settings: boolean;
 }
 
-interface DatabaseSettings {
-  mode: 'local' | 'remote';
-}
-
 interface SettingsStore {
   menuVisibility: MenuVisibilitySettings;
-  database: DatabaseSettings;
   setMenuVisibility: (menuId: string, visible: boolean) => void;
   toggleAllMenus: (visible: boolean) => void;
-  setDatabaseMode: (mode: 'local' | 'remote') => void;
   resetToDefaults: () => void;
 }
 
@@ -72,7 +66,6 @@ export const useSettingsStore = create<SettingsStore>()(
   persist(
     (set, get) => ({
       menuVisibility: defaultMenuVisibilitySettings,
-      database: { mode: 'remote' },
 
       setMenuVisibility: (menuId: string, visible: boolean) => {
         set((state) => ({
@@ -93,20 +86,9 @@ export const useSettingsStore = create<SettingsStore>()(
         });
       },
 
-      setDatabaseMode: (mode: 'local' | 'remote') => {
-        set((state) => ({
-          database: { mode }
-        }));
-        // Force page refresh to reinitialize Supabase client
-        if (typeof window !== 'undefined') {
-          window.location.reload();
-        }
-      },
-
       resetToDefaults: () => {
         set({ 
-          menuVisibility: defaultMenuVisibilitySettings,
-          database: { mode: 'remote' }
+          menuVisibility: defaultMenuVisibilitySettings
         });
       }
     }),
