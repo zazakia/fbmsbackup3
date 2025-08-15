@@ -30,7 +30,7 @@ export async function enhancedLogout(): Promise<LogoutResult> {
     console.log('🚪 Starting enhanced logout process...');
     
     // Step 1: Prevent new auth state change events during logout
-    let authStateChangeListener: any = null;
+    const authStateChangeListener: any = null;
     try {
       // Get the current auth store state before clearing
       const currentStore = useSupabaseAuthStore.getState();

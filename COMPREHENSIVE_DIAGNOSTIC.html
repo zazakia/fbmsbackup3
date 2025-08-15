@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>🔬 Comprehensive Diagnostic - Data Flow Analysis</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 1200px; margin: 20px auto; padding: 20px; }
+        .diagnostic-section { border: 1px solid #ddd; margin: 20px 0; padding: 20px; border-radius: 8px; }
+        .diagnostic-section h3 { margin-top: 0; }
+        .result { padding: 10px; margin: 8px 0; border-radius: 5px; font-size: 14px; }
+        .success { background: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
+        .error { background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
+        .warning { background: #fff3cd; border: 1px solid #ffeaa7; color: #856404; }
+        .info { background: #d1ecf1; border: 1px solid #bee5eb; color: #0c5460; }
+        .loading { background: #e2e3e5; border: 1px solid #d6d8db; color: #383d41; }
+        button { padding: 12px 24px; font-size: 16px; cursor: pointer; margin: 5px; background: #007bff; color: white; border: none; border-radius: 4px; }
+        button:hover { background: #0056b3; }
+        button.danger { background: #dc3545; }
+        button.danger:hover { background: #c82333; }
+        .json { background: #f8f9fa; padding: 15px; border: 1px solid #dee2e6; margin: 10px 0; overflow-x: auto; border-radius: 4px; font-size: 12px; }
+        .flow-step { margin: 15px 0; padding: 15px; border-left: 4px solid #007bff; background: #f8f9fa; }
+        .step-status { display: inline-block; width: 20px; height: 20px; border-radius: 50%; margin-right: 10px; text-align: center; line-height: 20px; font-size: 12px; color: white; }
+        .step-success { background: #28a745; }
+        .step-error { background: #dc3545; }
+        .step-pending { background: #6c757d; }
+        .localStorage-info { background: #fff3cd; padding: 15px; border: 1px solid #ffeaa7; border-radius: 4px; margin: 10px 0; }
+        .critical-issue { border: 3px solid #dc3545; background: #f8d7da; }
+    </style>
+</head>
+<body>
+    <h1>🔬 Comprehensive Diagnostic - Data Flow Analysis</h1>
+    <p>Deep analysis of the complete data flow from Supabase to UI to identify all potential issues.</p>
+
+    <div class="diagnostic-section">
+        <h3>🏁 Quick Actions</h3>
+        <button onclick="runFullDiagnostic()">🚀 Run Full Diagnostic</button>
+        <button onclick="clearLocalStorage()" class="danger">🧹 Clear localStorage</button>
+        <button onclick="testLiveDataFlow()">📡 Test Live Data Flow</button>
+    </div>
+
+    <div id="diagnostic-results"></div>
+
+    <script>
+        let diagnosticResults = [];
+
+        function addResult(section, message, type = 'info', data = null) {
+            const result = { section, message, type, data, timestamp: new Date().toISOString() };
+            diagnosticResults.push(result);
+            
+            const resultsContainer = document.getElementById('diagnostic-results');
+            const sectionContainer = document.getElementById(`section-${section}`) || createSection(section);
+            
+            const div = document.createElement('div');
+            div.className = `result ${type}`;
+            div.innerHTML = message + (data ? `<div class="json"><pre>${JSON.stringify(data, null, 2)}</pre></div>` : '');
+            sectionContainer.appendChild(div);
+        }
+
+        function createSection(sectionName) {
+            const resultsContainer = document.getElementById('diagnostic-results');
+            const sectionDiv = document.createElement('div');
+            sectionDiv.className = 'diagnostic-section';
+            sectionDiv.id = `section-${sectionName}`;
+            sectionDiv.innerHTML = `<h3>${sectionName}</h3>`;
+            resultsContainer.appendChild(sectionDiv);
+            return sectionDiv;
+        }
+
+        // Step 1: Environment and Configuration Analysis
+        async function analyzeEnvironment() {
+            addResult('environment', '🔍 Analyzing environment and configuration...', 'loading');
+            
+            const config = {
+                url: window.location.href,
+                port: window.location.port,
+                protocol: window.location.protocol,
+                host: window.location.host,
+                userAgent: navigator.userAgent.substring(0, 100),
+                localStorage: {
+                    available: typeof localStorage !== 'undefined',
+                    keys: localStorage ? Object.keys(localStorage) : []
+                }
+            };
+            
+            addResult('environment', '✅ Environment analysis complete', 'success', config);
+            
+            // Check for business store data in localStorage
+            if (localStorage) {
+                const businessData = localStorage.getItem('fbms-business');
+                if (businessData) {
+                    try {
+                        const parsed = JSON.parse(businessData);
+                        const productsCount = parsed.state?.products?.length || 0;
+                        const lastUpdate = parsed.state?.lastUpdate;
+                        
+                        if (productsCount > 0) {
+                            addResult('environment', `⚠️ Found ${productsCount} products in localStorage cache`, 'warning', {
+                                productsCount,
+                                lastUpdate,
+                                sampleProduct: parsed.state.products?.[0]
+                            });
+                        } else {
+                            addResult('environment', '✅ No stale products in localStorage', 'success');
+                        }
+                    } catch (e) {
+                        addResult('environment', '⚠️ Could not parse localStorage business data', 'warning', e.message);
+                    }
+                } else {
+                    addResult('environment', '✅ No business store data in localStorage', 'success');
+                }
+            }
+        }
+
+        // Step 2: Direct Supabase API Test
+        async function testDirectSupabase() {
+            addResult('supabase', '🔍 Testing direct Supabase API...', 'loading');
+            
+            try {
+                const response = await fetch('https://coqjcziquviehgyifhek.supabase.co/rest/v1/products?limit=5', {
+                    headers: {
+                        'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNvcWpjemlxdXZpZWhneWlmaGVrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk0MDUzOTMsImV4cCI6MjA2NDk4MTM5M30.NSdUfHdeXLwBCcY9UO4s3LoSEBm4AuU0Jh5BLIcoQ5E',
+                        'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNvcWpjemlxdXZpZWhneWlmaGVrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk0MDUzOTMsImV4cCI6MjA2NDk4MTM5M30.NSdUfHdeXLwBCcY9UO4s3LoSEBm4AuU0Jh5BLIcoQ5E'
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    addResult('supabase', `✅ Direct Supabase API: ${data.length} products`, 'success', {
+                        count: data.length,
+                        products: data.map(p => ({ name: p.name, category: p.category, stock: p.stock }))
+                    });
+                    return { success: true, data };
+                } else {
+                    addResult('supabase', `❌ Direct Supabase API failed: ${response.status}`, 'error', await response.text());
+                    return { success: false, error: response.status };
+                }
+            } catch (err) {
+                addResult('supabase', `❌ Direct Supabase connection failed: ${err.message}`, 'error');
+                return { success: false, error: err.message };
+            }
+        }
+
+        // Step 3: App API Layer Test
+        async function testAppAPI() {
+            addResult('app-api', '🔍 Testing app API layer (getProducts)...', 'loading');
+            
+            try {
+                const module = await import('/src/api/products.ts?diagnostic=' + Date.now());
+                const result = await module.getProducts(5);
+                
+                if (result.data && result.data.length > 0) {
+                    addResult('app-api', `✅ App API: ${result.data.length} products with transformations`, 'success', {
+                        count: result.data.length,
+                        sample: result.data[0],
+                        hasCategory: !!result.data[0]?.category,
+                        hasCategoryId: !!result.data[0]?.categoryId,
+                        hasMinStock: result.data[0]?.minStock !== undefined
+                    });
+                    return { success: true, data: result.data };
+                } else if (result.error) {
+                    addResult('app-api', `❌ App API error: ${result.error.message}`, 'error', result.error);
+                    return { success: false, error: result.error };
+                } else {
+                    addResult('app-api', '⚠️ App API returned no data', 'warning');
+                    return { success: false, error: 'No data' };
+                }
+            } catch (err) {
+                addResult('app-api', `❌ App API test failed: ${err.message}`, 'error', err);
+                return { success: false, error: err.message };
+            }
+        }
+
+        // Step 4: Store Test (simulate fetchProducts)
+        async function testStoreLayer() {
+            addResult('store', '🔍 Testing store layer behavior...', 'loading');
+            
+            try {
+                // Try to simulate what the store does
+                const module = await import('/src/api/products.ts?store=' + Date.now());
+                
+                // Simulate the store's fetchProducts behavior
+                console.log('🔄 [DIAGNOSTIC] Simulating store fetchProducts...');
+                const { data: productsData, error } = await module.getProducts();
+                
+                if (error) {
+                    addResult('store', `❌ Store simulation error: ${error.message}`, 'error', error);
+                    return { success: false, error };
+                }
+                
+                // This is what the store should receive
+                const products = productsData || [];
+                console.log('✅ [DIAGNOSTIC] Store would receive:', products.length, 'products');
+                
+                addResult('store', `✅ Store simulation: Would receive ${products.length} products`, 'success', {
+                    count: products.length,
+                    sampleProduct: products[0] ? {
+                        name: products[0].name,
+                        category: products[0].category,
+                        categoryId: products[0].categoryId,
+                        minStock: products[0].minStock,
+                        isActive: products[0].isActive
+                    } : null
+                });
+                
+                return { success: true, products };
+            } catch (err) {
+                addResult('store', `❌ Store simulation failed: ${err.message}`, 'error', err);
+                return { success: false, error: err.message };
+            }
+        }
+
+        // Step 5: LocalStorage Analysis
+        function analyzeLocalStorage() {
+            addResult('persistence', '🔍 Analyzing localStorage persistence...', 'loading');
+            
+            if (!localStorage) {
+                addResult('persistence', '❌ localStorage not available', 'error');
+                return;
+            }
+            
+            const businessKey = 'fbms-business';
+            const businessData = localStorage.getItem(businessKey);
+            
+            if (!businessData) {
+                addResult('persistence', '✅ No business data in localStorage (clean state)', 'success');
+                return;
+            }
+            
+            try {
+                const parsed = JSON.parse(businessData);
+                const state = parsed.state || parsed;
+                const products = state.products || [];
+                
+                addResult('persistence', `📊 localStorage analysis:`, 'info', {
+                    hasData: true,
+                    productsCount: products.length,
+                    version: parsed.version,
+                    structure: Object.keys(state),
+                    sampleProduct: products[0] ? {
+                        name: products[0].name,
+                        hasCategory: !!products[0].category,
+                        hasCategoryId: !!products[0].categoryId,
+                        source: 'localStorage'
+                    } : null
+                });
+                
+                if (products.length === 0) {
+                    addResult('persistence', '✅ localStorage has no cached products', 'success');
+                } else if (products.length > 0 && products[0]?.name === 'Sample Product') {
+                    addResult('persistence', '⚠️ localStorage contains mock/sample data - may override real data', 'warning');
+                } else {
+                    addResult('persistence', `⚠️ localStorage has ${products.length} cached products - check if stale`, 'warning');
+                }
+                
+            } catch (e) {
+                addResult('persistence', `❌ Could not parse localStorage data: ${e.message}`, 'error');
+            }
+        }
+
+        // Action functions
+        function clearLocalStorage() {
+            if (confirm('This will clear ALL localStorage data for this app. Continue?')) {
+                localStorage.clear();
+                addResult('actions', '🧹 localStorage cleared completely', 'success');
+                location.reload();
+            }
+        }
+
+        async function testLiveDataFlow() {
+            addResult('live-test', '🔍 Testing live data flow (simulate app loading)...', 'loading');
+            
+            try {
+                // Step 1: Clear and reload to test fresh
+                const businessKey = 'fbms-business';
+                const oldData = localStorage.getItem(businessKey);
+                if (oldData) {
+                    localStorage.removeItem(businessKey);
+                    addResult('live-test', '🧹 Cleared old business data for clean test', 'info');
+                }
+                
+                // Step 2: Test API call
+                const apiResult = await testAppAPI();
+                if (!apiResult.success) {
+                    addResult('live-test', '❌ Live test failed at API layer', 'error');
+                    return;
+                }
+                
+                // Step 3: Simulate store behavior
+                const storeResult = await testStoreLayer();
+                if (!storeResult.success) {
+                    addResult('live-test', '❌ Live test failed at store layer', 'error');
+                    return;
+                }
+                
+                // Step 4: Check if data would persist correctly
+                setTimeout(() => {
+                    const newData = localStorage.getItem(businessKey);
+                    if (newData) {
+                        const parsed = JSON.parse(newData);
+                        const products = parsed.state?.products || [];
+                        addResult('live-test', `📊 After simulation: ${products.length} products in localStorage`, 'info');
+                    }
+                }, 1000);
+                
+                addResult('live-test', '✅ Live data flow test completed successfully', 'success');
+                
+            } catch (err) {
+                addResult('live-test', `❌ Live data flow test failed: ${err.message}`, 'error');
+            }
+        }
+
+        async function runFullDiagnostic() {
+            document.getElementById('diagnostic-results').innerHTML = '';
+            diagnosticResults = [];
+            
+            addResult('diagnostic', '🚀 Starting comprehensive diagnostic...', 'loading');
+            
+            // Run all diagnostic steps
+            await analyzeEnvironment();
+            const supabaseTest = await testDirectSupabase();
+            const apiTest = await testAppAPI();
+            const storeTest = await testStoreLayer();
+            analyzeLocalStorage();
+            
+            // Summary
+            const allPassed = supabaseTest.success && apiTest.success && storeTest.success;
+            
+            if (allPassed) {
+                addResult('summary', '🎉 All diagnostic tests passed! Data flow should work correctly.', 'success');
+                addResult('summary', '💡 If products still don\'t appear, try: 1) Clear localStorage 2) Refresh page 3) Navigate to Inventory', 'info');
+            } else {
+                addResult('summary', '❌ Some diagnostic tests failed. Check the results above for issues.', 'error');
+                
+                if (!supabaseTest.success) {
+                    addResult('summary', '🔥 CRITICAL: Supabase connection failing', 'error');
+                }
+                if (!apiTest.success) {
+                    addResult('summary', '🔥 CRITICAL: App API layer failing', 'error');
+                }
+                if (!storeTest.success) {
+                    addResult('summary', '🔥 CRITICAL: Store layer failing', 'error');
+                }
+            }
+        }
+
+        // Auto-run diagnostic on load
+        window.onload = function() {
+            setTimeout(runFullDiagnostic, 500);
+        };
+    </script>
+</body>
+</html>

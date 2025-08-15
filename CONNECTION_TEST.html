@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Supabase Connection Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test { margin: 10px 0; padding: 10px; border: 1px solid #ccc; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .pending { background-color: #fff3cd; border-color: #ffeaa7; }
+    </style>
+</head>
+<body>
+    <h1>Supabase Connection Test</h1>
+    <div id="results"></div>
+    
+    <script type="module">
+        const results = document.getElementById('results');
+        
+        function addResult(test, status, message) {
+            const div = document.createElement('div');
+            div.className = `test ${status}`;
+            div.innerHTML = `<strong>${test}:</strong> ${message}`;
+            results.appendChild(div);
+        }
+        
+        // Import Supabase
+        import { createClient } from 'https://cdn.skypack.dev/@supabase/supabase-js';
+        
+        const supabaseUrl = 'http://127.0.0.1:54321';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOuoJuXp0L4xdYPL2nTCFKKqcchHuJOY0PZc';
+        
+        const supabase = createClient(supabaseUrl, supabaseKey);
+        
+        async function runTests() {
+            addResult('Initialization', 'success', 'Supabase client created');
+            
+            // Test 1: Basic connectivity
+            try {
+                addResult('Connectivity Test', 'pending', 'Testing basic connection...');
+                
+                const timeout = new Promise((_, reject) => 
+                    setTimeout(() => reject(new Error('Connection timeout after 5 seconds')), 5000)
+                );
+                
+                const connectTest = fetch(`${supabaseUrl}/rest/v1/`, {
+                    method: 'HEAD',
+                    headers: {
+                        'apikey': supabaseKey,
+                        'Authorization': `Bearer ${supabaseKey}`
+                    }
+                });
+                
+                await Promise.race([connectTest, timeout]);
+                addResult('Connectivity Test', 'success', 'Basic connection successful');
+            } catch (error) {
+                addResult('Connectivity Test', 'error', `Failed: ${error.message}`);
+                return; // Stop if basic connection fails
+            }
+            
+            // Test 2: Products table query
+            try {
+                addResult('Products Query', 'pending', 'Testing products table access...');
+                
+                const timeout = new Promise((_, reject) => 
+                    setTimeout(() => reject(new Error('Query timeout after 10 seconds')), 10000)
+                );
+                
+                const query = supabase.from('products').select('id, name').limit(1);
+                const result = await Promise.race([query, timeout]);
+                
+                if (result.error) {
+                    addResult('Products Query', 'error', `Database error: ${result.error.message}`);
+                } else {
+                    addResult('Products Query', 'success', `Got ${result.data?.length || 0} products`);
+                }
+            } catch (error) {
+                addResult('Products Query', 'error', `Query failed: ${error.message}`);
+            }
+            
+            // Test 3: Categories table query
+            try {
+                addResult('Categories Query', 'pending', 'Testing categories table access...');
+                
+                const timeout = new Promise((_, reject) => 
+                    setTimeout(() => reject(new Error('Query timeout after 10 seconds')), 10000)
+                );
+                
+                const query = supabase.from('categories').select('id, name').limit(1);
+                const result = await Promise.race([query, timeout]);
+                
+                if (result.error) {
+                    addResult('Categories Query', 'error', `Database error: ${result.error.message}`);
+                } else {
+                    addResult('Categories Query', 'success', `Got ${result.data?.length || 0} categories`);
+                }
+            } catch (error) {
+                addResult('Categories Query', 'error', `Query failed: ${error.message}`);
+            }
+            
+            // Test 4: Insert test
+            try {
+                addResult('Insert Test', 'pending', 'Testing product insertion...');
+                
+                const timeout = new Promise((_, reject) => 
+                    setTimeout(() => reject(new Error('Insert timeout after 10 seconds')), 10000)
+                );
+                
+                const testProduct = {
+                    name: 'Connection Test Product',
+                    sku: `TEST-${Date.now()}`,
+                    category: 'Test Category',
+                    price: 99.99,
+                    cost: 50.00,
+                    stock: 10,
+                    min_stock: 5,
+                    unit: 'pcs',
+                    is_active: true
+                };
+                
+                const insertQuery = supabase.from('products').insert([testProduct]).select().single();
+                const result = await Promise.race([insertQuery, timeout]);
+                
+                if (result.error) {
+                    addResult('Insert Test', 'error', `Insert failed: ${result.error.message}`);
+                } else {
+                    addResult('Insert Test', 'success', `Created product: ${result.data.name} (ID: ${result.data.id})`);
+                }
+            } catch (error) {
+                addResult('Insert Test', 'error', `Insert failed: ${error.message}`);
+            }
+            
+            addResult('All Tests Complete', 'success', 'Connection testing finished');
+        }
+        
+        runTests().catch(error => {
+            addResult('Fatal Error', 'error', error.message);
+        });
+    </script>
+</body>
+</html>

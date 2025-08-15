@@ -317,7 +317,7 @@ describe('User Validation - 409 Error Prevention', () => {
       };
 
       // Mock validation call
-      let callCount = 0;
+      const callCount = 0;
       (supabase.from as any).mockImplementation((table) => {
         if (table === 'users') {
           return {
@@ -481,7 +481,7 @@ describe('Error Recovery Scenarios', () => {
 });
 
 describe('System User Management', () => {
-  it('should create system user if it doesn\\'t exist', async () => {
+  it('should create system user if it doesn\'t exist', async () => {
     const mockNewSystemUser = {
       id: 'new-system-user',
       email: 'system@erp.local',

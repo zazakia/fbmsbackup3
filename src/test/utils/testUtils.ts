@@ -15,6 +15,11 @@ export interface TestEnvironmentConfig {
   simulateErrors?: boolean;
   loadTestData?: boolean;
   testDataScale?: 'small' | 'medium' | 'large';
+  // New database testing options
+  useTestDatabase?: boolean;
+  forceMockDatabase?: boolean;
+  databaseStrategy?: 'local_supabase' | 'mock' | 'remote_test';
+  testType?: 'unit' | 'integration' | 'e2e' | 'ci';
 }
 
 // Test validation results
@@ -86,6 +91,7 @@ export class TestEnvironmentManager {
   private currentConfig: TestEnvironmentConfig = {};
   private testData: InventoryTestData | null = null;
   private performanceMetrics: PerformanceMetric[] = [];
+  private testEnvManager: import('../config/testEnvironment').TestEnvironmentManager | null = null;
 
   static getInstance(): TestEnvironmentManager {
     if (!TestEnvironmentManager.instance) {
@@ -97,6 +103,60 @@ export class TestEnvironmentManager {
   async setupTestEnvironment(config: TestEnvironmentConfig = {}): Promise<void> {
     this.currentConfig = { ...config };
 
+    // Import test environment manager dynamically to avoid circular dependencies
+    if (!this.testEnvManager) {
+      const { testEnvironment, TEST_CONFIGURATIONS } = await import('../config/testEnvironment');
+      this.testEnvManager = testEnvironment;
+    }
+
+    // Check if we're in test mode and should use dedicated test database
+    const isTestMode = import.meta.env.TEST === true;
+    const useTestDatabase = config.useTestDatabase || (isTestMode && !config.forceMockDatabase);
+
+    if (useTestDatabase && isTestMode) {
+      console.log('🧪 Setting up dedicated test database environment');
+      
+      // Determine test configuration based on test type
+      let testConfig;
+      if (config.testType) {
+        const { TEST_CONFIGURATIONS } = await import('../config/testEnvironment');
+        testConfig = TEST_CONFIGURATIONS[config.testType];
+      } else {
+        // Default to integration config for real database testing
+        const { TEST_CONFIGURATIONS } = await import('../config/testEnvironment');
+        testConfig = TEST_CONFIGURATIONS.integration;
+      }
+
+      // Override with user config
+      if (config.databaseStrategy) {
+        testConfig = {
+          ...testConfig,
+          database: {
+            ...testConfig.database,
+            strategy: config.databaseStrategy
+          }
+        };
+      }
+
+      try {
+        await this.testEnvManager!.initialize(testConfig);
+        
+        // If we successfully connected to real database, skip mock setup
+        if (this.testEnvManager!.isUsingRealDatabase()) {
+          console.log('✅ Using real test database, skipping mock setup');
+          
+          // Still setup performance monitoring
+          this.setupPerformanceMonitoring();
+          return;
+        }
+      } catch (error) {
+        console.warn('⚠️ Failed to setup test database, falling back to mocks:', error);
+      }
+    }
+
+    // Fallback to mock environment
+    console.log('🎭 Setting up mock test environment');
+    
     // Reset all mock services
     mockServices.reset();
 

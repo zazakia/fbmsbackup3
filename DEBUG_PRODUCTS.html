@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>🐛 Debug Products Loading</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 1000px; margin: 20px auto; padding: 20px; }
+        .test-section { border: 1px solid #ddd; margin: 20px 0; padding: 20px; border-radius: 8px; }
+        .result { padding: 15px; margin: 10px 0; border-radius: 5px; }
+        .success { background: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
+        .error { background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
+        .loading { background: #e2e3e5; border: 1px solid #d6d8db; color: #383d41; }
+        .info { background: #d1ecf1; border: 1px solid #bee5eb; color: #0c5460; }
+        button { padding: 10px 20px; font-size: 16px; cursor: pointer; margin: 5px; background: #007bff; color: white; border: none; border-radius: 4px; }
+        button:hover { background: #0056b3; }
+        .json { background: #f8f9fa; padding: 15px; border: 1px solid #dee2e6; margin: 10px 0; overflow-x: auto; border-radius: 4px; }
+        pre { margin: 0; font-size: 12px; }
+        .step { margin: 10px 0; padding: 10px; background: #f8f9fa; border-left: 4px solid #007bff; }
+    </style>
+</head>
+<body>
+    <h1>🐛 Debug: Why Products Aren't Loading</h1>
+    <p>Let's systematically debug why your cloud Supabase products aren't appearing in the web app.</p>
+
+    <div class="test-section">
+        <h3>Step 1: Test Direct Supabase API</h3>
+        <button onclick="testDirectSupabase()">🔗 Test Cloud Supabase Direct</button>
+        <div id="direct-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>Step 2: Test App's Products API</h3>
+        <button onclick="testAppAPI()">🚀 Test App's getProducts()</button>
+        <div id="app-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>Step 3: Test with Console Debugging</h3>
+        <button onclick="testWithLogging()">🔍 Enable Debug Mode & Test</button>
+        <div id="debug-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>Step 4: Simulate App Load</h3>
+        <button onclick="simulateAppLoad()">📱 Simulate Full App Product Load</button>
+        <div id="simulate-result"></div>
+    </div>
+
+    <script>
+        function addResult(containerId, message, type = 'loading') {
+            const container = document.getElementById(containerId);
+            const div = document.createElement('div');
+            div.className = `result ${type}`;
+            div.innerHTML = message;
+            container.appendChild(div);
+            return div;
+        }
+
+        // Step 1: Test direct Supabase
+        async function testDirectSupabase() {
+            const resultDiv = addResult('direct-result', '🔄 Testing direct Supabase API...', 'loading');
+            
+            try {
+                const response = await fetch('https://coqjcziquviehgyifhek.supabase.co/rest/v1/products?limit=5', {
+                    headers: {
+                        'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNvcWpjemlxdXZpZWhneWlmaGVrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk0MDUzOTMsImV4cCI6MjA2NDk4MTM5M30.NSdUfHdeXLwBCcY9UO4s3LoSEBm4AuU0Jh5BLIcoQ5E',
+                        'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNvcWpjemlxdXZpZWhneWlmaGVrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk0MDUzOTMsImV4cCI6MjA2NDk4MTM5M30.NSdUfHdeXLwBCcY9UO4s3LoSEBm4AuU0Jh5BLIcoQ5E'
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    resultDiv.className = 'result success';
+                    resultDiv.innerHTML = `
+                        ✅ <strong>Direct Supabase SUCCESS!</strong><br>
+                        Status: ${response.status}<br>
+                        Count: ${data.length} products<br>
+                        Products: ${data.map(p => p.name).join(', ')}<br>
+                        <div class="json"><pre>${JSON.stringify(data, null, 2)}</pre></div>
+                    `;
+                } else {
+                    const error = await response.text();
+                    resultDiv.className = 'result error';
+                    resultDiv.innerHTML = `❌ <strong>Direct Supabase FAILED</strong><br>Status: ${response.status}<br>Error: ${error}`;
+                }
+            } catch (err) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `❌ <strong>Connection Error:</strong> ${err.message}`;
+            }
+        }
+
+        // Step 2: Test app's API by importing the function
+        async function testAppAPI() {
+            const resultDiv = addResult('app-result', '🔄 Testing app API (importing getProducts)...', 'loading');
+            
+            try {
+                // Try to test the app's API by calling it through the browser
+                const testScript = \`
+                    import { getProducts } from '/src/api/products.ts';
+                    
+                    console.log('🧪 [DEBUG] Starting getProducts test...');
+                    const result = await getProducts(5);
+                    console.log('🧪 [DEBUG] getProducts result:', result);
+                    
+                    return result;
+                \`;
+                
+                // Create a test using dynamic import
+                const module = await import('/src/api/products.ts');
+                console.log('📦 [DEBUG] Module imported:', Object.keys(module));
+                
+                const result = await module.getProducts(5);
+                console.log('🧪 [DEBUG] getProducts result:', result);
+                
+                if (result.data && result.data.length > 0) {
+                    resultDiv.className = 'result success';
+                    resultDiv.innerHTML = \`
+                        ✅ <strong>App API SUCCESS!</strong><br>
+                        Count: \${result.data.length} products<br>
+                        Products: \${result.data.map(p => p.name + ' (' + p.category + ')').join(', ')}<br>
+                        <div class="json"><pre>\${JSON.stringify(result.data, null, 2)}</pre></div>
+                    \`;
+                } else if (result.error) {
+                    resultDiv.className = 'result error';
+                    resultDiv.innerHTML = \`❌ <strong>App API Error:</strong> \${result.error.message}\`;
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.innerHTML = \`⚠️ <strong>App API returned empty data</strong>\`;
+                }
+            } catch (err) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = \`❌ <strong>Import Error:</strong> \${err.message}<br>
+                <div class="json"><pre>\${err.stack}</pre></div>\`;
+            }
+        }
+
+        // Step 3: Enable console debugging
+        async function testWithLogging() {
+            const resultDiv = addResult('debug-result', '🔄 Enabling debug logging and testing...', 'loading');
+            
+            // Override console.log to capture debug messages
+            const originalConsoleLog = console.log;
+            const debugMessages = [];
+            
+            console.log = function(...args) {
+                debugMessages.push(args.join(' '));
+                originalConsoleLog.apply(console, args);
+            };
+            
+            try {
+                // Import and test the API with logging
+                const module = await import('/src/api/products.ts?t=' + Date.now());
+                const result = await module.getProducts(3);
+                
+                // Restore original console.log
+                console.log = originalConsoleLog;
+                
+                resultDiv.className = 'result info';
+                resultDiv.innerHTML = \`
+                    🔍 <strong>Debug Results:</strong><br>
+                    API Result: \${result.data ? result.data.length + ' products' : 'No data'}<br>
+                    Error: \${result.error ? result.error.message : 'None'}<br>
+                    <div class="step"><strong>Console Output:</strong></div>
+                    <div class="json"><pre>\${debugMessages.filter(msg => msg.includes('[API]')).join('\\n')}</pre></div>
+                \`;
+            } catch (err) {
+                console.log = originalConsoleLog;
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = \`❌ <strong>Debug Test Failed:</strong> \${err.message}\`;
+            }
+        }
+
+        // Step 4: Simulate how the app loads products
+        async function simulateAppLoad() {
+            const resultDiv = addResult('simulate-result', '🔄 Simulating app product loading...', 'loading');
+            
+            try {
+                // Check if products are loaded via store or component
+                const checkSteps = [
+                    'Testing direct API call',
+                    'Checking for store integration', 
+                    'Simulating component mount',
+                    'Checking for data persistence'
+                ];
+                
+                let results = [];
+                
+                // Step 1: Direct API
+                try {
+                    const module = await import('/src/api/products.ts?sim=' + Date.now());
+                    const apiResult = await module.getProducts(10);
+                    results.push(\`✅ Direct API: \${apiResult.data ? apiResult.data.length : 0} products loaded\`);
+                    
+                    if (apiResult.data && apiResult.data.length > 0) {
+                        results.push(\`📋 Products found: \${apiResult.data.map(p => p.name).join(', ')}\`);
+                        results.push(\`🏷️ Categories: \${apiResult.data.map(p => p.category).join(', ')}\`);
+                    }
+                    
+                } catch (apiErr) {
+                    results.push(\`❌ Direct API failed: \${apiErr.message}\`);
+                }
+                
+                // Step 2: Check store (if accessible)
+                try {
+                    // This might not work due to React context, but we can try
+                    if (window.zustandStore) {
+                        results.push('✅ Zustand store detected');
+                    } else {
+                        results.push('⚠️ Zustand store not accessible from browser');
+                    }
+                } catch (storeErr) {
+                    results.push(\`⚠️ Store check failed: \${storeErr.message}\`);
+                }
+                
+                resultDiv.className = 'result info';
+                resultDiv.innerHTML = \`
+                    🔍 <strong>App Load Simulation Results:</strong><br>
+                    \${results.map(r => '<div class="step">' + r + '</div>').join('')}
+                    
+                    <div class="step"><strong>Next Steps:</strong></div>
+                    <div class="step">1. Check browser console for errors when loading inventory page</div>
+                    <div class="step">2. Verify the inventory component is calling getProducts()</div>
+                    <div class="step">3. Check if there's a store/context issue preventing updates</div>
+                \`;
+                
+            } catch (err) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = \`❌ <strong>Simulation Error:</strong> \${err.message}\`;
+            }
+        }
+
+        // Auto-run first test
+        window.onload = function() {
+            console.log('🐛 Debug page loaded. Starting diagnostic...');
+            testDirectSupabase();
+        };
+    </script>
+</body>
+</html>

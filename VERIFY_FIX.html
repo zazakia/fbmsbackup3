@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>✅ Verify Products Fix</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 50px auto; padding: 20px; }
+        .result { padding: 15px; margin: 10px 0; border-radius: 5px; }
+        .success { background: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
+        .error { background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
+        .loading { background: #e2e3e5; border: 1px solid #d6d8db; color: #383d41; }
+        button { padding: 10px 20px; font-size: 16px; cursor: pointer; margin: 5px; background: #28a745; color: white; border: none; border-radius: 4px; }
+        .product-card { border: 1px solid #ddd; margin: 10px 0; padding: 15px; border-radius: 8px; background: #f8f9fa; }
+        .product-card h4 { margin: 0 0 10px 0; color: #333; }
+        .product-info { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 14px; }
+        .test-status { padding: 20px; margin: 20px 0; border: 2px solid #ddd; border-radius: 10px; text-align: center; }
+        .test-status.success { border-color: #28a745; background: #d4edda; }
+        .test-status.error { border-color: #dc3545; background: #f8d7da; }
+    </style>
+</head>
+<body>
+    <h1>✅ Verify Products Loading Fix</h1>
+    <p>Testing if products now load correctly from cloud Supabase with the fixed transformations.</p>
+
+    <div class="test-status" id="overall-status">
+        <h3>🔄 Running Tests...</h3>
+        <p>Please wait while we verify the fix</p>
+    </div>
+
+    <button onclick="runAllTests()">🚀 Test Fixed Products Loading</button>
+    
+    <div id="test-results"></div>
+
+    <script>
+        function addResult(message, type = 'loading') {
+            const results = document.getElementById('test-results');
+            const div = document.createElement('div');
+            div.className = `result ${type}`;
+            div.innerHTML = message;
+            results.appendChild(div);
+            return div;
+        }
+
+        function updateStatus(success, message) {
+            const status = document.getElementById('overall-status');
+            status.className = `test-status ${success ? 'success' : 'error'}`;
+            status.innerHTML = `
+                <h3>${success ? '✅ SUCCESS' : '❌ FAILED'}</h3>
+                <p>${message}</p>
+            `;
+        }
+
+        function createProductCard(product) {
+            return `
+                <div class="product-card">
+                    <h4>${product.name} (${product.sku})</h4>
+                    <div class="product-info">
+                        <div><strong>Category:</strong> ${product.category}</div>
+                        <div><strong>Price:</strong> ₱${product.price}</div>
+                        <div><strong>Stock:</strong> ${product.stock} ${product.unit}</div>
+                        <div><strong>Min Stock:</strong> ${product.minStock}</div>
+                        <div><strong>Active:</strong> ${product.isActive ? '✅' : '❌'}</div>
+                        <div><strong>Category ID:</strong> ${product.categoryId || 'Missing!'}</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        async function testAPILayer() {
+            addResult('🔄 Step 1: Testing API layer transformation...', 'loading');
+            
+            try {
+                const module = await import('/src/api/products.ts?fix=' + Date.now());
+                const result = await module.getProducts(5);
+                
+                if (result.data && result.data.length > 0) {
+                    const sampleProduct = result.data[0];
+                    const hasRequiredFields = sampleProduct.categoryId && sampleProduct.category && sampleProduct.minStock !== undefined;
+                    
+                    if (hasRequiredFields) {
+                        addResult(`✅ API Layer: ${result.data.length} products with correct transformation`, 'success');
+                        return { success: true, data: result.data };
+                    } else {
+                        addResult(`⚠️ API Layer: Products missing required fields (categoryId: ${!!sampleProduct.categoryId}, minStock: ${sampleProduct.minStock})`, 'error');
+                        return { success: false, error: 'Missing fields' };
+                    }
+                } else if (result.error) {
+                    addResult(`❌ API Layer: ${result.error.message}`, 'error');
+                    return { success: false, error: result.error.message };
+                } else {
+                    addResult('⚠️ API Layer: No data returned', 'error');
+                    return { success: false, error: 'No data' };
+                }
+            } catch (err) {
+                addResult(`❌ API Layer: ${err.message}`, 'error');
+                return { success: false, error: err.message };
+            }
+        }
+
+        async function testStoreLayer() {
+            addResult('🔄 Step 2: Testing store layer (if accessible)...', 'loading');
+            
+            try {
+                // Try to access the Zustand store if it's available
+                if (window.__ZUSTAND_STORE__) {
+                    const store = window.__ZUSTAND_STORE__;
+                    await store.fetchProducts();
+                    const products = store.getState().products;
+                    
+                    if (products && products.length > 0) {
+                        addResult(`✅ Store Layer: ${products.length} products loaded`, 'success');
+                        return { success: true, products };
+                    } else {
+                        addResult('⚠️ Store Layer: No products in store', 'error');
+                        return { success: false, error: 'No products' };
+                    }
+                } else {
+                    addResult('ℹ️ Store Layer: Not accessible from browser context (normal)', 'loading');
+                    return { success: true, note: 'Store not accessible' };
+                }
+            } catch (err) {
+                addResult(`⚠️ Store Layer: ${err.message}`, 'error');
+                return { success: false, error: err.message };
+            }
+        }
+
+        async function testDirectSupabase() {
+            addResult('🔄 Step 3: Confirming Supabase connectivity...', 'loading');
+            
+            try {
+                const response = await fetch('https://coqjcziquviehgyifhek.supabase.co/rest/v1/products?limit=3', {
+                    headers: {
+                        'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNvcWpjemlxdXZpZWhneWlmaGVrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk0MDUzOTMsImV4cCI6MjA2NDk4MTM5M30.NSdUfHdeXLwBCcY9UO4s3LoSEBm4AuU0Jh5BLIcoQ5E',
+                        'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNvcWpjemlxdXZpZWhneWlmaGVrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk0MDUzOTMsImV4cCI6MjA2NDk4MTM5M30.NSdUfHdeXLwBCcY9UO4s3LoSEBm4AuU0Jh5BLIcoQ5E'
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    addResult(`✅ Direct Supabase: ${data.length} raw products available`, 'success');
+                    return { success: true, rawData: data };
+                } else {
+                    addResult(`❌ Direct Supabase: ${response.status} error`, 'error');
+                    return { success: false, error: response.status };
+                }
+            } catch (err) {
+                addResult(`❌ Direct Supabase: ${err.message}`, 'error');
+                return { success: false, error: err.message };
+            }
+        }
+
+        async function runAllTests() {
+            document.getElementById('test-results').innerHTML = '';
+            updateStatus(false, 'Running comprehensive tests...');
+
+            const apiTest = await testAPILayer();
+            const storeTest = await testStoreLayer();  
+            const supabaseTest = await testDirectSupabase();
+
+            if (apiTest.success && supabaseTest.success) {
+                updateStatus(true, 'All tests passed! Products should now load in your app.');
+                
+                if (apiTest.data) {
+                    addResult(`🎉 <strong>SUCCESS! Your products are ready:</strong><br>${apiTest.data.map(createProductCard).join('')}`, 'success');
+                }
+
+                addResult(`
+                    <strong>✅ Next Steps:</strong><br>
+                    1. Open your app at <a href="http://localhost:5180" target="_blank">http://localhost:5180</a><br>
+                    2. Navigate to the <strong>Inventory</strong> section<br>
+                    3. Your products should now be visible!<br>
+                    4. Check browser console for debug logs starting with [STORE]
+                `, 'success');
+            } else {
+                updateStatus(false, 'Some tests failed. Check the results below.');
+                addResult('❌ <strong>Issues found:</strong> Products may still not load correctly in the app.', 'error');
+            }
+        }
+
+        // Auto-run tests on load
+        window.onload = function() {
+            setTimeout(runAllTests, 1000);
+        };
+    </script>
+</body>
+</html>

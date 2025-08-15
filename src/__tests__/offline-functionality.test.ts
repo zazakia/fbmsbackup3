@@ -1,7 +1,15 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useOfflineStore } from '../store/offlineStore';
-import { syncService } from '../services/syncService';
+// Mock sync service
+const syncService = {
+  syncPendingData: vi.fn(),
+  isOnline: vi.fn(),
+};
+
+vi.mock('../services/syncService', () => ({
+  syncService
+}));
 
 // Mock the API functions
 vi.mock('../api/sales', () => ({

@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>🧪 Fixed API Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 50px auto; padding: 20px; }
+        .result { padding: 15px; margin: 10px 0; border-radius: 5px; }
+        .success { background: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
+        .error { background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
+        .loading { background: #e2e3e5; border: 1px solid #d6d8db; color: #383d41; }
+        button { padding: 10px 20px; font-size: 16px; cursor: pointer; margin: 5px; }
+        #results { margin-top: 20px; }
+        .json { background: #f8f9fa; padding: 10px; border: 1px solid #dee2e6; margin: 10px 0; overflow-x: auto; }
+        .product { border: 1px solid #ddd; margin: 10px 0; padding: 15px; border-radius: 5px; }
+        .product h3 { margin: 0 0 10px 0; color: #333; }
+        .product-details { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .product-detail { font-size: 14px; }
+        .product-detail strong { color: #555; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Fixed Products API Test</h1>
+    <p>Testing the fixed cloud Supabase products API with proper category handling.</p>
+    
+    <button onclick="testFixedAPI()">🚀 Test Fixed Products API</button>
+    <button onclick="testDirectSB()">🔗 Test Direct Supabase</button>
+    
+    <div id="results"></div>
+
+    <script>
+        function addResult(message, type = 'loading') {
+            const results = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = `result ${type}`;
+            div.innerHTML = message;
+            results.appendChild(div);
+            return div;
+        }
+        
+        function createProductCard(product) {
+            return `
+                <div class="product">
+                    <h3>${product.name} (${product.sku})</h3>
+                    <div class="product-details">
+                        <div class="product-detail"><strong>Category:</strong> ${product.category} (ID: ${product.categoryId || 'Missing!'})</div>
+                        <div class="product-detail"><strong>Price:</strong> ₱${product.price}</div>
+                        <div class="product-detail"><strong>Stock:</strong> ${product.stock} ${product.unit}</div>
+                        <div class="product-detail"><strong>Min Stock:</strong> ${product.minStock}</div>
+                        <div class="product-detail"><strong>Active:</strong> ${product.isActive ? '✅' : '❌'}</div>
+                        <div class="product-detail"><strong>Barcode:</strong> ${product.barcode || 'None'}</div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Test the fixed API via our app's endpoint
+        async function testFixedAPI() {
+            const resultDiv = addResult('🔄 Testing fixed products API...', 'loading');
+            
+            try {
+                // Test through the app's API layer
+                const response = await fetch('/api/test-products', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ test: 'products' })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    resultDiv.className = 'result success';
+                    resultDiv.innerHTML = `
+                        ✅ <strong>Fixed API - SUCCESS!</strong><br>
+                        Found ${data.length} products with proper transformation<br>
+                        ${data.map(createProductCard).join('')}
+                    `;
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.innerHTML = `❌ <strong>API Error:</strong> ${response.status} ${response.statusText}`;
+                }
+            } catch (err) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `❌ <strong>Connection Error:</strong> ${err.message}`;
+            }
+        }
+        
+        // Test direct Supabase connection
+        async function testDirectSB() {
+            const resultDiv = addResult('🔄 Testing direct Supabase...', 'loading');
+            
+            try {
+                const response = await fetch('https://coqjcziquviehgyifhek.supabase.co/rest/v1/products?limit=3', {
+                    headers: {
+                        'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNvcWpjemlxdXZpZWhneWlmaGVrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk0MDUzOTMsImV4cCI6MjA2NDk4MTM5M30.NSdUfHdeXLwBCcY9UO4s3LoSEBm4AuU0Jh5BLIcoQ5E',
+                        'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNvcWpjemlxdXZpZWhneWlmaGVrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk0MDUzOTMsImV4cCI6MjA2NDk4MTM5M30.NSdUfHdeXLwBCcY9UO4s3LoSEBm4AuU0Jh5BLIcoQ5E'
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    resultDiv.className = 'result success';
+                    resultDiv.innerHTML = `
+                        ✅ <strong>Direct Supabase - SUCCESS!</strong><br>
+                        Raw data: ${data.length} products<br>
+                        <div class="json"><pre>${JSON.stringify(data, null, 2)}</pre></div>
+                    `;
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.innerHTML = `❌ <strong>Direct Error:</strong> ${response.status} ${response.statusText}`;
+                }
+            } catch (err) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `❌ <strong>Direct Connection Error:</strong> ${err.message}`;
+            }
+        }
+        
+        // Auto-run test
+        window.onload = function() {
+            addResult('🔧 <strong>API Test Ready</strong> - Click buttons to test the fixed API transformations', 'success');
+        };
+    </script>
+</body>
+</html>

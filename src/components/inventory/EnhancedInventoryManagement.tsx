@@ -94,20 +94,38 @@ const EnhancedInventoryManagement: React.FC = () => {
       try {
         // Always fetch fresh data to ensure consistency between different ports/instances
         const port = window.location.port;
-        console.log(`🔄 Inventory (Port ${port}): Loading fresh data from database`);
+        console.log(`🔄 [INVENTORY] (Port ${port}): Component mounted, current products in store:`, products.length);
+        console.log(`🔍 [INVENTORY] Sample product before fetch:`, products[0] ? {
+          name: products[0].name,
+          category: products[0].category,
+          source: 'store-before-fetch'
+        } : 'None');
         
         if (fetchProducts) {
+          console.log(`🔄 [INVENTORY] Calling fetchProducts()...`);
           await fetchProducts();
-          console.log(`✅ Inventory (Port ${port}): Products loaded successfully - ${products.length} products`);
+          console.log(`✅ [INVENTORY] fetchProducts() completed`);
+          
+          // Check products in store after fetchProducts
+          setTimeout(() => {
+            const currentProducts = products;
+            console.log(`🔍 [INVENTORY] Products in component after fetch:`, currentProducts.length);
+            console.log(`🔍 [INVENTORY] Sample product after fetch:`, currentProducts[0] ? {
+              name: currentProducts[0].name,
+              category: currentProducts[0].category,
+              categoryId: currentProducts[0].categoryId,
+              stock: currentProducts[0].stock
+            } : 'None');
+          }, 50);
         }
         
         if (fetchCategories) {
           await fetchCategories();
-          console.log(`✅ Inventory (Port ${port}): Categories loaded successfully - ${categories.length} categories`);
+          console.log(`✅ [INVENTORY] Categories loaded - ${categories.length} categories`);
         }
       } catch (error) {
         const port = window.location.port;
-        console.error(`❌ Inventory (Port ${port}): Failed to load data:`, error);
+        console.error(`❌ [INVENTORY] Failed to load data:`, error);
         addToast({ 
           type: 'error', 
           title: 'Data Loading Error', 

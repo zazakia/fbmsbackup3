@@ -585,7 +585,7 @@ class PreloadingService {
     }
 
     // Update most used modules
-    let moduleUsage = pattern.mostUsedModules.find(m => m.moduleId === moduleId);
+    const moduleUsage = pattern.mostUsedModules.find(m => m.moduleId === moduleId);
     if (moduleUsage) {
       moduleUsage.count++;
       moduleUsage.avgLoadTime = (moduleUsage.avgLoadTime + loadTime) / 2;

@@ -22,6 +22,19 @@ npm run test <filename>
 
 # Run tests in watch mode
 npm run test --watch
+
+# Test by category
+npm run test:unit        # Run unit tests only
+npm run test:integration # Run integration tests only
+npm run test:e2e        # Run end-to-end tests only
+
+# Database test management
+npm run test:db:setup   # Setup test database
+npm run test:db:start   # Start test database services
+npm run test:db:stop    # Stop test database services
+npm run test:db:reset   # Reset test database
+npm run test:db:seed    # Seed test database with sample data
+npm run test:db:status  # Check test database status
 ```
 
 ### Code Quality
@@ -29,11 +42,19 @@ npm run test --watch
 npm run lint         # Run ESLint for code quality checks
 ```
 
-### Git Workflow
+### Git Workflow & Deployment
 ```bash
 npm run push         # Quick git add, commit, and push
 npm run push:deploy  # Quick push with Netlify deployment
 npm run push:msg     # Quick push with custom commit message
+
+# Deployment commands
+npm run deploy           # Build and deploy to production
+npm run deploy:build     # Build for deployment only
+npm run deploy:staging   # Deploy to staging environment
+npm run deploy:production # Deploy to production environment
+npm run git:workflow     # Run git workflow script
+npm run git:deploy       # Run git workflow with deployment
 ```
 
 ## Architecture Overview
@@ -52,6 +73,8 @@ npm run push:msg     # Quick push with custom commit message
 - **Enhanced Version System**: Toggle between standard/advanced features for key modules
 - **Role-Based Access**: Admin, Manager, Employee, Accountant roles with different permissions
 - **Lazy Loading**: All major components are code-split for performance
+- **Data Flow**: API layer → Zustand stores → React components
+- **Persistence**: Zustand stores persist to localStorage with key `'fbms-business'`
 
 **Key Directories**:
 - `src/components/`: All React components organized by feature
@@ -263,6 +286,30 @@ cd supabase && supabase db push   # Apply migrations
 - Enhanced versions are toggleable via settings
 - Mobile-responsive design with bottom navigation for small screens
 
+### Critical Data Flow Architecture
+
+**API Layer Transformations**:
+- `src/api/products.ts`: Handles snake_case ↔ camelCase transformations
+- Database fields like `min_stock` → `minStock` in TypeScript
+- Category relationships: Database `category` (UUID) → Component needs both `category` (name) and `categoryId` (UUID)
+
+**Common Issues & Solutions**:
+- **Products not loading**: Check localStorage cache (`'fbms-business'`) for stale data
+- **Double transformation errors**: API layer already transforms data, store should use directly
+- **Category mapping failures**: Ensure category lookup is working in `getProducts()`
+- **Persistence conflicts**: Clear localStorage if data appears stale
+
+### Environment Variable Priority
+```
+VITE_PUBLIC_SUPABASE_URL (preferred)
+├── VITE_SUPABASE_URL (fallback)  
+└── SUPABASE_URL (last resort)
+
+VITE_PUBLIC_SUPABASE_ANON_KEY (preferred)
+├── VITE_SUPABASE_ANON_KEY (fallback)
+└── SUPABASE_ANON_KEY (last resort)
+```
+
 ## Steering Documents
 These documents provide specific guidance for working with this codebase:
 
@@ -271,3 +318,9 @@ These documents provide specific guidance for working with this codebase:
 - `.claude/steering/structure.md`: Project organization and key file locations
 
 - always reference supabase schema.md for database details and structure to understand tables and fields uses
+
+# important-instruction-reminders
+Do what has been asked; nothing more, nothing less.
+NEVER create files unless they're absolutely necessary for achieving your goal.
+ALWAYS prefer editing an existing file to creating a new one.
+NEVER proactively create documentation files (*.md) or README files. Only create documentation files if explicitly requested by the User.

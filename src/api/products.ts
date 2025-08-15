@@ -20,18 +20,46 @@ export async function createProduct(product: Omit<Product, 'id' | 'createdAt' | 
     is_active: product.isActive
   };
 
-  if (import.meta.env.DEV) {
-    console.debug('[persist][products.insert] payload', payload);
-  }
+  console.log('🔍 [API] createProduct called with payload:', payload);
 
-  const { data, error } = await supabase
+  console.log('🔍 [API] Inserting product into Supabase...');
+  
+  const insertQuery = supabase
     .from('products')
     .insert([payload])
     .select() // Select all columns to get the full product data back
     .single();
+  
+  // Add timeout to prevent hanging queries
+  const timeoutPromise = new Promise((_, reject) =>
+    setTimeout(() => reject(new Error('Insert timeout after 10 seconds')), 10000)
+  );
+  
+  let data, error;
+  try {
+    console.log('🔍 [API] Starting insert with timeout...');
+    const result = await Promise.race([insertQuery, timeoutPromise]) as any;
+    console.log('🔍 [API] Insert completed before timeout');
+    data = result.data;
+    error = result.error;
+  } catch (timeoutError) {
+    console.error('⏰ [API] Insert timed out:', timeoutError);
+    return { data: null, error: timeoutError };
+  }
+
+  console.log('🔍 [API] Insert response:', { 
+    hasData: !!data, 
+    error: error?.message || null,
+    data: data ? { id: data.id, name: data.name } : null
+  });
 
   if (error) {
-    console.error('[persist][products.insert] error', { code: (error as any)?.code, message: error.message, details: (error as any)?.details, hint: (error as any)?.hint });
+    console.error('❌ [API] Create product error:', { 
+      code: (error as any)?.code, 
+      message: error.message, 
+      details: (error as any)?.details, 
+      hint: (error as any)?.hint 
+    });
     return { data: null, error };
   }
   
@@ -87,6 +115,8 @@ export async function createProduct(product: Omit<Product, 'id' | 'createdAt' | 
 
 // READ ALL products
 export async function getProducts(limit?: number, offset?: number) {
+  console.log('🔍 [API] getProducts called with limit:', limit, 'offset:', offset);
+  
   let query = supabase
     .from('products')
     .select(`
@@ -114,29 +144,105 @@ export async function getProducts(limit?: number, offset?: number) {
     query = query.range(offset, offset + (limit || 50) - 1);
   }
 
-  const { data, error } = await query;
+  console.log('🔍 [API] Executing Supabase query...');
+  
+  // Add timeout to prevent hanging queries
+  const timeoutPromise = new Promise((_, reject) =>
+    setTimeout(() => reject(new Error('Query timeout after 10 seconds')), 10000)
+  );
+  
+  let data, error;
+  try {
+    console.log('🔍 [API] Starting Promise.race with timeout...');
+    const result = await Promise.race([query, timeoutPromise]) as any;
+    console.log('🔍 [API] Query completed before timeout');
+    data = result.data;
+    error = result.error;
+  } catch (timeoutError) {
+    console.error('⏰ [API] Query timed out:', timeoutError);
+    return { data: null, error: timeoutError };
+  }
+  
+  console.log('🔍 [API] Supabase response:', { 
+    dataLength: data?.length || 0, 
+    error: error?.message || null,
+    hasData: !!data 
+  });
+
+  if (error) {
+    console.error('❌ [API] Supabase error:', error);
+    return { data: null, error };
+  }
 
   if (data) {
+    console.log('✅ [API] Raw data from Supabase:', data.slice(0, 2)); // Log first 2 items
+    
+    // Get unique category IDs (must be UUIDs) to fetch category names
+    const isUUID = (str) => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(str);
+    const categoryIds = [...new Set(data.map(p => p.category).filter(id => id && isUUID(id)))];
+    console.log('🔍 [API] Fetching category names for UUIDs:', categoryIds);
+    
+    // Fetch category names with timeout
+    let categoryMap = new Map();
+    if (categoryIds.length > 0) {
+      try {
+        const categoryQuery = supabase
+          .from('categories')
+          .select('id, name')
+          .in('id', categoryIds);
+          
+        // Add timeout to category lookup to prevent hanging
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Category lookup timeout')), 5000)
+        );
+        
+        const result = await Promise.race([categoryQuery, timeoutPromise]);
+        const { data: categoriesData } = result as any;
+        
+        if (categoriesData) {
+          categoriesData.forEach(cat => categoryMap.set(cat.id, cat.name));
+          console.log('✅ [API] Category map created:', Object.fromEntries(categoryMap));
+        }
+      } catch (catError) {
+        console.warn('⚠️ [API] Could not fetch category names:', catError.message);
+        // Continue without category names - use UUIDs as fallback
+      }
+    }
+    
     const transformedData = data.map(product => ({
       id: product.id,
       name: product.name,
-      description: product.description,
+      description: product.description || '',
       sku: product.sku,
-      barcode: product.barcode,
-      category: product.category,
-      price: product.price,
-      cost: product.cost,
-      stock: product.stock,
-      minStock: product.min_stock,
-      unit: product.unit,
-      isActive: product.is_active,
+      barcode: product.barcode || '',
+      category: categoryMap.get(product.category) || product.category || 'Uncategorized',
+      categoryId: isUUID(product.category) ? product.category : null,
+      price: Number(product.price) || 0,
+      cost: Number(product.cost) || 0,
+      stock: Number(product.stock) || 0,
+      minStock: Number(product.min_stock) || 0,
+      reorderQuantity: product.reorder_quantity || undefined,
+      unit: product.unit || 'piece',
+      isActive: Boolean(product.is_active),
+      expiryDate: product.expiry_date ? new Date(product.expiry_date) : undefined,
+      manufacturingDate: product.manufacturing_date ? new Date(product.manufacturing_date) : undefined,
+      batchNumber: product.batch_number || undefined,
+      soldQuantity: Number(product.sold_quantity) || 0,
+      weight: product.weight || undefined,
+      dimensions: product.dimensions || undefined,
+      supplier: product.supplier || undefined,
+      location: product.location || undefined,
+      tags: product.tags || [],
+      images: product.images || [],
       createdAt: new Date(product.created_at),
       updatedAt: new Date(product.updated_at)
     }));
+    console.log('✅ [API] Transformed data:', transformedData.slice(0, 2));
     return { data: transformedData, error: null };
   }
 
-  return { data: null, error };
+  console.log('⚠️ [API] No data and no error - empty result');
+  return { data: [], error: null };
 }
 
 // READ ONE product
@@ -570,7 +676,9 @@ export async function createCategory(category: Omit<Category, 'id' | 'createdAt'
 
 // READ ALL categories
 export async function getCategories() {
-  const { data, error } = await supabase
+  console.log('🔍 [API] getCategories called');
+  
+  const query = supabase
     .from('categories')
     .select(`
       id,
@@ -580,6 +688,23 @@ export async function getCategories() {
       created_at
     `)
     .order('name', { ascending: true });
+  
+  // Add timeout to prevent hanging queries
+  const timeoutPromise = new Promise((_, reject) =>
+    setTimeout(() => reject(new Error('Categories query timeout after 10 seconds')), 10000)
+  );
+  
+  let data, error;
+  try {
+    console.log('🔍 [API] Starting categories query with timeout...');
+    const result = await Promise.race([query, timeoutPromise]) as any;
+    console.log('🔍 [API] Categories query completed before timeout');
+    data = result.data;
+    error = result.error;
+  } catch (timeoutError) {
+    console.error('⏰ [API] Categories query timed out:', timeoutError);
+    return { data: null, error: timeoutError };
+  }
 
   if (data) {
     const transformedData = data.map(category => ({

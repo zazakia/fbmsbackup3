@@ -1,9 +1,13 @@
 import { createClient } from '@supabase/supabase-js';
-import { useSettingsStore } from '../store/settingsStore';
+// import { useSettingsStore } from '../store/settingsStore';
 // import { createAdminAccountIfNeeded } from './setupAdmin'; // Disabled for security
 
 // Resolve environment variables with backward compatibility to .env.example
-const ENV = import.meta.env as any;
+interface ImportMetaEnv {
+  [key: string]: string | undefined;
+}
+
+const ENV = import.meta.env as ImportMetaEnv;
 
 // Helper to validate URL strings
 function isValidUrl(value: string | undefined | null): boolean {
@@ -18,9 +22,16 @@ function isValidUrl(value: string | undefined | null): boolean {
   }
 }
 
-// Supabase configuration from environment variables
-const supabaseUrl = import.meta.env.VITE_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_PUBLIC_SUPABASE_ANON_KEY;
+// Supabase configuration from environment variables (with backward compatibility)
+// Prefer new PUBLIC-prefixed vars, but fall back to legacy names found in .env.example
+const supabaseUrl =
+  ENV.VITE_PUBLIC_SUPABASE_URL ||
+  ENV.VITE_SUPABASE_URL ||
+  ENV.SUPABASE_URL; // last-resort fallback if provided
+const supabaseAnonKey =
+  ENV.VITE_PUBLIC_SUPABASE_ANON_KEY ||
+  ENV.VITE_SUPABASE_ANON_KEY ||
+  ENV.SUPABASE_ANON_KEY; // last-resort fallback if provided
 
 // Enhanced debug logging for connection issues
 console.log('🔧 Supabase Configuration Debug:');
@@ -29,7 +40,16 @@ console.log('Environment vars available:', {
   hasUrl: !!supabaseUrl,
   hasKey: !!supabaseAnonKey,
   urlValue: supabaseUrl,
-  keyLength: supabaseAnonKey?.length || 0
+  keyLength: supabaseAnonKey?.length || 0,
+  // show which vars were considered to aid debugging
+  triedVars: {
+    VITE_PUBLIC_SUPABASE_URL: ENV.VITE_PUBLIC_SUPABASE_URL ? 'set' : 'missing',
+    VITE_SUPABASE_URL: ENV.VITE_SUPABASE_URL ? 'set' : 'missing',
+    SUPABASE_URL: ENV.SUPABASE_URL ? 'set' : 'missing',
+    VITE_PUBLIC_SUPABASE_ANON_KEY: ENV.VITE_PUBLIC_SUPABASE_ANON_KEY ? 'set' : 'missing',
+    VITE_SUPABASE_ANON_KEY: ENV.VITE_SUPABASE_ANON_KEY ? 'set' : 'missing',
+    SUPABASE_ANON_KEY: ENV.SUPABASE_ANON_KEY ? 'set' : 'missing',
+  }
 });
 console.log('Supabase URL valid:', isValidUrl(supabaseUrl));
 
@@ -43,8 +63,12 @@ if (!isValidUrl(supabaseUrl) || !supabaseAnonKey) {
     hasAnonKey: !!supabaseAnonKey,
     keyLength: supabaseAnonKey?.length || 0,
     envVars: {
-      VITE_PUBLIC_SUPABASE_URL: import.meta.env.VITE_PUBLIC_SUPABASE_URL,
-      hasVITE_PUBLIC_SUPABASE_ANON_KEY: !!import.meta.env.VITE_PUBLIC_SUPABASE_ANON_KEY
+      VITE_PUBLIC_SUPABASE_URL: (import.meta.env as any).VITE_PUBLIC_SUPABASE_URL,
+      VITE_SUPABASE_URL: (import.meta.env as any).VITE_SUPABASE_URL,
+      SUPABASE_URL: (import.meta.env as any).SUPABASE_URL,
+      hasVITE_PUBLIC_SUPABASE_ANON_KEY: !!(import.meta.env as any).VITE_PUBLIC_SUPABASE_ANON_KEY,
+      hasVITE_SUPABASE_ANON_KEY: !!(import.meta.env as any).VITE_SUPABASE_ANON_KEY,
+      hasSUPABASE_ANON_KEY: !!(import.meta.env as any).SUPABASE_ANON_KEY
     }
   };
   
@@ -64,9 +88,68 @@ if (!isValidUrl(supabaseUrl) || !supabaseAnonKey) {
   throw new Error(msg);
 }
 
-// Enhanced error handler for auth and HTTP errors
+// Enhanced error handler for auth and HTTP errors with a global timeout
 const handleSupabaseError = async (input: RequestInfo, init?: RequestInit) => {
-  const res = await fetch(input as RequestInfo, init as RequestInit);
+  // Reduce timeout to 10s to match our API layer timeout
+  const defaultTimeoutMs = 10000;
+  const timeoutMs = Number(ENV.VITE_SUPABASE_FETCH_TIMEOUT_MS) > 0
+    ? Number(ENV.VITE_SUPABASE_FETCH_TIMEOUT_MS)
+    : defaultTimeoutMs;
+
+  if (ENV.DEV) {
+    console.log('🌐 [FETCH] Supabase request:', {
+      url: typeof input === 'string' ? input : (input as Request).url,
+      method: init?.method || 'GET',
+      timeoutMs
+    });
+  }
+
+  // Respect any existing AbortSignal; otherwise, add our own with timeout
+  const controller = !init?.signal ? new AbortController() : null;
+  const timer = controller ? setTimeout(() => {
+    console.warn('⏰ [FETCH] Supabase request timeout after', timeoutMs, 'ms');
+    controller.abort();
+  }, timeoutMs) : null;
+
+  // Compose init with our signal (if we created one)
+  const fetchInit: RequestInit = controller
+    ? { ...(init || {}), signal: controller.signal }
+    : (init || {});
+
+  let res: Response;
+  try {
+    res = await fetch(input as RequestInfo, fetchInit as RequestInit);
+    
+    if (ENV.DEV) {
+      console.log('🌐 [FETCH] Supabase response:', {
+        url: typeof input === 'string' ? input : (input as Request).url,
+        status: res.status,
+        ok: res.ok
+      });
+    }
+  } catch (err: any) {
+    if (timer) clearTimeout(timer);
+
+    // Normalize abort/network errors so UI layers can handle them gracefully
+    const isAbort = err?.name === 'AbortError';
+    const message = isAbort
+      ? `Request timed out after ${timeoutMs}ms`
+      : (err?.message || 'Network error while contacting Supabase');
+
+    if (ENV.DEV) {
+      console.error('🌐 [FETCH] Supabase fetch failure', {
+        url: typeof input === 'string' ? input : (input as Request).url,
+        timeoutMs,
+        aborted: isAbort,
+        error: err
+      });
+    }
+
+    // Re-throw to let supabase-js propagate a meaningful error
+    throw new Error(message);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
   
   if (!res.ok) {
     try {
@@ -146,6 +229,12 @@ export const supabase = createClient(
   }
 );
 
+// Make Supabase client available on window for debugging (dev only)
+if (ENV.DEV && typeof window !== 'undefined') {
+  (window as any).supabase = supabase;
+  console.log('🔧 [DEV] Supabase client attached to window.supabase for debugging');
+}
+
 // Export the same client for auth operations to avoid multiple instances
 export const supabaseAnon = supabase;
 
@@ -153,16 +242,16 @@ export const supabaseAnon = supabase;
 export async function setupDevAuth() {
   if (ENV.DEV) {
     try {
-      // SECURITY: No longer auto-creates admin accounts
-      console.log('🔒 Secure authentication mode enabled');
+      // DEVELOPMENT: Allow anonymous access for testing
+      console.log('🔧 Development mode: Enabling anonymous access');
       
       // Check if we already have a session
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session) {
-        console.log('Development mode: Please register and login through the application');
-        console.log('💡 Use the registration form to create new accounts');
-        console.log('👤 Admin roles must be assigned through the database or admin panel');
+        console.log('Development mode: No authentication required');
+        console.log('💡 Database access enabled via anonymous role');
+        console.log('👤 Use registration form for full authentication testing');
       } else {
         console.log('Already authenticated with Supabase');
       }

@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>🧪 Supabase Connection Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 50px auto; padding: 20px; }
+        .result { padding: 15px; margin: 10px 0; border-radius: 5px; }
+        .success { background: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
+        .error { background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
+        .loading { background: #e2e3e5; border: 1px solid #d6d8db; color: #383d41; }
+        button { padding: 10px 20px; font-size: 16px; cursor: pointer; margin: 5px; }
+        #results { margin-top: 20px; }
+        .json { background: #f8f9fa; padding: 10px; border: 1px solid #dee2e6; margin: 10px 0; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>🧪 FBMS Supabase Connection Test</h1>
+    <p>This will test if your Filipino Business Management System can connect to the local Supabase database.</p>
+    
+    <button onclick="testProducts()">🧪 Test Products API</button>
+    <button onclick="testCustomers()">👥 Test Customers API</button>
+    <button onclick="testAll()">🚀 Test All Endpoints</button>
+    
+    <div id="results"></div>
+
+    <script>
+        const SUPABASE_URL = 'http://127.0.0.1:54321';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU';
+        
+        function addResult(message, type = 'loading') {
+            const results = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = `result ${type}`;
+            div.innerHTML = message;
+            results.appendChild(div);
+            return div;
+        }
+        
+        async function testEndpoint(name, endpoint) {
+            const resultDiv = addResult(`🔄 Testing ${name}...`, 'loading');
+            
+            try {
+                const response = await fetch(`${SUPABASE_URL}${endpoint}`, {
+                    headers: {
+                        'apikey': SUPABASE_KEY,
+                        'Authorization': `Bearer ${SUPABASE_KEY}`,
+                        'Accept': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    resultDiv.className = 'result success';
+                    resultDiv.innerHTML = `
+                        ✅ <strong>${name} - SUCCESS!</strong><br>
+                        Status: ${response.status} ${response.statusText}<br>
+                        Records: ${data.length}<br>
+                        <div class="json"><pre>${JSON.stringify(data.slice(0, 1), null, 2)}</pre></div>
+                    `;
+                } else {
+                    const error = await response.text();
+                    resultDiv.className = 'result error';
+                    resultDiv.innerHTML = `
+                        ❌ <strong>${name} - FAILED</strong><br>
+                        Status: ${response.status} ${response.statusText}<br>
+                        Error: ${error}
+                    `;
+                }
+            } catch (err) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `
+                    ❌ <strong>${name} - CONNECTION ERROR</strong><br>
+                    Error: ${err.message}
+                `;
+            }
+        }
+        
+        async function testProducts() {
+            await testEndpoint('Products API', '/rest/v1/products?limit=2');
+        }
+        
+        async function testCustomers() {
+            await testEndpoint('Customers API', '/rest/v1/customers?limit=2');
+        }
+        
+        async function testAll() {
+            document.getElementById('results').innerHTML = '';
+            addResult('🚀 <strong>Starting Full API Test Suite...</strong>', 'loading');
+            
+            await testEndpoint('Products', '/rest/v1/products?limit=2');
+            await testEndpoint('Customers', '/rest/v1/customers?limit=2');
+            await testEndpoint('Categories', '/rest/v1/product_categories?limit=2');
+            await testEndpoint('Sales Count', '/rest/v1/sales?select=count');
+            
+            addResult('🎉 <strong>Test Suite Complete!</strong>', 'success');
+        }
+        
+        // Auto-run basic test on page load
+        window.onload = function() {
+            addResult('🔧 <strong>Connection Test Ready</strong> - Click buttons above to test specific endpoints', 'success');
+        };
+    </script>
+</body>
+</html>

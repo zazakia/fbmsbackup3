@@ -63,7 +63,17 @@ const mockPermissionHandler = {
 };
 
 vi.mock('../../services/ModuleLoadingManager', () => ({
-  ModuleLoadingManager: vi.fn(() => mockModuleLoadingManager)
+  ModuleLoadingManager: vi.fn().mockImplementation(() => mockModuleLoadingManager),
+  default: vi.fn().mockImplementation(() => mockModuleLoadingManager)
+}));
+
+// Mock lazy components to prevent circular import issues
+vi.mock('../../utils/lazyComponents', () => ({
+  getModuleConfig: vi.fn().mockReturnValue({ id: 'test', name: 'Test Module' }),
+  LazyDashboard: () => React.createElement('div', {}, 'Mocked Dashboard'),
+  LazyEnhancedPOSSystem: () => React.createElement('div', {}, 'Mocked POS'),
+  LazyEnhancedInventoryManagement: () => React.createElement('div', {}, 'Mocked Inventory'),
+  default: {}
 }));
 
 vi.mock('../../services/RetryManager', () => ({

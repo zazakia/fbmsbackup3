@@ -46,8 +46,7 @@ import './utils/devCommands'; // Initialize dev commands
 import './utils/debugUser'; // Debug utilities  
 import './utils/adminAccessTest'; // Admin access testing
 import './utils/adminAccessFix'; // Admin access fix utilities
-import { authErrorHandler, handleAuthError } from './utils/authErrorHandler';
-import type { AuthErrorHandlerOptions } from './utils/authErrorHandler';
+import { authErrorHandler } from './utils/authErrorHandler';
 import './styles/mobile-responsive.css'; // Mobile responsive styles
 import TestDashboard from './components/test/TestDashboard';
 import AdminDashboard from './components/admin/AdminDashboard';
@@ -58,7 +57,7 @@ import UserDebugInfo from './components/auth/UserDebugInfo';
 import UserOnboardingTour from './components/help/UserOnboardingTour';
 import { ErrorReporter } from './components/ErrorReporter';
 import { errorMonitor } from './utils/errorMonitor';
-import { resourceRetryService } from './services/ResourceRetryService';
+// import { resourceRetryService } from './services/ResourceRetryService';
 import { 
   LazyUserRoleManagement, 
   LazySupplierManagement, 
@@ -85,7 +84,7 @@ import {
   LazySalesHistory,
   LazyProductHistory
 } from './utils/lazyComponents';
-import { LazyProductCategories, LazyReceivingModule } from './utils/lazyComponents';
+import { LazyProductCategories } from './utils/lazyComponents';
 
 const App: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -164,7 +163,7 @@ const App: React.FC = () => {
       window.removeEventListener('errorMonitor:autoCopy', handleAutoCopy);
       clearInterval(interval);
     };
-  }, [initializeTheme, isOAuthCallback]);
+  }, [initializeTheme, isOAuthCallback, addToast]);
 
   // Keyboard shortcuts
   useEffect(() => {
