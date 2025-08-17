@@ -117,6 +117,7 @@ export async function createProduct(product: Omit<Product, 'id' | 'createdAt' | 
 export async function getProducts(limit?: number, offset?: number) {
   console.log('🔍 [API] getProducts called with limit:', limit, 'offset:', offset);
   
+  // Use direct Supabase query without broken timeout implementation
   let query = supabase
     .from('products')
     .select(`
@@ -146,22 +147,8 @@ export async function getProducts(limit?: number, offset?: number) {
 
   console.log('🔍 [API] Executing Supabase query...');
   
-  // Add timeout to prevent hanging queries
-  const timeoutPromise = new Promise((_, reject) =>
-    setTimeout(() => reject(new Error('Query timeout after 10 seconds')), 10000)
-  );
-  
-  let data, error;
-  try {
-    console.log('🔍 [API] Starting Promise.race with timeout...');
-    const result = await Promise.race([query, timeoutPromise]) as any;
-    console.log('🔍 [API] Query completed before timeout');
-    data = result.data;
-    error = result.error;
-  } catch (timeoutError) {
-    console.error('⏰ [API] Query timed out:', timeoutError);
-    return { data: null, error: timeoutError };
-  }
+  // Execute query directly - Supabase has built-in timeout handling
+  const { data, error } = await query;
   
   console.log('🔍 [API] Supabase response:', { 
     dataLength: data?.length || 0, 
@@ -186,18 +173,11 @@ export async function getProducts(limit?: number, offset?: number) {
     let categoryMap = new Map();
     if (categoryIds.length > 0) {
       try {
-        const categoryQuery = supabase
+        // Execute category lookup directly - Supabase has built-in timeout handling
+        const { data: categoriesData, error: categoryError } = await supabase
           .from('categories')
           .select('id, name')
           .in('id', categoryIds);
-          
-        // Add timeout to category lookup to prevent hanging
-        const timeoutPromise = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Category lookup timeout')), 5000)
-        );
-        
-        const result = await Promise.race([categoryQuery, timeoutPromise]);
-        const { data: categoriesData } = result as any;
         
         if (categoriesData) {
           categoriesData.forEach(cat => categoryMap.set(cat.id, cat.name));
@@ -678,7 +658,8 @@ export async function createCategory(category: Omit<Category, 'id' | 'createdAt'
 export async function getCategories() {
   console.log('🔍 [API] getCategories called');
   
-  const query = supabase
+  // Execute query directly - Supabase has built-in timeout handling
+  const { data, error } = await supabase
     .from('categories')
     .select(`
       id,
@@ -688,23 +669,6 @@ export async function getCategories() {
       created_at
     `)
     .order('name', { ascending: true });
-  
-  // Add timeout to prevent hanging queries
-  const timeoutPromise = new Promise((_, reject) =>
-    setTimeout(() => reject(new Error('Categories query timeout after 10 seconds')), 10000)
-  );
-  
-  let data, error;
-  try {
-    console.log('🔍 [API] Starting categories query with timeout...');
-    const result = await Promise.race([query, timeoutPromise]) as any;
-    console.log('🔍 [API] Categories query completed before timeout');
-    data = result.data;
-    error = result.error;
-  } catch (timeoutError) {
-    console.error('⏰ [API] Categories query timed out:', timeoutError);
-    return { data: null, error: timeoutError };
-  }
 
   if (data) {
     const transformedData = data.map(category => ({

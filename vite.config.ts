@@ -5,9 +5,13 @@ import react from '@vitejs/plugin-react';
 export default defineConfig({
   plugins: [react()],
   server: {
-    port: 5180,
-    strictPort: true,
+    port: 3000,
+    strictPort: false,
+    host: true,
     open: true,
+    hmr: {
+      clientPort: 3000
+    }
   },
   optimizeDeps: {
     include: ['lucide-react', 'zustand', 'date-fns'],
