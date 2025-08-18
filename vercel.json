@@ -1,9 +1,32 @@
 {
-  "buildCommand": "pnpm build",
+  "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "framework": "vite",
-  "installCommand": "pnpm install",
-  "devCommand": "pnpm dev",
+  "installCommand": "npm install",
+  "devCommand": "npm run dev",
+  "github": {
+    "enabled": true,
+    "autoAlias": false
+  },
+  "git": {
+    "deploymentEnabled": {
+      "main": true,
+      "develop": false,
+      "staging": false
+    }
+  },
+  "env": {
+    "VITE_PUBLIC_SUPABASE_URL": "@vite-public-supabase-url",
+    "VITE_PUBLIC_SUPABASE_ANON_KEY": "@vite-public-supabase-anon-key",
+    "VITE_APP_ENV": "production"
+  },
+  "build": {
+    "env": {
+      "VITE_PUBLIC_SUPABASE_URL": "@vite-public-supabase-url",
+      "VITE_PUBLIC_SUPABASE_ANON_KEY": "@vite-public-supabase-anon-key",
+      "VITE_APP_ENV": "production"
+    }
+  },
   "rewrites": [
     {
       "source": "/(.*)",

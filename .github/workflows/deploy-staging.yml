@@ -1,0 +1,106 @@
+name: 🔧 Deploy to Staging
+
+on:
+  push:
+    branches: [ develop, staging ]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - development
+
+env:
+  NODE_VERSION: 18
+
+jobs:
+  # Job 1: Build and Test for Staging
+  build-and-test-staging:
+    name: 🔨 Build and Test (Staging)
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 📚 Checkout Repository
+        uses: actions/checkout@v4
+        
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          
+      - name: 📥 Install Dependencies
+        run: npm ci
+        
+      - name: 🧪 Run Tests
+        run: npm run test -- --run
+        
+      - name: 🔍 Run Linting
+        run: npm run lint
+        
+      - name: 🏗️ Build Project (Staging)
+        run: npm run build
+        env:
+          VITE_PUBLIC_SUPABASE_URL: ${{ secrets.VITE_STAGING_SUPABASE_URL || secrets.VITE_PUBLIC_SUPABASE_URL }}
+          VITE_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.VITE_STAGING_SUPABASE_ANON_KEY || secrets.VITE_PUBLIC_SUPABASE_ANON_KEY }}
+          VITE_APP_ENV: staging
+          
+      - name: 📤 Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: staging-build-files
+          path: dist/
+          retention-days: 1
+
+  # Job 2: Deploy to Netlify Staging
+  deploy-netlify-staging:
+    name: 🌐 Deploy to Netlify (Staging)
+    runs-on: ubuntu-latest
+    needs: build-and-test-staging
+    
+    steps:
+      - name: 📚 Checkout Repository
+        uses: actions/checkout@v4
+        
+      - name: 📥 Download Build Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: staging-build-files
+          path: dist/
+          
+      - name: 🌐 Deploy to Netlify (Staging)
+        uses: netlify/actions/cli@master
+        with:
+          args: deploy --dir=dist --message="Staging deploy from GitHub Actions - ${{ github.sha }}"
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+
+  # Job 3: Deploy to Vercel Staging
+  deploy-vercel-staging:
+    name: ▲ Deploy to Vercel (Staging)
+    runs-on: ubuntu-latest
+    needs: build-and-test-staging
+    
+    steps:
+      - name: 📚 Checkout Repository
+        uses: actions/checkout@v4
+        
+      - name: 📥 Download Build Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: staging-build-files
+          path: dist/
+          
+      - name: ▲ Deploy to Vercel (Staging)
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          github-comment: true
+          working-directory: ./
