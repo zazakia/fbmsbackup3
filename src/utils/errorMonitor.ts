@@ -305,7 +305,7 @@ class ErrorMonitor {
     const errors = this.getAllErrors();
     const recentErrors = this.getErrorsInLastMinutes(10);
     
-    let report = "🚨 **Error Report for Claude Code**\n\n";
+    let report = "🚨 **Error Report for Brayan**\n\n";
     report += `**Summary:**\n`;
     report += `- Total Errors: ${errors.length}\n`;
     report += `- Recent Errors (last 10 min): ${recentErrors.length}\n`;

@@ -94,7 +94,7 @@ const App: React.FC = () => {
   const [errorCount, setErrorCount] = useState(0);
   const { toasts, removeToast, addToast } = useToastStore();
   const { initializeTheme } = useThemeStore();
-  const { user } = useSupabaseAuthStore();
+  const { user, logout } = useSupabaseAuthStore();
   const { menuVisibility } = useSettingsStore();
   const { securityStatus } = useSecurity();
   console.log('Security status:', securityStatus); // TODO: Use security status in UI
@@ -155,12 +155,28 @@ const App: React.FC = () => {
     
     window.addEventListener('errorMonitor:autoCopy', handleAutoCopy);
     
+    // Handle token expired events
+    const handleTokenExpired = async (event: CustomEvent) => {
+      console.log('Token expired event received:', event.detail);
+      addToast({
+        type: 'warning',
+        title: 'Session Expired',
+        message: event.detail.message || 'Your session has expired. Please log in again.',
+        duration: 5000
+      });
+      // Trigger logout to clear auth state
+      await logout();
+    };
+    
+    window.addEventListener('auth:token_expired', handleTokenExpired);
+    
     // Update error count periodically
     const interval = setInterval(updateErrorCount, 30000); // Every 30 seconds
     
     return () => {
       window.removeEventListener('errorMonitor:newError', handleNewError);
       window.removeEventListener('errorMonitor:autoCopy', handleAutoCopy);
+      window.removeEventListener('auth:token_expired', handleTokenExpired);
       clearInterval(interval);
     };
   }, [initializeTheme, isOAuthCallback, addToast]);

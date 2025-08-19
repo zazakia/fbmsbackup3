@@ -303,6 +303,15 @@ export const useSupabaseAuthStore = create<SupabaseAuthStore>()(
       },
 
       checkAuth: async () => {
+        // Prevent re-checking if already in progress
+        const currentState = get();
+        if (currentState.isLoading) {
+          console.log('Auth check already in progress, skipping...');
+          return;
+        }
+        
+        set({ isLoading: true });
+        
         try {
           const { data: { session }, error } = await supabaseAnon.auth.getSession();
           
@@ -402,6 +411,7 @@ export const useSupabaseAuthStore = create<SupabaseAuthStore>()(
               user,
               userRole: user.role,
               isAuthenticated: isEmailVerified,
+              isLoading: false,
               error: null,
               hasLoggedOut: false,
               pendingEmailVerification: !isEmailVerified
@@ -411,6 +421,7 @@ export const useSupabaseAuthStore = create<SupabaseAuthStore>()(
               user: null,
               userRole: null,
               isAuthenticated: false,
+              isLoading: false,
               error: null,
               hasLoggedOut: false
             });
@@ -420,6 +431,7 @@ export const useSupabaseAuthStore = create<SupabaseAuthStore>()(
             user: null,
             userRole: null,
             isAuthenticated: false,
+            isLoading: false,
             error: error instanceof Error ? error.message : 'Authentication check failed',
             hasLoggedOut: false
           });

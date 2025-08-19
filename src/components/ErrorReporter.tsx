@@ -45,11 +45,11 @@ export const ErrorReporter: React.FC<ErrorReporterProps> = ({ isOpen, onClose })
     try {
       await navigator.clipboard.writeText(report);
       setCopied(true);
-      addToast({
-        type: 'success',
-        title: 'Report Copied',
-        message: 'Error report copied to clipboard. Paste it in Claude Code chat.'
-      });
+        addToast({
+          type: 'success',
+          title: 'Report Copied',
+          message: 'Error report copied to clipboard. Paste it in Brayan chat.'
+        });
       setTimeout(() => setCopied(false), 2000);
     } catch (error) {
       // Fallback for older browsers
@@ -171,7 +171,7 @@ export const ErrorReporter: React.FC<ErrorReporterProps> = ({ isOpen, onClose })
               className="flex items-center space-x-1 px-3 py-1 text-sm bg-green-100 text-green-700 rounded hover:bg-green-200 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Copy className="h-4 w-4" />
-              <span>{copied ? 'Copied!' : 'Copy for Claude'}</span>
+              <span>{copied ? 'Copied!' : 'Copy Error to Brayan'}</span>
             </button>
             <button
               onClick={handleDownloadReport}
@@ -194,8 +194,8 @@ export const ErrorReporter: React.FC<ErrorReporterProps> = ({ isOpen, onClose })
         {errors.length > 0 && (
           <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border-b dark:border-gray-700">
             <p className="text-sm text-blue-800 dark:text-blue-200">
-              💡 <strong>To get help from Claude Code:</strong> Click "Copy for Claude" and paste the report in your chat. 
-              Claude will analyze the errors and suggest specific fixes for your codebase.
+              💡 <strong>To get help from Brayan:</strong> Click "Copy Error to Brayan" and paste the report in your chat. 
+              Brayan will analyze the errors and suggest specific fixes for your codebase.
             </p>
           </div>
         )}
@@ -223,7 +223,7 @@ export const ErrorReporter: React.FC<ErrorReporterProps> = ({ isOpen, onClose })
         <div className="p-4 border-t dark:border-gray-700 bg-gray-50 dark:bg-gray-700 text-xs text-gray-600 dark:text-gray-400">
           <p>
             This monitor captures console errors, unhandled promises, and React errors automatically. 
-            Errors are deduplicated and stored locally. Use "Copy for Claude" to get automated fixes.
+            Errors are deduplicated and stored locally. Use "Copy Error to Brayan" to get automated fixes.
           </p>
         </div>
       </div>

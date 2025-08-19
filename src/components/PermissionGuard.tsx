@@ -65,7 +65,7 @@ const PermissionGuard: React.FC<PermissionGuardProps> = ({
   }
 
   // Check specific role requirement
-  if (requiredRole && user.role !== requiredRole && user.role !== 'admin') {
+  if (requiredRole && user?.role !== requiredRole && user?.role !== 'admin') {
     return fallback || (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
@@ -75,7 +75,7 @@ const PermissionGuard: React.FC<PermissionGuardProps> = ({
             This feature requires {requiredRole} role or higher.
           </p>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
-            Your current role: <span className="font-medium">{user.role}</span>
+            Your current role: <span className="font-medium">{user?.role}</span>
           </p>
         </div>
       </div>
@@ -83,7 +83,7 @@ const PermissionGuard: React.FC<PermissionGuardProps> = ({
   }
 
   // Check module access permission
-  if (!canAccessModule(user.role, module)) {
+  if (!canAccessModule(user?.role, module)) {
     return fallback || (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
@@ -93,7 +93,7 @@ const PermissionGuard: React.FC<PermissionGuardProps> = ({
             You do not have permission to access the {module} module.
           </p>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
-            Your current role: <span className="font-medium">{user.role}</span>
+            Your current role: <span className="font-medium">{user?.role}</span>
           </p>
         </div>
       </div>
@@ -101,7 +101,7 @@ const PermissionGuard: React.FC<PermissionGuardProps> = ({
   }
 
   // Check specific action permission
-  if (!hasPermission(user.role, module, action)) {
+  if (!hasPermission(user?.role, module, action)) {
     return fallback || (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
@@ -111,7 +111,7 @@ const PermissionGuard: React.FC<PermissionGuardProps> = ({
             You do not have permission to {action} in the {module} module.
           </p>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
-            Your current role: <span className="font-medium">{user.role}</span>
+            Your current role: <span className="font-medium">{user?.role}</span>
           </p>
         </div>
       </div>
@@ -119,7 +119,7 @@ const PermissionGuard: React.FC<PermissionGuardProps> = ({
   }
 
   // Check if user account is active
-  if (!user.isActive) {
+  if (!user?.isActive) {
     return fallback || (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">

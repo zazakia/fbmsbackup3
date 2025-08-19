@@ -181,13 +181,13 @@ const handleSupabaseError = async (input: RequestInfo, init?: RequestInit) => {
           // Clear session storage as well
           sessionStorage.clear();
           
-          // Force a clean auth state
+          // Force a clean auth state without redirect to prevent loops
           if (typeof window !== 'undefined' && window.location) {
-            console.log('🔄 Redirecting to clear session...');
-            // Small delay to prevent infinite loops
-            setTimeout(() => {
-              window.location.href = window.location.origin + '?auth_error=token_expired';
-            }, 100);
+            console.log('🔄 Session cleared, auth state will be updated...');
+            // Dispatch custom event instead of redirecting
+            window.dispatchEvent(new CustomEvent('auth:token_expired', {
+              detail: { message: 'Session expired, please log in again' }
+            }));
           }
         }
       }

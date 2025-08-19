@@ -134,12 +134,12 @@ class ErrorBoundary extends Component<Props, State> {
                     document.execCommand('copy');
                     document.body.removeChild(textArea);
                   });
-                  alert('Error report copied to clipboard. Please share with Claude Code for instant fixes.');
+                  alert('Error report copied to clipboard. Please share with Brayan for instant fixes.');
                 }}
                 className="w-full bg-purple-600 text-white py-3 px-4 rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-center space-x-2"
               >
                 <Bug className="h-4 w-4" />
-                <span>Copy Error Report for Claude</span>
+                <span>Copy Error Report for Brayan</span>
               </button>
 
               <button
