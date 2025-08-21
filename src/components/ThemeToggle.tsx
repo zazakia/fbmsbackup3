@@ -1,5 +1,5 @@
 import React from 'react';
-import { Sun, Moon, Monitor } from 'lucide-react';
+import { Sun, Moon, Monitor, Store, ShoppingCart } from 'lucide-react';
 import { useThemeStore, Theme } from '../store/themeStore';
 
 const ThemeToggle: React.FC = () => {
@@ -15,6 +15,16 @@ const ThemeToggle: React.FC = () => {
       value: 'dark',
       label: 'Dark',
       icon: <Moon className="h-4 w-4" />
+    },
+    {
+      value: 'peddlr-light',
+      label: 'Peddlr Light',
+      icon: <Store className="h-4 w-4" />
+    },
+    {
+      value: 'peddlr-dark',
+      label: 'Peddlr Dark',
+      icon: <ShoppingCart className="h-4 w-4" />
     },
     {
       value: 'system',

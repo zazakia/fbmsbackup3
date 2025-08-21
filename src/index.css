@@ -28,6 +28,38 @@
   --color-accent: 96 165 250;
 }
 
+/* Peddlr Theme - Light Mode */
+.peddlr-light {
+  --color-primary: 20 158 132; /* Teal-600 */
+  --color-primary-dark: 15 118 110; /* Teal-700 */
+  --color-background: 255 255 255; /* White */
+  --color-surface: 249 250 251; /* Gray-50 */
+  --color-text: 17 24 39; /* Gray-900 */
+  --color-text-secondary: 75 85 99; /* Gray-600 */
+  --color-border: 209 213 219; /* Gray-300 */
+  --color-accent: 245 158 11; /* Amber-500 */
+  --color-success: 34 197 94; /* Green-500 */
+  --color-warning: 251 191 36; /* Yellow-400 */
+  --color-error: 239 68 68; /* Red-500 */
+  --color-info: 59 130 246; /* Blue-500 */
+}
+
+/* Peddlr Theme - Dark Mode */
+.peddlr-dark {
+  --color-primary: 45 212 191; /* Teal-400 */
+  --color-primary-dark: 20 158 132; /* Teal-600 */
+  --color-background: 17 24 39; /* Gray-900 */
+  --color-surface: 31 41 55; /* Gray-800 */
+  --color-text: 248 250 252; /* Slate-50 */
+  --color-text-secondary: 156 163 175; /* Gray-400 */
+  --color-border: 75 85 99; /* Gray-600 */
+  --color-accent: 251 191 36; /* Yellow-400 */
+  --color-success: 52 211 153; /* Emerald-400 */
+  --color-warning: 251 191 36; /* Yellow-400 */
+  --color-error: 248 113 113; /* Red-400 */
+  --color-info: 96 165 250; /* Blue-400 */
+}
+
 /* Base styles */
 * {
   box-sizing: border-box;
@@ -81,6 +113,77 @@ body {
 
 .dark ::-webkit-scrollbar-thumb:hover {
   background: rgb(var(--color-text-secondary));
+}
+
+/* Peddlr Theme Specific Overrides */
+.peddlr-light .card,
+.peddlr-light .mobile-card,
+.peddlr-light .mobile-table-card,
+.peddlr-light .mobile-header {
+  @apply bg-white border-gray-300;
+}
+
+.peddlr-dark .card,
+.peddlr-dark .mobile-card,
+.peddlr-dark .mobile-table-card,
+.peddlr-dark .mobile-header {
+  @apply bg-gray-800 border-gray-600;
+}
+
+.peddlr-light .btn-primary,
+.peddlr-light .mobile-btn-primary {
+  @apply bg-teal-600 hover:bg-teal-700 text-white;
+}
+
+.peddlr-dark .btn-primary,
+.peddlr-dark .mobile-btn-primary {
+  @apply bg-teal-400 hover:bg-teal-300 text-gray-900;
+}
+
+.peddlr-light .btn-secondary,
+.peddlr-light .mobile-btn-secondary {
+  @apply bg-amber-100 hover:bg-amber-200 text-amber-800;
+}
+
+.peddlr-dark .btn-secondary,
+.peddlr-dark .mobile-btn-secondary {
+  @apply bg-amber-900/20 hover:bg-amber-900/30 text-amber-300;
+}
+
+.peddlr-light .input-field,
+.peddlr-light .mobile-input,
+.peddlr-light .mobile-search {
+  @apply bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:ring-teal-500 focus:border-teal-500;
+}
+
+.peddlr-dark .input-field,
+.peddlr-dark .mobile-input,
+.peddlr-dark .mobile-search {
+  @apply bg-gray-800 border-gray-600 text-gray-100 placeholder-gray-400 focus:ring-teal-400 focus:border-teal-400;
+}
+
+.peddlr-light .sidebar-item {
+  @apply text-gray-700 hover:bg-gray-100;
+}
+
+.peddlr-dark .sidebar-item {
+  @apply text-gray-200 hover:bg-gray-700;
+}
+
+.peddlr-light .sidebar-item-active {
+  @apply bg-teal-50 text-teal-700 border-r-2 border-teal-600;
+}
+
+.peddlr-dark .sidebar-item-active {
+  @apply bg-teal-900/20 text-teal-300 border-r-2 border-teal-400;
+}
+
+.peddlr-light .mobile-tab-active {
+  @apply border-teal-600 text-teal-700 bg-teal-50;
+}
+
+.peddlr-dark .mobile-tab-active {
+  @apply border-teal-400 text-teal-300 bg-teal-900/20;
 }
 
 /* Custom component styles */
@@ -220,6 +323,83 @@ body {
   .animate-pulse-slow {
     animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   }
+}
+
+/* Peddlr Theme Global Overrides - Applied after Tailwind utilities for higher specificity */
+.peddlr-light {
+  /* Override common background colors */
+  .bg-white { background-color: #ffffff !important; }
+  .bg-gray-50 { background-color: #f9fafb !important; }
+  .bg-gray-100 { background-color: #f3f4f6 !important; }
+  .bg-gray-200 { background-color: #e5e7eb !important; }
+  
+  /* Override primary colors to teal */
+  .bg-primary-50 { background-color: #f0fdfa !important; }
+  .bg-primary-100 { background-color: #ccfbf1 !important; }
+  .bg-primary-500 { background-color: #14b8a6 !important; }
+  .bg-primary-600 { background-color: #0d9488 !important; }
+  .bg-primary-700 { background-color: #0f766e !important; }
+  
+  .text-primary-600 { color: #0d9488 !important; }
+  .text-primary-700 { color: #0f766e !important; }
+  .text-primary-300 { color: #5eead4 !important; }
+  
+  /* Override border colors */
+  .border-primary-600 { border-color: #0d9488 !important; }
+  .border-primary-400 { border-color: #2dd4bf !important; }
+  
+  /* Focus ring colors */
+  .focus\:ring-primary-500:focus { --tw-ring-color: rgb(20 184 166) !important; }
+  .focus\:ring-primary-400:focus { --tw-ring-color: rgb(45 212 191) !important; }
+}
+
+.peddlr-dark {
+  /* Override common background colors for dark theme */
+  .bg-white { background-color: #1f2937 !important; }
+  .bg-gray-50 { background-color: #374151 !important; }
+  .bg-gray-100 { background-color: #4b5563 !important; }
+  .bg-gray-800 { background-color: #1f2937 !important; }
+  .bg-dark-800 { background-color: #1f2937 !important; }
+  .bg-dark-700 { background-color: #374151 !important; }
+  
+  /* Override primary colors to bright teal */
+  .bg-primary-50 { background-color: rgba(45, 212, 191, 0.1) !important; }
+  .bg-primary-100 { background-color: rgba(45, 212, 191, 0.15) !important; }
+  .bg-primary-500 { background-color: #2dd4bf !important; }
+  .bg-primary-600 { background-color: #14b8a6 !important; }
+  .bg-primary-700 { background-color: #0f766e !important; }
+  .bg-primary-900\/20 { background-color: rgba(19, 78, 74, 0.2) !important; }
+  
+  .text-primary-600 { color: #2dd4bf !important; }
+  .text-primary-700 { color: #5eead4 !important; }
+  .text-primary-300 { color: #5eead4 !important; }
+  .text-primary-400 { color: #2dd4bf !important; }
+  
+  /* Override text colors */
+  .text-gray-900 { color: #f8fafc !important; }
+  .text-gray-700 { color: #e2e8f0 !important; }
+  .text-gray-600 { color: #cbd5e1 !important; }
+  .text-gray-200 { color: #e2e8f0 !important; }
+  .text-gray-400 { color: #9ca3af !important; }
+  
+  /* Override border colors */
+  .border-gray-200 { border-color: #4b5563 !important; }
+  .border-gray-300 { border-color: #6b7280 !important; }
+  .border-gray-600 { border-color: #6b7280 !important; }
+  .border-dark-700 { border-color: #4b5563 !important; }
+  .border-dark-600 { border-color: #6b7280 !important; }
+  .border-primary-600 { border-color: #2dd4bf !important; }
+  .border-primary-400 { border-color: #2dd4bf !important; }
+  
+  /* Focus ring colors */
+  .focus\:ring-primary-500:focus { --tw-ring-color: rgb(45 212 191) !important; }
+  .focus\:ring-primary-400:focus { --tw-ring-color: rgb(45 212 191) !important; }
+  
+  /* Hover states */
+  .hover\:bg-gray-100:hover { background-color: #4b5563 !important; }
+  .hover\:bg-gray-200:hover { background-color: #6b7280 !important; }
+  .hover\:bg-primary-700:hover { background-color: #0f766e !important; }
+  .hover\:bg-primary-600:hover { background-color: #14b8a6 !important; }
 }
 
 /* Focus styles for accessibility */

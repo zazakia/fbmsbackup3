@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-export type Theme = 'dark' | 'light' | 'system';
+export type Theme = 'dark' | 'light' | 'system' | 'peddlr-light' | 'peddlr-dark';
 
 interface ThemeState {
   theme: Theme;
@@ -23,13 +23,19 @@ const getSystemTheme = (): boolean => {
 };
 
 // Apply theme to document
-const applyTheme = (isDark: boolean) => {
+const applyTheme = (isDark: boolean, theme: Theme) => {
   if (typeof document === 'undefined') return;
   
-  if (isDark) {
+  // Remove all theme classes first
+  document.documentElement.classList.remove('dark', 'peddlr-light', 'peddlr-dark');
+  
+  // Apply the appropriate theme class
+  if (theme === 'peddlr-light') {
+    document.documentElement.classList.add('peddlr-light');
+  } else if (theme === 'peddlr-dark') {
+    document.documentElement.classList.add('peddlr-dark');
+  } else if (isDark) {
     document.documentElement.classList.add('dark');
-  } else {
-    document.documentElement.classList.remove('dark');
   }
 };
 
@@ -49,18 +55,42 @@ export const useThemeStore = create<ThemeStore>()(
           case 'dark':
             isDark = true;
             break;
+          case 'peddlr-light':
+            isDark = false;
+            break;
+          case 'peddlr-dark':
+            isDark = true;
+            break;
           case 'system':
             isDark = getSystemTheme();
             break;
         }
 
-        applyTheme(isDark);
+        applyTheme(isDark, theme);
         set({ theme, isDark });
       },
 
       toggleTheme: () => {
         const { theme } = get();
-        const newTheme = theme === 'dark' ? 'light' : 'dark';
+        let newTheme: Theme;
+        
+        switch (theme) {
+          case 'dark':
+            newTheme = 'light';
+            break;
+          case 'light':
+            newTheme = 'dark';
+            break;
+          case 'peddlr-dark':
+            newTheme = 'peddlr-light';
+            break;
+          case 'peddlr-light':
+            newTheme = 'peddlr-dark';
+            break;
+          default:
+            newTheme = theme === 'system' ? 'dark' : 'light';
+        }
+        
         get().setTheme(newTheme);
       },
 
