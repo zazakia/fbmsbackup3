@@ -6,17 +6,42 @@ const SupabaseStatusIndicator: React.FC = () => {
   const [message, setMessage] = useState('Checking Supabase connection...');
 
   useEffect(() => {
+    let mounted = true;
+
     const checkConnection = async () => {
-      const { error } = await supabase.from('customers').select('*').limit(1);
-      if (error) {
+      try {
+        const { error } = await supabase.from('customers').select('*').limit(1);
+
+        if (!mounted) return;
+
+        if (error) {
+          setStatus('error');
+          setMessage('Supabase connection failed');
+        } else {
+          setStatus('connected');
+          setMessage('Supabase connected');
+        }
+      } catch (err) {
+        if (!mounted) return;
         setStatus('error');
-        setMessage('Supabase connection failed');
-      } else {
-        setStatus('connected');
-        setMessage('Supabase connected');
+        setMessage('Connection error');
       }
     };
+
     checkConnection();
+
+    // Set up a timeout to prevent infinite loading
+    const timeout = setTimeout(() => {
+      if (mounted && status === 'checking') {
+        setStatus('error');
+        setMessage('Connection timeout');
+      }
+    }, 8000); // 8 second timeout
+
+    return () => {
+      mounted = false;
+      clearTimeout(timeout);
+    };
   }, []);
 
   let color = 'bg-yellow-400';

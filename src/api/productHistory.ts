@@ -10,6 +10,51 @@ import {
   TransferStatus
 } from '../types/business';
 
+// Error interface for Supabase errors
+interface SupabaseError {
+  code?: string;
+  message: string;
+  details?: string;
+  hint?: string;
+}
+
+// Database movement record interface
+interface DbMovementRecord {
+  id: string | number;
+  product_id: string | number;
+  product_name: string;
+  product_sku: string;
+  type: string;
+  quantity: number;
+  previous_stock: number;
+  new_stock: number;
+  unit_cost?: number | null;
+  total_value?: number | null;
+  reason: string;
+  reference_number?: string | null;
+  location_from?: string | null;
+  location_to?: string | null;
+  status: string;
+  created_at: string;
+  updated_at: string;
+}
+
+// Database transfer record interface
+interface DbTransferRecord {
+  id: string | number;
+  transfer_number: string;
+  from_location: string;
+  to_location: string;
+  requested_by: string;
+  approved_by?: string | null;
+  approved_by_name?: string | null;
+  notes?: string | null;
+  attachments?: unknown;
+  status: string;
+  created_at: string;
+  updated_at?: string | null;
+}
+
 // CREATE product movement history entry
 export async function createProductMovement(movement: Omit<ProductMovementHistory, 'id' | 'createdAt'>) {
   const payload = {
@@ -54,7 +99,7 @@ export async function createProductMovement(movement: Omit<ProductMovementHistor
     .single();
 
   if (error) {
-    console.error('[persist][stock_movements.insert-ext] error', { code: (error as any)?.code, message: error.message, details: (error as any)?.details, hint: (error as any)?.hint });
+    console.error('[persist][stock_movements.insert-ext] error', { code: (error as SupabaseError)?.code, message: error.message, details: (error as SupabaseError)?.details, hint: (error as SupabaseError)?.hint });
   }
   if (data && import.meta.env.DEV) {
     console.debug('[persist][stock_movements.insert-ext] success', { id: data.id, product_id: data.product_id });
@@ -177,7 +222,7 @@ export async function updateProductMovement(id: string, updates: Partial<Product
     .single();
 
   if (error) {
-    console.error('[persist][stock_movements.update] error', { id, code: (error as any)?.code, message: error.message, details: (error as any)?.details, hint: (error as any)?.hint });
+    console.error('[persist][stock_movements.update] error', { id, code: (error as SupabaseError)?.code, message: error.message, details: (error as SupabaseError)?.details, hint: (error as SupabaseError)?.hint });
   }
   if (data && import.meta.env.DEV) {
     console.debug('[persist][stock_movements.update] success', { id: data.id });
@@ -369,7 +414,7 @@ export async function getInventoryLocations(): Promise<{ data: InventoryLocation
     .order('name');
 
   if (error) {
-    console.error('[persist][inventory_locations.select] error', { code: (error as any)?.code, message: error.message, details: (error as any)?.details, hint: (error as any)?.hint });
+    console.error('[persist][inventory_locations.select] error', { code: (error as SupabaseError)?.code, message: error.message, details: (error as SupabaseError)?.details, hint: (error as SupabaseError)?.hint });
   }
 
   if (data) {
@@ -421,7 +466,7 @@ export async function getNextTransferNumber(): Promise<{ data: string | null; er
 
 // Helper functions to transform database objects
 function transformMovementFromDB(dbMovement: Record<string, unknown>): ProductMovementHistory {
-  const m = dbMovement as any;
+  const m = dbMovement as DbMovementRecord;
   return {
     id: String(m.id),
     productId: String(m.product_id),
@@ -458,7 +503,7 @@ function transformMovementFromDB(dbMovement: Record<string, unknown>): ProductMo
 }
 
 function transformTransferFromDB(dbTransfer: Record<string, unknown>): TransferSlip {
-  const t = dbTransfer as any;
+  const t = dbTransfer as DbTransferRecord;
   return {
     id: String(t.id),
     transferNumber: String(t.transfer_number),
@@ -466,7 +511,7 @@ function transformTransferFromDB(dbTransfer: Record<string, unknown>): TransferS
     fromLocationName: String(t.from_location_name),
     toLocationId: String(t.to_location_id),
     toLocationName: String(t.to_location_name),
-    items: Array.isArray(t.items) ? (t.items as any[]).map((it) => ({
+    items: Array.isArray(t.items) ? (t.items as Record<string, unknown>[]).map((it) => ({
       id: String(it.id ?? `${Date.now()}-${Math.random()}`),
       productId: String(it.productId ?? it.product_id ?? ''),
       productName: String(it.productName ?? it.product_name ?? ''),
@@ -478,7 +523,7 @@ function transformTransferFromDB(dbTransfer: Record<string, unknown>): TransferS
       receivedQuantity: it.receivedQuantity !== undefined ? Number(it.receivedQuantity) : undefined,
       unitCost: Number(it.unitCost ?? it.unit_cost ?? 0),
       totalValue: Number(it.totalValue ?? it.total_value ?? 0),
-      condition: it.condition as any,
+      condition: String(it.condition || 'good'),
       notes: it.notes ? String(it.notes) : undefined,
       expiryDate: it.expiryDate ? new Date(String(it.expiryDate)) : undefined,
       serialNumbers: Array.isArray(it.serialNumbers) ? it.serialNumbers as string[] : undefined

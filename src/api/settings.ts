@@ -234,7 +234,9 @@ export class SettingsAPI {
   ): Promise<SettingsResponse> {
     try {
       // Transform camelCase to snake_case for database
-      const { id: _id, userId: _userId, createdAt: _createdAt, updatedAt: _updatedAt, ...rawUpdates } = updates;
+      const { id, userId, createdAt, updatedAt, ...rawUpdates } = updates;
+      // Remove unused fields from updates
+      void id; void userId; void createdAt; void updatedAt;
       
       // Transform field names from camelCase to snake_case
       const dbUpdates: Record<string, unknown> = {};
@@ -319,7 +321,7 @@ export class SettingsAPI {
    */
   async deleteUserSettings(userId: string): Promise<SettingsResponse> {
     try {
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('user_settings')
         .delete()
         .eq('user_id', userId);

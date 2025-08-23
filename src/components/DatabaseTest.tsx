@@ -5,7 +5,13 @@ import { useSupabaseAuthStore } from '../store/supabaseAuthStore';
 
 const DatabaseTest: React.FC = () => {
   const { user } = useSupabaseAuthStore();
-  const [testResults, setTestResults] = useState<any[]>([]);
+  interface TestResult {
+    name: string;
+    status: 'success' | 'error' | 'warning';
+    message: string;
+  }
+
+  const [testResults, setTestResults] = useState<TestResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   const runTests = async () => {
@@ -15,12 +21,12 @@ const DatabaseTest: React.FC = () => {
     }
 
     setIsLoading(true);
-    const results: any[] = [];
+    const results: TestResult[] = [];
 
     try {
       // Test 1: Check if user_settings table exists
       console.log('Testing user_settings table...');
-      const { data: tableCheck, error: tableError } = await supabase
+      const { error: tableError } = await supabase
         .from('user_settings')
         .select('id')
         .limit(1);

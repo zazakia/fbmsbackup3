@@ -16,23 +16,23 @@ const DatabaseConnectionTest: React.FC = () => {
     
     try {
       // Test products table
-      const { data: products, error: productsError } = await supabase
+      const { error: productsError } = await supabase
         .from('products')
         .select('*')
         .limit(1);
-      
+
       if (productsError) throw new Error(`Products: ${productsError.message}`);
-      
+
       // Test customers table
-      const { data: customers, error: customersError } = await supabase
+      const { error: customersError } = await supabase
         .from('customers')
         .select('*')
         .limit(1);
-      
+
       if (customersError) throw new Error(`Customers: ${customersError.message}`);
-      
+
       // Test users table
-      const { data: users, error: usersError } = await supabase
+      const { error: usersError } = await supabase
         .from('users')
         .select('*')
         .limit(1);

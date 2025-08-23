@@ -1,5 +1,18 @@
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
+// Lazy load heavy dependencies
+let jsPDF: any = null;
+let html2canvas: any = null;
+
+const loadPDFDependencies = async () => {
+  if (!jsPDF) {
+    const jsPDFModule = await import('jspdf');
+    jsPDF = jsPDFModule.default;
+  }
+  if (!html2canvas) {
+    const html2canvasModule = await import('html2canvas');
+    html2canvas = html2canvasModule.default;
+  }
+  return { jsPDF, html2canvas };
+};
 
 export interface BIRFormData {
   // Common fields for all BIR forms
@@ -263,7 +276,8 @@ export class BIRForm1701QGenerator {
  * PDF Generator Factory
  */
 export class BIRPDFGenerator {
-  static generateForm2550M(data: BIRFormData): Promise<Blob> {
+  static async generateForm2550M(data: BIRFormData): Promise<Blob> {
+    await loadPDFDependencies();
     return new Promise((resolve) => {
       const generator = new BIRForm2550MGenerator();
       const pdf = generator.generate(data);
@@ -298,14 +312,16 @@ export class BIRPDFGenerator {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     _filename: string
   ): Promise<Blob> {
-    const canvas = await html2canvas(element, {
+    const { jsPDF: PDFClass, html2canvas: canvasLib } = await loadPDFDependencies();
+
+    const canvas = await canvasLib(element, {
       scale: 2,
       useCORS: true,
       allowTaint: true
     });
-    
+
     const imgData = canvas.toDataURL('image/png');
-    const pdf = new jsPDF('p', 'mm', 'a4');
+    const pdf = new PDFClass('p', 'mm', 'a4');
     
     const imgWidth = 210;
     const pageHeight = 295;

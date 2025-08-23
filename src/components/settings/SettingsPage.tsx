@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Save, Bell, Calendar, Database, Shield, User, Monitor, Download, Sparkles, Settings, Power } from 'lucide-react';
+import { Bell, Calendar, Database, Shield, User, Monitor, Download, Sparkles, Settings } from 'lucide-react';
 import { useNotificationStore } from '../../store/notificationStore';
 import { useInventoryMonitor } from '../../services/inventoryMonitor';
 import { useToastStore } from '../../store/toastStore';
@@ -120,20 +120,6 @@ const SettingsPage: React.FC = () => {
     }
     return true; // All other sections are accessible to all users
   });
-
-  const handleSaveSettings = () => {
-    // Save notification settings
-    updateSettings(settings);
-    
-    // Save inventory thresholds
-    updateThresholds(inventoryThresholds);
-    
-    addToast({
-      type: 'success',
-      title: 'Settings Saved',
-      message: 'Your preferences have been updated successfully.'
-    });
-  };
 
   const renderNotificationSettings = () => (
     <div className="space-y-6">

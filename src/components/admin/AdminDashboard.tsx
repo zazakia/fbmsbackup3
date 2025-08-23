@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, memo } from 'react';
 import {
   Activity,
   Users,
@@ -8,30 +8,18 @@ import {
   AlertTriangle,
   CheckCircle,
   Clock,
-  Eye,
   Shield,
-  Zap,
   HardDrive,
-  Wifi,
   RefreshCw,
-  Calendar,
   BarChart3,
-  Globe,
-  Lock,
   Settings,
   Monitor,
-  Cpu,
-  MemoryStick,
-  Network,
   DollarSign,
   ShoppingCart,
   Package,
   FileText,
-  Bell,
-  Download,
   Upload,
   UserCheck,
-  AlertCircle,
   CheckSquare,
   XCircle,
   Info,
@@ -47,8 +35,6 @@ import {
   GitBranch,
   Rocket,
   Copy,
-  Trash2,
-  ArrowDown,
   Maximize2,
   Minimize2
 } from 'lucide-react';
@@ -200,14 +186,6 @@ const AdminDashboard: React.FC = () => {
     return `${days}d ${hours}h ${minutes}m`;
   }, []);
 
-  const formatBytes = useCallback((bytes: number) => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  }, []);
-
   const getStatusColor = useCallback((status: string) => {
     switch (status) {
       case 'online': return 'text-green-600 bg-green-100';
@@ -252,7 +230,7 @@ const AdminDashboard: React.FC = () => {
         // Script started - already handled above
       },
       
-      onOutput: (line: string, type: 'stdout' | 'stderr') => {
+      onOutput: (line: string, _type: 'stdout' | 'stderr') => {
         setScriptExecutions(prev => ({
           ...prev,
           [scriptName]: {
@@ -1512,7 +1490,7 @@ const AdminDashboard: React.FC = () => {
           ].map(({ id, label, icon: Icon }) => (
             <button
               key={id}
-              onClick={() => setActiveTab(id as any)}
+              onClick={() => setActiveTab(id as 'overview' | 'users' | 'activity' | 'performance' | 'security' | 'management' | 'scripts')}
               className={`flex items-center px-4 py-2 rounded-lg font-medium transition-colors whitespace-nowrap ${
                 activeTab === id
                   ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
@@ -1541,4 +1519,4 @@ const AdminDashboard: React.FC = () => {
   );
 };
 
-export default AdminDashboard;
+export default memo(AdminDashboard);

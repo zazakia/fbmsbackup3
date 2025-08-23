@@ -1,11 +1,28 @@
 import { supabase } from '../utils/supabase';
-import { 
-  validateUserId, 
-  getValidUserId, 
-  prepareReceivingUserData, 
-  handleForeignKeyError,
-  getCurrentValidatedUser 
+import {
+  getValidUserId,
+  handleForeignKeyError
 } from '../utils/userValidation';
+
+// Database record interfaces
+interface DbReceivingRecord {
+  id: string;
+  purchase_order_id: string;
+  received_date: string;
+  received_by: string;
+  notes?: string;
+  status: string;
+  purchase_order_receiving_line_items?: unknown[];
+}
+
+interface DbReceivingLineItem {
+  id: string;
+  product_id: string;
+  quantity_received: number;
+  unit_cost: number;
+  condition: string;
+  notes?: string;
+}
 
 // RECEIVING RECORDS CRUD OPERATIONS
 
@@ -324,8 +341,8 @@ export async function getFullReceivingHistory(purchaseOrderId: string) {
   if (data) {
     return {
       data: data.map(record => ({
-        ...transformReceivingRecord(record as any),
-        lineItems: (record.purchase_order_receiving_line_items as any[] || [])
+        ...transformReceivingRecord(record as DbReceivingRecord),
+        lineItems: (record.purchase_order_receiving_line_items as DbReceivingLineItem[] || [])
           .map(transformReceivingLineItem)
       })),
       error: null
@@ -550,8 +567,8 @@ export async function getReceivingStatistics(dateRange?: { startDate: Date; endD
         sum + (record.purchase_order_receiving_line_items as any[]).reduce((itemSum, item) => 
           itemSum + item.quantity_received, 0), 0),
       totalValueReceived: data.reduce((sum, record) => 
-        sum + (record.purchase_order_receiving_line_items as any[]).reduce((itemSum, item) => 
-          itemSum + item.total_cost, 0), 0)
+        sum + (record.purchase_order_receiving_line_items as DbReceivingLineItem[]).reduce((itemSum, item) =>
+          itemSum + (item as unknown as { total_cost: number }).total_cost, 0), 0)
     };
 
     return { data: stats, error: null };

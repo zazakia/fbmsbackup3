@@ -14,24 +14,91 @@ export default defineConfig({
     }
   },
   optimizeDeps: {
-    include: ['lucide-react', 'zustand', 'date-fns'],
+    include: [
+      'lucide-react',
+      'zustand',
+      'date-fns',
+      'recharts'
+    ],
+    exclude: [
+      '@supabase/supabase-js',
+      '@supabase/postgrest-js',
+      '@supabase/realtime-js',
+      '@supabase/storage-js',
+      '@supabase/auth-js'
+    ] // Exclude Supabase to avoid ESM/CJS conflicts
   },
   build: {
     rollupOptions: {
       output: {
-        manualChunks: {
-          vendor: ['react', 'react-dom'],
-          ui: ['lucide-react'],
-          charts: ['recharts'],
-          store: ['zustand'],
-          utils: ['date-fns']
+        manualChunks: (id) => {
+          // Vendor libraries
+          if (id.includes('node_modules')) {
+            if (id.includes('react') || id.includes('react-dom')) {
+              return 'vendor-react';
+            }
+            if (id.includes('lucide-react')) {
+              return 'vendor-icons';
+            }
+            if (id.includes('recharts')) {
+              return 'vendor-charts';
+            }
+            if (id.includes('@supabase')) {
+              return 'vendor-supabase';
+            }
+            if (id.includes('zustand')) {
+              return 'vendor-store';
+            }
+            if (id.includes('date-fns')) {
+              return 'vendor-utils';
+            }
+            if (id.includes('jspdf') || id.includes('html2canvas')) {
+              return 'vendor-pdf';
+            }
+            return 'vendor-misc';
+          }
+
+          // Application chunks
+          if (id.includes('src/components/bir/')) {
+            return 'chunk-bir';
+          }
+          if (id.includes('src/components/admin/')) {
+            return 'chunk-admin';
+          }
+          if (id.includes('src/components/accounting/')) {
+            return 'chunk-accounting';
+          }
+          if (id.includes('src/components/reports/')) {
+            return 'chunk-reports';
+          }
+          if (id.includes('src/api/')) {
+            return 'chunk-api';
+          }
+          if (id.includes('src/utils/')) {
+            return 'chunk-utils';
+          }
         }
       }
     },
-    chunkSizeWarningLimit: 1000,
+    chunkSizeWarningLimit: 500, // Reduced from 1000 to catch large chunks
     target: 'es2020',
     minify: 'esbuild',
     cssMinify: true,
+    sourcemap: false, // Disable sourcemaps in production for smaller bundle
+    reportCompressedSize: true
+  },
+  esbuild: {
+    drop: ['console', 'debugger'], // Remove console logs in production
+    legalComments: 'none' // Remove legal comments to reduce size
+  },
+
+  define: {
+    global: 'globalThis', // Fix global is not defined error
+    'process.env': {} // Fix process is not defined error
+  },
+  resolve: {
+    conditions: ['import', 'module', 'browser', 'default'],
+    mainFields: ['module', 'main']
   },
   test: {
     globals: true,

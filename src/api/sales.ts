@@ -2,8 +2,25 @@ import { supabase } from '../utils/supabase';
 import { Sale } from '../types/business';
 import { parseSupabaseDate } from '../utils/formatters';
 
+// Raw sale data from database
+interface RawSaleData {
+  id: string;
+  invoice_number: string;
+  customer_id?: string;
+  customer_name?: string;
+  items: unknown[];
+  subtotal: number;
+  discount: number;
+  tax: number;
+  total: number;
+  payment_method: string;
+  payment_status: string;
+  created_at: string;
+  updated_at: string;
+}
+
 // Safe date transformation helper
-const transformSaleData = (saleData: any) => {
+const transformSaleData = (saleData: RawSaleData) => {
   const createdAt = parseSupabaseDate(saleData.created_at);
   
   return {

@@ -84,7 +84,7 @@ const tests = [
       const start = Date.now();
       const { data, error } = await supabase
         .from('sales')
-        .select('id, total, sale_date')
+        .select('id, total, created_at')
         .order('created_at', { ascending: false })
         .limit(10);
       const duration = Date.now() - start;

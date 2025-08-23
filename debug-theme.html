@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Peddlr Theme Test</title>
+    <style>
+        /* Peddlr Light Theme */
+        .peddlr-light {
+            --color-primary: 20 158 132;
+            --color-accent: 245 158 11;
+            background-color: #ffffff;
+            color: #111827;
+        }
+
+        /* Peddlr Dark Theme */
+        .peddlr-dark {
+            --color-primary: 45 212 191;
+            --color-accent: 251 191 36;
+            background-color: #111827;
+            color: #f8fafc;
+        }
+
+        /* Test elements */
+        .test-box {
+            padding: 20px;
+            margin: 10px;
+            border-radius: 8px;
+            border: 2px solid #ddd;
+        }
+
+        .peddlr-light .test-box {
+            background-color: #f0fdfa;
+            border-color: #0d9488;
+            color: #0f766e;
+        }
+
+        .peddlr-dark .test-box {
+            background-color: #1f2937;
+            border-color: #2dd4bf;
+            color: #5eead4;
+        }
+
+        .theme-button {
+            padding: 10px 20px;
+            margin: 5px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        .peddlr-light .theme-button {
+            background-color: #0d9488;
+            color: white;
+        }
+
+        .peddlr-light .theme-button:hover {
+            background-color: #0f766e;
+        }
+
+        .peddlr-dark .theme-button {
+            background-color: #2dd4bf;
+            color: #111827;
+        }
+
+        .peddlr-dark .theme-button:hover {
+            background-color: #5eead4;
+        }
+
+        body {
+            font-family: system-ui, sans-serif;
+            margin: 0;
+            padding: 20px;
+            transition: all 0.3s ease;
+        }
+    </style>
+</head>
+<body class="peddlr-light">
+    <h1>Peddlr Theme Test</h1>
+    
+    <div>
+        <button class="theme-button" onclick="setTheme('peddlr-light')">Peddlr Light</button>
+        <button class="theme-button" onclick="setTheme('peddlr-dark')">Peddlr Dark</button>
+        <button class="theme-button" onclick="setTheme('default')">Default</button>
+    </div>
+
+    <div class="test-box">
+        <h2>Test Box</h2>
+        <p>This box should change colors based on the theme.</p>
+        <p>Current theme class: <span id="current-theme">peddlr-light</span></p>
+    </div>
+
+    <div style="background-color: rgb(var(--color-primary)); color: white; padding: 15px; border-radius: 8px; margin: 10px 0;">
+        CSS Variable Test: --color-primary = <span id="primary-value">20 158 132</span>
+    </div>
+
+    <div style="background-color: rgb(var(--color-accent)); color: white; padding: 15px; border-radius: 8px; margin: 10px 0;">
+        CSS Variable Test: --color-accent = <span id="accent-value">245 158 11</span>
+    </div>
+
+    <script>
+        function setTheme(theme) {
+            const body = document.body;
+            
+            // Remove all theme classes
+            body.classList.remove('peddlr-light', 'peddlr-dark');
+            
+            // Add new theme class
+            if (theme !== 'default') {
+                body.classList.add(theme);
+            }
+            
+            // Update display
+            document.getElementById('current-theme').textContent = theme;
+            
+            // Get computed CSS variables
+            const computedStyle = getComputedStyle(document.documentElement);
+            const primaryValue = computedStyle.getPropertyValue('--color-primary').trim();
+            const accentValue = computedStyle.getPropertyValue('--color-accent').trim();
+            
+            document.getElementById('primary-value').textContent = primaryValue || 'Not set';
+            document.getElementById('accent-value').textContent = accentValue || 'Not set';
+            
+            console.log('Theme changed to:', theme);
+            console.log('Body classes:', body.className);
+            console.log('Primary color:', primaryValue);
+            console.log('Accent color:', accentValue);
+        }
+
+        // Initialize
+        setTheme('peddlr-light');
+    </script>
+</body>
+</html>

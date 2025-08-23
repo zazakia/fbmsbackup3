@@ -1,6 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { X, CheckCircle, AlertCircle, Info, AlertTriangle } from 'lucide-react';
-import { useThemeStore } from '../store/themeStore';
 
 export type ToastType = 'success' | 'error' | 'warning' | 'info';
 
@@ -24,7 +23,6 @@ interface ToastComponentProps {
 const ToastComponent: React.FC<ToastComponentProps> = ({ toast, onClose }) => {
   const [isVisible, setIsVisible] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
-  const { isDark } = useThemeStore();
 
   const handleClose = useCallback(() => {
     setIsExiting(true);

@@ -227,60 +227,86 @@ export const useFixedSupabaseAuthStore = create<SupabaseAuthStore>()(
       },
 
       checkAuth: async () => {
-        try {
-          const { data: { session }, error } = await supabaseAnon.auth.getSession();
-          
-          if (error) {
-            throw new Error(error.message);
-          }
+        const currentState = get();
 
-          if (session?.user) {
-            // CRITICAL FIX: Get user profile and NEVER create automatically
-            const userProfile = await getUserProfile(session.user.id, session.user.email);
-            
-            if (!userProfile) {
-              console.warn('User authenticated but not found in system database');
-              set({
-                user: null,
-                isAuthenticated: false,
-                error: 'Account not found in system. Please contact admin.',
-                hasLoggedOut: false
-              });
-              return;
+        // Prevent multiple simultaneous auth checks
+        if (currentState.isLoading) {
+          console.log('Auth check already in progress, skipping...');
+          return;
+        }
+
+        try {
+          set({ isLoading: true });
+
+          // Add timeout to prevent infinite loading
+          const timeoutPromise = new Promise((_, reject) => {
+            setTimeout(() => reject(new Error('Auth check timeout')), 10000);
+          });
+
+          const authPromise = (async () => {
+            const { data: { session }, error } = await supabaseAnon.auth.getSession();
+
+            if (error) {
+              throw new Error(error.message);
             }
 
-            const user: User = {
-              id: userProfile.id,
-              email: userProfile.email,
-              firstName: userProfile.first_name,
-              lastName: userProfile.last_name,
-              role: userProfile.role as User['role'], // PRESERVE existing role
-              department: userProfile.department,
-              isActive: userProfile.is_active,
-              createdAt: new Date(userProfile.created_at),
-            };
+            if (session?.user) {
+              // CRITICAL FIX: Get user profile and NEVER create automatically
+              const userProfile = await getUserProfile(session.user.id, session.user.email);
 
-            const isEmailVerified = session.user.email_confirmed_at !== null;
-            
-            set({
-              user,
-              isAuthenticated: isEmailVerified && userProfile.is_active,
-              error: null,
-              hasLoggedOut: false,
-              pendingEmailVerification: !isEmailVerified
-            });
-          } else {
-            set({
-              user: null,
-              isAuthenticated: false,
-              error: null,
-              hasLoggedOut: false
-            });
-          }
+              if (!userProfile) {
+                console.warn('User authenticated but not found in system database');
+                return {
+                  user: null,
+                  isAuthenticated: false,
+                  error: 'Account not found in system. Please contact admin.',
+                  hasLoggedOut: false
+                };
+              }
+
+              const user: User = {
+                id: userProfile.id,
+                email: userProfile.email,
+                firstName: userProfile.first_name,
+                lastName: userProfile.last_name,
+                role: userProfile.role as User['role'], // PRESERVE existing role
+                department: userProfile.department,
+                isActive: userProfile.is_active,
+                createdAt: new Date(userProfile.created_at),
+              };
+
+              const isEmailVerified = session.user.email_confirmed_at !== null;
+
+              return {
+                user,
+                isAuthenticated: isEmailVerified && userProfile.is_active,
+                error: null,
+                hasLoggedOut: false,
+                pendingEmailVerification: !isEmailVerified
+              };
+            } else {
+              return {
+                user: null,
+                isAuthenticated: false,
+                error: null,
+                hasLoggedOut: false
+              };
+            }
+          })();
+
+          const result = await Promise.race([authPromise, timeoutPromise]);
+
+          set({
+            ...result,
+            isLoading: false
+          });
+
         } catch (error) {
+          console.error('Auth check error:', error);
           set({
             user: null,
             isAuthenticated: false,
+            isLoading: false,
             error: error instanceof Error ? error.message : 'Authentication check failed',
             hasLoggedOut: false
           });

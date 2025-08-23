@@ -1,6 +1,48 @@
 // Supabase Database Types
 // This file contains the TypeScript definitions for your Supabase database schema
 
+// JSONB field types
+export interface SaleItem {
+  id: string;
+  product_id: string;
+  product_name: string;
+  quantity: number;
+  unit_price: number;
+  total: number;
+}
+
+export interface PurchaseItem {
+  id: string;
+  product_id: string;
+  product_name: string;
+  quantity: number;
+  unit_price: number;
+  total: number;
+}
+
+export interface EmployeeAllowances {
+  housing?: number;
+  transportation?: number;
+  meal?: number;
+  overtime?: number;
+  bonus?: number;
+  [key: string]: number | undefined;
+}
+
+export interface EmergencyContact {
+  name: string;
+  relationship: string;
+  phone: string;
+  address?: string;
+}
+
+export interface UserSettings {
+  theme?: 'light' | 'dark' | 'auto';
+  language?: string;
+  notifications?: boolean;
+  [key: string]: unknown;
+}
+
 export interface Database {
   public: {
     Tables: {
@@ -148,7 +190,7 @@ export interface Database {
           invoice_number: string;
           customer_id?: string;
           customer_name?: string;
-          items: any; // JSONB
+          items: SaleItem[]; // JSONB
           subtotal: number;
           discount: number;
           tax: number;
@@ -163,7 +205,7 @@ export interface Database {
           invoice_number: string;
           customer_id?: string;
           customer_name?: string;
-          items: any; // JSONB
+          items: SaleItem[]; // JSONB
           subtotal: number;
           discount?: number;
           tax: number;
@@ -178,7 +220,7 @@ export interface Database {
           invoice_number?: string;
           customer_id?: string;
           customer_name?: string;
-          items?: any; // JSONB
+          items?: SaleItem[]; // JSONB
           subtotal?: number;
           discount?: number;
           tax?: number;
@@ -236,7 +278,7 @@ export interface Database {
           po_number: string;
           supplier_id: string;
           supplier_name: string;
-          items: any; // JSONB
+          items: PurchaseItem[]; // JSONB
           subtotal: number;
           tax: number;
           total: number;
@@ -254,7 +296,7 @@ export interface Database {
           po_number: string;
           supplier_id: string;
           supplier_name: string;
-          items: any; // JSONB
+          items: PurchaseItem[]; // JSONB
           subtotal: number;
           tax: number;
           total: number;
@@ -272,7 +314,7 @@ export interface Database {
           po_number?: string;
           supplier_id?: string;
           supplier_name?: string;
-          items?: any; // JSONB
+          items?: PurchaseItem[]; // JSONB
           subtotal?: number;
           tax?: number;
           total?: number;
@@ -306,14 +348,14 @@ export interface Database {
           employment_type: string;
           status: string;
           basic_salary: number;
-          allowances?: any; // JSONB
+          allowances?: EmployeeAllowances; // JSONB
           sss_number?: string;
           philhealth_number?: string;
           pagibig_number?: string;
           tin_number?: string;
           bank_name?: string;
           bank_account_number?: string;
-          emergency_contact?: any; // JSONB
+          emergency_contact?: EmergencyContact; // JSONB
           created_at: string;
           updated_at: string;
         };
@@ -336,14 +378,14 @@ export interface Database {
           employment_type: string;
           status?: string;
           basic_salary: number;
-          allowances?: any; // JSONB
+          allowances?: EmployeeAllowances; // JSONB
           sss_number?: string;
           philhealth_number?: string;
           pagibig_number?: string;
           tin_number?: string;
           bank_name?: string;
           bank_account_number?: string;
-          emergency_contact?: any; // JSONB
+          emergency_contact?: EmergencyContact; // JSONB
           created_at?: string;
           updated_at?: string;
         };
@@ -366,14 +408,14 @@ export interface Database {
           employment_type?: string;
           status?: string;
           basic_salary?: number;
-          allowances?: any; // JSONB
+          allowances?: EmployeeAllowances; // JSONB
           sss_number?: string;
           philhealth_number?: string;
           pagibig_number?: string;
           tin_number?: string;
           bank_name?: string;
           bank_account_number?: string;
-          emergency_contact?: any; // JSONB
+          emergency_contact?: EmergencyContact; // JSONB
           created_at?: string;
           updated_at?: string;
         };
@@ -441,12 +483,12 @@ export interface Database {
           date_format?: string;
           time_format?: string;
           currency?: string;
-          display?: any; // JSONB
-          notifications?: any; // JSONB
-          privacy?: any; // JSONB
-          security?: any; // JSONB
-          reports?: any; // JSONB
-          inventory?: any; // JSONB
+          display?: UserSettings; // JSONB
+          notifications?: UserSettings; // JSONB
+          privacy?: UserSettings; // JSONB
+          security?: UserSettings; // JSONB
+          reports?: UserSettings; // JSONB
+          inventory?: UserSettings; // JSONB
           created_at: string;
           updated_at: string;
         };
@@ -459,12 +501,12 @@ export interface Database {
           date_format?: string;
           time_format?: string;
           currency?: string;
-          display?: any; // JSONB
-          notifications?: any; // JSONB
-          privacy?: any; // JSONB
-          security?: any; // JSONB
-          reports?: any; // JSONB
-          inventory?: any; // JSONB
+          display?: UserSettings; // JSONB
+          notifications?: UserSettings; // JSONB
+          privacy?: UserSettings; // JSONB
+          security?: UserSettings; // JSONB
+          reports?: UserSettings; // JSONB
+          inventory?: UserSettings; // JSONB
           created_at?: string;
           updated_at?: string;
         };
@@ -477,12 +519,12 @@ export interface Database {
           date_format?: string;
           time_format?: string;
           currency?: string;
-          display?: any; // JSONB
-          notifications?: any; // JSONB
-          privacy?: any; // JSONB
-          security?: any; // JSONB
-          reports?: any; // JSONB
-          inventory?: any; // JSONB
+          display?: UserSettings; // JSONB
+          notifications?: UserSettings; // JSONB
+          privacy?: UserSettings; // JSONB
+          security?: UserSettings; // JSONB
+          reports?: UserSettings; // JSONB
+          inventory?: UserSettings; // JSONB
           created_at?: string;
           updated_at?: string;
         };

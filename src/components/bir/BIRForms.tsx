@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, memo } from 'react';
 import { useBusinessStore } from '../../store/businessStore';
 import { BIRPDFGenerator, BIRFormData } from '../../utils/pdfGenerator';
 import { formatCurrency } from '../../utils/formatters';
@@ -607,4 +607,4 @@ const BIRForms: React.FC = () => {
   );
 };
 
-export default BIRForms; 
+export default memo(BIRForms);

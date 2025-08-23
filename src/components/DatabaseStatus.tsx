@@ -13,6 +13,16 @@ const DatabaseStatus: React.FC<DatabaseStatusProps> = ({ className = '' }) => {
 
   useEffect(() => {
     checkDatabaseConnection();
+
+    // Set up a timeout to prevent infinite loading
+    const timeout = setTimeout(() => {
+      if (status === 'checking') {
+        setStatus('error');
+        setDetails('Connection timeout - please refresh the page');
+      }
+    }, 10000); // 10 second timeout
+
+    return () => clearTimeout(timeout);
   }, []);
 
   const checkDatabaseConnection = async () => {

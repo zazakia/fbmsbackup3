@@ -89,7 +89,7 @@ export interface ModuleLoadingError {
   maxRetries: number;
   recoverable: boolean;
   fallbackSuggestions?: ModuleId[];
-  context?: Record<string, any>;
+  context?: Record<string, unknown>;
 }
 
 // ============================================================================
@@ -166,7 +166,7 @@ export interface ModuleConfig {
   description: string;
   icon: string;
   route: string;
-  component: ComponentType<any>;
+  component: ComponentType<Record<string, unknown>>;
   lazy: boolean;
   preloadPriority: 'high' | 'medium' | 'low';
   requiredPermissions: string[];
@@ -223,7 +223,7 @@ export interface RetryState {
 
 export interface CacheEntry {
   moduleId: ModuleId;
-  component: ComponentType<any>;
+  component: ComponentType<Record<string, unknown>>;
   timestamp: Date;
   expiresAt: Date;
   version: string;
@@ -347,7 +347,7 @@ export interface ModuleLoadingEvent {
   type: ModuleLoadingEventType;
   moduleId: ModuleId;
   timestamp: Date;
-  data: Record<string, any>;
+  data: Record<string, unknown>;
   userId?: string;
   sessionId?: string;
 }
@@ -357,7 +357,7 @@ export interface ModuleLoadingEvent {
 // ============================================================================
 
 export interface IModuleLoadingManager {
-  loadModule(moduleId: ModuleId, options?: LoadingOptions): Promise<ComponentType<any>>;
+  loadModule(moduleId: ModuleId, options?: LoadingOptions): Promise<ComponentType<Record<string, unknown>>>;
   preloadModule(moduleId: ModuleId): Promise<void>;
   isModuleLoaded(moduleId: ModuleId): boolean;
   getLoadingState(moduleId: ModuleId): LoadingStateInfo | null;
@@ -399,7 +399,7 @@ export interface LoadingOptions {
 
 export interface ModuleErrorBoundaryProps {
   moduleId: ModuleId;
-  fallbackComponent?: ComponentType<any>;
+  fallbackComponent?: ComponentType<Record<string, unknown>>;
   onError?: (error: ModuleLoadingError) => void;
   showRetryButton?: boolean;
   showFallbackOptions?: boolean;

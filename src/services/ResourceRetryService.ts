@@ -39,8 +39,11 @@ class ResourceRetryService {
   private retryQueue: string[] = [];
 
   constructor() {
-    this.initializeResourceMonitoring();
-    this.initializeNetworkChangeDetection();
+    // DISABLED: This service was causing persistent loading issues
+    // by overriding window.fetch and interfering with Supabase connections
+    console.log('🚫 ResourceRetryService disabled to prevent loading issues');
+    // this.initializeResourceMonitoring();
+    // this.initializeNetworkChangeDetection();
   }
 
   /**
@@ -73,7 +76,10 @@ class ResourceRetryService {
       }
     });
 
-    // Monitor fetch failures for resources
+    // DISABLED: Monitor fetch failures for resources
+    // This was causing persistent loading issues by interfering with Supabase
+    console.log('🚫 Fetch override disabled to prevent middleware conflicts');
+    /*
     const originalFetch = window.fetch;
     window.fetch = async (...args) => {
       try {
@@ -93,6 +99,7 @@ class ResourceRetryService {
         throw error;
       }
     };
+    */
   }
 
   /**

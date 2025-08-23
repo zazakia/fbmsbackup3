@@ -1,38 +1,19 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  Plus, 
-  Search, 
-  Filter, 
-  Calculator, 
-  TrendingUp, 
-  TrendingDown,
+import React, { useState, useEffect, memo } from 'react';
+import {
+  Plus,
+  Search,
+  Calculator,
+  TrendingUp,
   BarChart3,
-  PieChart,
   FileText,
-  DollarSign,
-  CreditCard,
-  Building2,
-  Calendar,
-  Clock,
   CheckCircle,
   AlertTriangle,
-  Eye,
   Edit,
-  Download,
-  Upload,
-  RefreshCw,
-  Archive,
-  Target,
-  Briefcase,
-  Receipt,
-  BookOpen,
-  Users,
-  Activity
+  Download
 } from 'lucide-react';
-import { useBusinessStore } from '../../store/businessStore';
 import { useToastStore } from '../../store/toastStore';
-import { Account, JournalEntry, JournalEntryLine, AccountType } from '../../types/business';
-import { formatCurrency, formatDate } from '../../utils/formatters';
+import { Account, JournalEntry, AccountType } from '../../types/business';
+import { formatCurrency } from '../../utils/formatters';
 
 interface FinancialMetrics {
   totalRevenue: number;
@@ -784,4 +765,4 @@ const EnhancedAccountingManagement: React.FC = () => {
   );
 };
 
-export default EnhancedAccountingManagement;
+export default memo(EnhancedAccountingManagement);

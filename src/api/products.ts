@@ -2,6 +2,19 @@ import { supabase } from '../utils/supabase';
 import { Product, Category } from '../types/business';
 import { createProductMovement } from './productHistory'; // Import the new function
 
+// Error types
+interface SupabaseError {
+  code?: string;
+  message: string;
+  details?: string;
+  hint?: string;
+}
+
+interface ApiResult<T> {
+  data: T | null;
+  error: SupabaseError | null;
+}
+
 // PRODUCT CRUD OPERATIONS
 
 // CREATE product
@@ -38,7 +51,7 @@ export async function createProduct(product: Omit<Product, 'id' | 'createdAt' | 
   let data, error;
   try {
     console.log('🔍 [API] Starting insert with timeout...');
-    const result = await Promise.race([insertQuery, timeoutPromise]) as any;
+    const result = await Promise.race([insertQuery, timeoutPromise]) as ApiResult<Product>;
     console.log('🔍 [API] Insert completed before timeout');
     data = result.data;
     error = result.error;
@@ -55,10 +68,10 @@ export async function createProduct(product: Omit<Product, 'id' | 'createdAt' | 
 
   if (error) {
     console.error('❌ [API] Create product error:', { 
-      code: (error as any)?.code, 
-      message: error.message, 
-      details: (error as any)?.details, 
-      hint: (error as any)?.hint 
+      code: (error as SupabaseError)?.code,
+      message: error.message,
+      details: (error as SupabaseError)?.details,
+      hint: (error as SupabaseError)?.hint
     });
     return { data: null, error };
   }
@@ -170,11 +183,11 @@ export async function getProducts(limit?: number, offset?: number) {
     console.log('🔍 [API] Fetching category names for UUIDs:', categoryIds);
     
     // Fetch category names with timeout
-    let categoryMap = new Map();
+    const categoryMap = new Map<string, string>();
     if (categoryIds.length > 0) {
       try {
         // Execute category lookup directly - Supabase has built-in timeout handling
-        const { data: categoriesData, error: categoryError } = await supabase
+        const { data: categoriesData, error: _categoryError } = await supabase
           .from('categories')
           .select('id, name')
           .in('id', categoryIds);

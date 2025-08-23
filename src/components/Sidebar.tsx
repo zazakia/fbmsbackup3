@@ -1,4 +1,4 @@
-import React, { memo, useMemo, useState } from 'react';
+import React, { memo, useState } from 'react';
 import { X, BarChart3, LogOut, User, AlertTriangle, HelpCircle } from 'lucide-react';
 import { useSupabaseAuthStore } from '../store/supabaseAuthStore';
 import HelpMenu from './help/HelpMenu';
