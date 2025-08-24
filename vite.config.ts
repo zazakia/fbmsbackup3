@@ -124,6 +124,15 @@ export default defineConfig({
     },
     define: {
       'import.meta.env.TEST': true
-    }
+    },
+    deps: {
+      optimizer: {
+        web: {
+          include: ['aria-query', 'dequal', 'psl']
+        }
+      },
+      interopDefault: true
+    },
+    pool: 'forks'
   }
 });

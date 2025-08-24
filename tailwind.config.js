@@ -39,8 +39,8 @@ export default {
           yellow: '#FCD116',
           green: '#228B22',
         },
-        // Peddlr theme colors
-        peddlr: {
+        // Tindahan theme colors
+        tindahan: {
           // Teal-based primary colors (business/money theme)
           primary: {
             50: '#f0fdfa',

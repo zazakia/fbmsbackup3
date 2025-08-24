@@ -179,7 +179,7 @@ const App: React.FC = () => {
       window.removeEventListener('auth:token_expired', handleTokenExpired);
       clearInterval(interval);
     };
-  }, [initializeTheme, isOAuthCallback, addToast]);
+  }, [initializeTheme, isOAuthCallback, addToast, logout]);
 
   // Keyboard shortcuts
   useEffect(() => {

@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-export type Theme = 'dark' | 'light' | 'system' | 'peddlr-light' | 'peddlr-dark';
+export type Theme = 'dark' | 'light' | 'system' | 'tindahan-light' | 'tindahan-dark';
 
 interface ThemeState {
   theme: Theme;
@@ -27,13 +27,13 @@ const applyTheme = (isDark: boolean, theme: Theme) => {
   if (typeof document === 'undefined') return;
   
   // Remove all theme classes first
-  document.documentElement.classList.remove('dark', 'peddlr-light', 'peddlr-dark');
+  document.documentElement.classList.remove('dark', 'tindahan-light', 'tindahan-dark');
   
   // Apply the appropriate theme class
-  if (theme === 'peddlr-light') {
-    document.documentElement.classList.add('peddlr-light');
-  } else if (theme === 'peddlr-dark') {
-    document.documentElement.classList.add('peddlr-dark');
+  if (theme === 'tindahan-light') {
+    document.documentElement.classList.add('tindahan-light');
+  } else if (theme === 'tindahan-dark') {
+    document.documentElement.classList.add('tindahan-dark');
   } else if (isDark) {
     document.documentElement.classList.add('dark');
   }
@@ -55,10 +55,10 @@ export const useThemeStore = create<ThemeStore>()(
           case 'dark':
             isDark = true;
             break;
-          case 'peddlr-light':
+          case 'tindahan-light':
             isDark = false;
             break;
-          case 'peddlr-dark':
+          case 'tindahan-dark':
             isDark = true;
             break;
           case 'system':
@@ -81,11 +81,11 @@ export const useThemeStore = create<ThemeStore>()(
           case 'light':
             newTheme = 'dark';
             break;
-          case 'peddlr-dark':
-            newTheme = 'peddlr-light';
+          case 'tindahan-dark':
+            newTheme = 'tindahan-light';
             break;
-          case 'peddlr-light':
-            newTheme = 'peddlr-dark';
+          case 'tindahan-light':
+            newTheme = 'tindahan-dark';
             break;
           default:
             newTheme = theme === 'system' ? 'dark' : 'light';

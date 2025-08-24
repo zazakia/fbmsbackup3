@@ -17,13 +17,13 @@ const ThemeToggle: React.FC = () => {
       icon: <Moon className="h-4 w-4" />
     },
     {
-      value: 'peddlr-light',
-      label: 'Peddlr Light',
+      value: 'tindahan-light',
+      label: 'Tindahan Light',
       icon: <Store className="h-4 w-4" />
     },
     {
-      value: 'peddlr-dark',
-      label: 'Peddlr Dark',
+      value: 'tindahan-dark',
+      label: 'Tindahan Dark',
       icon: <ShoppingCart className="h-4 w-4" />
     },
     {

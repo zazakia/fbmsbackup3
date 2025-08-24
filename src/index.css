@@ -28,8 +28,8 @@
   --color-accent: 96 165 250;
 }
 
-/* Peddlr Theme - Light Mode */
-.peddlr-light {
+/* Tindahan Theme - Light Mode */
+.tindahan-light {
   --color-primary: 20 158 132; /* Teal-600 */
   --color-primary-dark: 15 118 110; /* Teal-700 */
   --color-background: 255 255 255; /* White */
@@ -43,13 +43,13 @@
   --color-error: 239 68 68; /* Red-500 */
   --color-info: 59 130 246; /* Blue-500 */
   
-  /* Peddlr Light specific styling */
+  /* Tindahan Light specific styling */
   background-color: #ffffff;
   color: #111827;
 }
 
-/* Peddlr Theme - Dark Mode */
-.peddlr-dark {
+/* Tindahan Theme - Dark Mode */
+.tindahan-dark {
   --color-primary: 45 212 191; /* Teal-400 */
   --color-primary-dark: 20 158 132; /* Teal-600 */
   --color-background: 17 24 39; /* Gray-900 */
@@ -63,7 +63,7 @@
   --color-error: 248 113 113; /* Red-400 */
   --color-info: 96 165 250; /* Blue-400 */
   
-  /* Peddlr Dark specific styling */
+  /* Tindahan Dark specific styling */
   background-color: #111827;
   color: #f8fafc;
 }
@@ -263,114 +263,114 @@ body {
   }
 }
 
-/* Peddlr Theme Global Overrides - High specificity overrides */
-.peddlr-light * {
+/* Tindahan Theme Global Overrides - High specificity overrides */
+.tindahan-light * {
   /* Primary button overrides */
 }
 
-.peddlr-light [class*="bg-primary-600"] {
+.tindahan-light [class*="bg-primary-600"] {
   background-color: #0d9488 !important; /* teal-600 */
 }
 
-.peddlr-light [class*="bg-primary-500"] {
+.tindahan-light [class*="bg-primary-500"] {
   background-color: #14b8a6 !important; /* teal-500 */
 }
 
-.peddlr-light [class*="bg-primary-50"] {
+.tindahan-light [class*="bg-primary-50"] {
   background-color: #f0fdfa !important; /* teal-50 */
 }
 
-.peddlr-light [class*="text-primary-600"] {
+.tindahan-light [class*="text-primary-600"] {
   color: #0d9488 !important; /* teal-600 */
 }
 
-.peddlr-light [class*="text-primary-700"] {
+.tindahan-light [class*="text-primary-700"] {
   color: #0f766e !important; /* teal-700 */
 }
 
-.peddlr-light [class*="border-primary-600"] {
+.tindahan-light [class*="border-primary-600"] {
   border-color: #0d9488 !important; /* teal-600 */
 }
 
-.peddlr-light [class*="hover:bg-primary-700"]:hover {
+.tindahan-light [class*="hover:bg-primary-700"]:hover {
   background-color: #0f766e !important; /* teal-700 */
 }
 
-/* Peddlr Dark Theme Overrides */
-.peddlr-dark [class*="bg-primary-600"] {
+/* Tindahan Dark Theme Overrides */
+.tindahan-dark [class*="bg-primary-600"] {
   background-color: #2dd4bf !important; /* teal-400 */
 }
 
-.peddlr-dark [class*="bg-primary-500"] {
+.tindahan-dark [class*="bg-primary-500"] {
   background-color: #2dd4bf !important; /* teal-400 */
 }
 
-.peddlr-dark [class*="bg-primary-50"] {
+.tindahan-dark [class*="bg-primary-50"] {
   background-color: rgba(45, 212, 191, 0.1) !important;
 }
 
-.peddlr-dark [class*="bg-primary-900/20"] {
+.tindahan-dark [class*="bg-primary-900/20"] {
   background-color: rgba(19, 78, 74, 0.3) !important;
 }
 
-.peddlr-dark [class*="text-primary-600"] {
+.tindahan-dark [class*="text-primary-600"] {
   color: #2dd4bf !important; /* teal-400 */
 }
 
-.peddlr-dark [class*="text-primary-700"] {
+.tindahan-dark [class*="text-primary-700"] {
   color: #5eead4 !important; /* teal-300 */
 }
 
-.peddlr-dark [class*="text-primary-300"] {
+.tindahan-dark [class*="text-primary-300"] {
   color: #5eead4 !important; /* teal-300 */
 }
 
-.peddlr-dark [class*="text-primary-400"] {
+.tindahan-dark [class*="text-primary-400"] {
   color: #2dd4bf !important; /* teal-400 */
 }
 
-.peddlr-dark [class*="border-primary-600"] {
+.tindahan-dark [class*="border-primary-600"] {
   border-color: #2dd4bf !important; /* teal-400 */
 }
 
-.peddlr-dark [class*="border-primary-400"] {
+.tindahan-dark [class*="border-primary-400"] {
   border-color: #2dd4bf !important; /* teal-400 */
 }
 
-.peddlr-dark [class*="hover:bg-primary-700"]:hover {
+.tindahan-dark [class*="hover:bg-primary-700"]:hover {
   background-color: #0f766e !important; /* teal-700 */
 }
 
-.peddlr-dark [class*="hover:bg-primary-600"]:hover {
+.tindahan-dark [class*="hover:bg-primary-600"]:hover {
   background-color: #14b8a6 !important; /* teal-600 */
 }
 
-/* Dark theme background overrides for Peddlr */
-.peddlr-dark [class*="bg-white"] {
+/* Dark theme background overrides for Tindahan */
+.tindahan-dark [class*="bg-white"] {
   background-color: #1f2937 !important; /* gray-800 */
 }
 
-.peddlr-dark [class*="bg-dark-800"] {
+.tindahan-dark [class*="bg-dark-800"] {
   background-color: #1f2937 !important; /* gray-800 */
 }
 
-.peddlr-dark [class*="border-dark-700"] {
+.tindahan-dark [class*="border-dark-700"] {
   border-color: #4b5563 !important; /* gray-600 */
 }
 
-.peddlr-dark [class*="border-gray-200"] {
+.tindahan-dark [class*="border-gray-200"] {
   border-color: #4b5563 !important; /* gray-600 */
 }
 
-.peddlr-dark [class*="text-gray-900"] {
+.tindahan-dark [class*="text-gray-900"] {
   color: #f8fafc !important; /* slate-50 */
 }
 
-.peddlr-dark [class*="text-gray-700"] {
+.tindahan-dark [class*="text-gray-700"] {
   color: #e2e8f0 !important;
 }
 
-.peddlr-dark [class*="text-gray-600"] {
+.tindahan-dark [class*="text-gray-600"] {
   color: #cbd5e1 !important;
 }
 
@@ -391,140 +391,140 @@ body {
   color: rgb(var(--color-text));
 }
 
-/* PEDDLR THEME SPECIFIC OVERRIDES - HIGHEST PRIORITY */
+/* TINDAHAN THEME SPECIFIC OVERRIDES - HIGHEST PRIORITY */
 /* These rules have the highest specificity and should override everything */
 
-/* Peddlr Light Theme - Very specific overrides */
-html.peddlr-light,
-html.peddlr-light body {
+/* Tindahan Light Theme - Very specific overrides */
+html.tindahan-light,
+html.tindahan-light body {
   background-color: #ffffff !important;
   color: #111827 !important;
 }
 
-html.peddlr-light .bg-primary-600,
-html.peddlr-light [class*="bg-primary-600"] {
+html.tindahan-light .bg-primary-600,
+html.tindahan-light [class*="bg-primary-600"] {
   background-color: #0d9488 !important; /* teal-600 */
 }
 
-html.peddlr-light .bg-primary-500,
-html.peddlr-light [class*="bg-primary-500"] {
+html.tindahan-light .bg-primary-500,
+html.tindahan-light [class*="bg-primary-500"] {
   background-color: #14b8a6 !important; /* teal-500 */
 }
 
-html.peddlr-light .bg-primary-50,
-html.peddlr-light [class*="bg-primary-50"] {
+html.tindahan-light .bg-primary-50,
+html.tindahan-light [class*="bg-primary-50"] {
   background-color: #f0fdfa !important; /* teal-50 */
 }
 
-html.peddlr-light .text-primary-600,
-html.peddlr-light [class*="text-primary-600"] {
+html.tindahan-light .text-primary-600,
+html.tindahan-light [class*="text-primary-600"] {
   color: #0d9488 !important; /* teal-600 */
 }
 
-html.peddlr-light .text-primary-700,
-html.peddlr-light [class*="text-primary-700"] {
+html.tindahan-light .text-primary-700,
+html.tindahan-light [class*="text-primary-700"] {
   color: #0f766e !important; /* teal-700 */
 }
 
-html.peddlr-light .border-primary-600,
-html.peddlr-light [class*="border-primary-600"] {
+html.tindahan-light .border-primary-600,
+html.tindahan-light [class*="border-primary-600"] {
   border-color: #0d9488 !important; /* teal-600 */
 }
 
-/* Peddlr Dark Theme - Very specific overrides */
-html.peddlr-dark,
-html.peddlr-dark body {
+/* Tindahan Dark Theme - Very specific overrides */
+html.tindahan-dark,
+html.tindahan-dark body {
   background-color: #111827 !important;
   color: #f8fafc !important;
 }
 
-html.peddlr-dark .bg-primary-600,
-html.peddlr-dark [class*="bg-primary-600"] {
+html.tindahan-dark .bg-primary-600,
+html.tindahan-dark [class*="bg-primary-600"] {
   background-color: #2dd4bf !important; /* teal-400 */
 }
 
-html.peddlr-dark .bg-primary-500,
-html.peddlr-dark [class*="bg-primary-500"] {
+html.tindahan-dark .bg-primary-500,
+html.tindahan-dark [class*="bg-primary-500"] {
   background-color: #2dd4bf !important; /* teal-400 */
 }
 
-html.peddlr-dark .bg-primary-50,
-html.peddlr-dark [class*="bg-primary-50"] {
+html.tindahan-dark .bg-primary-50,
+html.tindahan-dark [class*="bg-primary-50"] {
   background-color: rgba(45, 212, 191, 0.1) !important;
 }
 
-html.peddlr-dark .text-primary-600,
-html.peddlr-dark [class*="text-primary-600"] {
+html.tindahan-dark .text-primary-600,
+html.tindahan-dark [class*="text-primary-600"] {
   color: #2dd4bf !important; /* teal-400 */
 }
 
-html.peddlr-dark .text-primary-700,
-html.peddlr-dark [class*="text-primary-700"] {
+html.tindahan-dark .text-primary-700,
+html.tindahan-dark [class*="text-primary-700"] {
   color: #5eead4 !important; /* teal-300 */
 }
 
-html.peddlr-dark .text-primary-300,
-html.peddlr-dark [class*="text-primary-300"] {
+html.tindahan-dark .text-primary-300,
+html.tindahan-dark [class*="text-primary-300"] {
   color: #5eead4 !important; /* teal-300 */
 }
 
-html.peddlr-dark .border-primary-600,
-html.peddlr-dark [class*="border-primary-600"] {
+html.tindahan-dark .border-primary-600,
+html.tindahan-dark [class*="border-primary-600"] {
   border-color: #2dd4bf !important; /* teal-400 */
 }
 
-html.peddlr-dark .border-primary-400,
-html.peddlr-dark [class*="border-primary-400"] {
+html.tindahan-dark .border-primary-400,
+html.tindahan-dark [class*="border-primary-400"] {
   border-color: #2dd4bf !important; /* teal-400 */
 }
 
 /* Background overrides for cards and surfaces */
-html.peddlr-dark .bg-white,
-html.peddlr-dark [class*="bg-white"] {
+html.tindahan-dark .bg-white,
+html.tindahan-dark [class*="bg-white"] {
   background-color: #1f2937 !important; /* gray-800 */
 }
 
-html.peddlr-dark .bg-dark-800,
-html.peddlr-dark [class*="bg-dark-800"] {
+html.tindahan-dark .bg-dark-800,
+html.tindahan-dark [class*="bg-dark-800"] {
   background-color: #1f2937 !important; /* gray-800 */
 }
 
 /* Text color overrides for readability */
-html.peddlr-dark .text-gray-900,
-html.peddlr-dark [class*="text-gray-900"] {
+html.tindahan-dark .text-gray-900,
+html.tindahan-dark [class*="text-gray-900"] {
   color: #f8fafc !important;
 }
 
-html.peddlr-dark .text-gray-700,
-html.peddlr-dark [class*="text-gray-700"] {
+html.tindahan-dark .text-gray-700,
+html.tindahan-dark [class*="text-gray-700"] {
   color: #e2e8f0 !important;
 }
 
-html.peddlr-dark .text-gray-600,
-html.peddlr-dark [class*="text-gray-600"] {
+html.tindahan-dark .text-gray-600,
+html.tindahan-dark [class*="text-gray-600"] {
   color: #cbd5e1 !important;
 }
 
 /* Border overrides */
-html.peddlr-dark .border-gray-200,
-html.peddlr-dark [class*="border-gray-200"] {
+html.tindahan-dark .border-gray-200,
+html.tindahan-dark [class*="border-gray-200"] {
   border-color: #4b5563 !important;
 }
 
-html.peddlr-dark .border-dark-700,
-html.peddlr-dark [class*="border-dark-700"] {
+html.tindahan-dark .border-dark-700,
+html.tindahan-dark [class*="border-dark-700"] {
   border-color: #4b5563 !important;
 }
 
 /* Hover state overrides */
-html.peddlr-light [class*="hover:bg-primary-700"]:hover {
+html.tindahan-light [class*="hover:bg-primary-700"]:hover {
   background-color: #0f766e !important;
 }
 
-html.peddlr-dark [class*="hover:bg-primary-700"]:hover {
+html.tindahan-dark [class*="hover:bg-primary-700"]:hover {
   background-color: #0f766e !important;
 }
 
-html.peddlr-dark [class*="hover:bg-primary-600"]:hover {
+html.tindahan-dark [class*="hover:bg-primary-600"]:hover {
   background-color: #14b8a6 !important;
 }

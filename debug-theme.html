@@ -3,18 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Peddlr Theme Test</title>
+    <title>Tindahan Theme Test</title>
     <style>
-        /* Peddlr Light Theme */
-        .peddlr-light {
+        /* Tindahan Light Theme */
+        .tindahan-light {
             --color-primary: 20 158 132;
             --color-accent: 245 158 11;
             background-color: #ffffff;
             color: #111827;
         }
 
-        /* Peddlr Dark Theme */
-        .peddlr-dark {
+        /* Tindahan Dark Theme */
+        .tindahan-dark {
             --color-primary: 45 212 191;
             --color-accent: 251 191 36;
             background-color: #111827;
@@ -29,13 +29,13 @@
             border: 2px solid #ddd;
         }
 
-        .peddlr-light .test-box {
+        .tindahan-light .test-box {
             background-color: #f0fdfa;
             border-color: #0d9488;
             color: #0f766e;
         }
 
-        .peddlr-dark .test-box {
+        .tindahan-dark .test-box {
             background-color: #1f2937;
             border-color: #2dd4bf;
             color: #5eead4;
@@ -50,21 +50,21 @@
             font-weight: 500;
         }
 
-        .peddlr-light .theme-button {
+        .tindahan-light .theme-button {
             background-color: #0d9488;
             color: white;
         }
 
-        .peddlr-light .theme-button:hover {
+        .tindahan-light .theme-button:hover {
             background-color: #0f766e;
         }
 
-        .peddlr-dark .theme-button {
+        .tindahan-dark .theme-button {
             background-color: #2dd4bf;
             color: #111827;
         }
 
-        .peddlr-dark .theme-button:hover {
+        .tindahan-dark .theme-button:hover {
             background-color: #5eead4;
         }
 
@@ -76,19 +76,19 @@
         }
     </style>
 </head>
-<body class="peddlr-light">
-    <h1>Peddlr Theme Test</h1>
+<body class="tindahan-light">
+    <h1>Tindahan Theme Test</h1>
     
     <div>
-        <button class="theme-button" onclick="setTheme('peddlr-light')">Peddlr Light</button>
-        <button class="theme-button" onclick="setTheme('peddlr-dark')">Peddlr Dark</button>
+        <button class="theme-button" onclick="setTheme('tindahan-light')">Tindahan Light</button>
+        <button class="theme-button" onclick="setTheme('tindahan-dark')">Tindahan Dark</button>
         <button class="theme-button" onclick="setTheme('default')">Default</button>
     </div>
 
     <div class="test-box">
         <h2>Test Box</h2>
         <p>This box should change colors based on the theme.</p>
-        <p>Current theme class: <span id="current-theme">peddlr-light</span></p>
+        <p>Current theme class: <span id="current-theme">tindahan-light</span></p>
     </div>
 
     <div style="background-color: rgb(var(--color-primary)); color: white; padding: 15px; border-radius: 8px; margin: 10px 0;">
@@ -104,7 +104,7 @@
             const body = document.body;
             
             // Remove all theme classes
-            body.classList.remove('peddlr-light', 'peddlr-dark');
+            body.classList.remove('tindahan-light', 'tindahan-dark');
             
             // Add new theme class
             if (theme !== 'default') {
@@ -129,7 +129,7 @@
         }
 
         // Initialize
-        setTheme('peddlr-light');
+        setTheme('tindahan-light');
     </script>
 </body>
 </html>
