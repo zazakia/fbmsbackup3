@@ -14,6 +14,7 @@
     "test:unit": "vitest --run --reporter=verbose --testNamePattern='unit|Unit'",
     "test:integration": "vitest --run --reporter=verbose --testNamePattern='integration|Integration'",
     "test:e2e": "vitest --run --reporter=verbose --testNamePattern='e2e|E2E'",
+    "test:regression": "vitest --config vitest.regression.config.ts --run",
     "test:db:setup": "./scripts/test-db.sh setup",
     "test:db:start": "./scripts/test-db.sh start",
     "test:db:stop": "./scripts/test-db.sh stop",

@@ -50,7 +50,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ productId, onClose }) => {
     // Ensure categories are loaded for dropdown
     if (!categories || categories.length === 0) {
       (async () => {
-        try { await fetchCategories(); } catch {}
+        try { await fetchCategories(); } catch (e) { /* intentionally ignored */ }
       })();
     }
   }, [productId, getProduct]);

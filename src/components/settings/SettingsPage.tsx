@@ -121,48 +121,7 @@ const SettingsPage: React.FC = () => {
     return true; // All other sections are accessible to all users
   });
 
-  const renderNotificationSettings = () => (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h3 className="text-lg font-medium text-gray-900">Enable Notifications</h3>
-          <p className="text-sm text-gray-600">Turn on/off all system notifications</p>
-        </div>
-        <button
-          onClick={toggleNotifications}
-          className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
-            isEnabled ? 'bg-blue-600' : 'bg-gray-200'
-          }`}
-        >
-          <span
-            className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-              isEnabled ? 'translate-x-5' : 'translate-x-0'
-            }`}
-          />
-        </button>
-      </div>
 
-      <div className="space-y-4">
-        <h4 className="font-medium text-gray-900">Notification Categories</h4>
-        {Object.entries(settings).map(([key, value]) => (
-          <label key={key} className="flex items-center justify-between">
-            <div className="flex items-center">
-              <input
-                type="checkbox"
-                checked={value}
-                onChange={(e) => updateSettings({ [key]: e.target.checked })}
-                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                disabled={!isEnabled}
-              />
-              <span className="ml-3 text-sm text-gray-700 capitalize">
-                {key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
-              </span>
-            </div>
-          </label>
-        ))}
-      </div>
-    </div>
-  );
 
   const renderReportSettings = () => (
     <div className="space-y-6">

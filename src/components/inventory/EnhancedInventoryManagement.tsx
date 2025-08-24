@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import ProductForm from './ProductForm';
-import TransferSlip from './TransferSlip';
 import { 
   Plus, 
   Search, 
@@ -19,8 +18,7 @@ import {
   Edit,
   ShoppingCart,
   History,
-  MapPin,
-  ArrowRightLeft,
+
   Building2
 } from 'lucide-react';
 import { useBusinessStore } from '../../store/businessStore';

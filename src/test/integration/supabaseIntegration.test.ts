@@ -225,10 +225,8 @@ describe('Supabase Integration Tests', () => {
 
   describe('Error Handling and Edge Cases', () => {
     it('should handle client disposal properly', async () => {
-      let client: DisposableSupabaseClient;
-
       // Create and use client
-      client = await testSuite.createClient({ debugMode: true });
+      const client: DisposableSupabaseClient = await testSuite.createClient({ debugMode: true });
       const supabaseClient = client.getClient();
       expect(supabaseClient).toBeDefined();
 

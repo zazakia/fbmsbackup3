@@ -18,15 +18,14 @@ export default defineConfig({
       'lucide-react',
       'zustand',
       'date-fns',
-      'recharts'
-    ],
-    exclude: [
+      'recharts',
       '@supabase/supabase-js',
       '@supabase/postgrest-js',
       '@supabase/realtime-js',
       '@supabase/storage-js',
       '@supabase/auth-js'
-    ] // Exclude Supabase to avoid ESM/CJS conflicts
+    ],
+    esbuildOptions: { mainFields: ['browser', 'module', 'main'] }
   },
   build: {
     rollupOptions: {
@@ -96,9 +95,18 @@ export default defineConfig({
     global: 'globalThis', // Fix global is not defined error
     'process.env': {} // Fix process is not defined error
   },
+  ssr: {
+    noExternal: ['@supabase/supabase-js']
+  },
   resolve: {
-    conditions: ['import', 'module', 'browser', 'default'],
-    mainFields: ['module', 'main']
+    alias: {
+      '@supabase/node-fetch': '@supabase/node-fetch/browser.js',
+      '@supabase/node-fetch/lib/index.js': '@supabase/node-fetch/browser.js',
+      '@supabase/node-fetch/lib/index.mjs': '@supabase/node-fetch/browser.js',
+      '@supabase/node-fetch/lib/index.es.js': '@supabase/node-fetch/browser.js'
+    },
+    mainFields: ['browser', 'module', 'main'],
+    conditions: ['browser', 'import', 'module', 'default']
   },
   test: {
     globals: true,

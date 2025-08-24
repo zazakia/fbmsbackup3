@@ -618,7 +618,7 @@ export const useBusinessStore = create<BusinessStore>()(
             total: saleData?.total,
             paymentMethod: saleData?.paymentMethod
           });
-        } catch {}
+        } catch (e) { /* no-op diagnostics */ }
         try {
           // 1) Append sale to in-memory log
           set((state) => ({ sales: [{ id: `sale-${Date.now()}`, ...saleData }, ...state.sales] }));
@@ -683,14 +683,14 @@ export const useBusinessStore = create<BusinessStore>()(
               });
               return { products } as Partial<BusinessState>;
             });
-            try { console.info('[Store][createSale] stock deducted (UI updated)', { productId, qty }); } catch {}
+            try { console.info('[Store][createSale] stock deducted (UI updated)', { productId, qty }); } catch (e) { /* no-op diagnostics */ }
           }
 
           // Diagnostics: completion
           try {
              
             console.info('[Store][createSale] completed. Products updated.');
-          } catch {}
+          } catch (e) { /* no-op diagnostics */ }
         } catch (e) {
           console.error('createSale failed:', e);
           throw e;
@@ -717,7 +717,7 @@ export const useBusinessStore = create<BusinessStore>()(
           try {
              
             console.info('[Store][fetchSales] loaded', { count: Array.isArray(data) ? data.length : 0 });
-          } catch {}
+          } catch (e) { /* no-op diagnostics */ }
         } catch (e) {
           console.error('[Store][fetchSales] failed', e);
           set({ isLoading: false, error: 'Failed to load sales history' });

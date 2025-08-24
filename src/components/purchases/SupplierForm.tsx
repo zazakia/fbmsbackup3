@@ -68,7 +68,7 @@ const SupplierForm: React.FC<SupplierFormProps> = ({ supplierId, onClose }) => {
       newErrors.email = 'Please enter a valid email address';
     }
 
-    if (formData.phone && !/^[\+]?[0-9\s\-\(\)]+$/.test(formData.phone)) {
+    if (formData.phone && !/^[+]?[0-9\s\-()]+$/.test(formData.phone)) {
       newErrors.phone = 'Please enter a valid phone number';
     }
 

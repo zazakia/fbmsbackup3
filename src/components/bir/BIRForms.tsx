@@ -136,20 +136,20 @@ const BIRForms: React.FC = () => {
         lastName: 'Santos',
         firstName: 'Juan',
         middleName: 'Dela Cruz',
-        grossCompensation: 25000 || 0,
+        grossCompensation: 25000,
         nonTaxableCompensation: 0,
-        taxableCompensation: 25000 || 0,
-        withholdingTax: 2500 || 0
+        taxableCompensation: 25000,
+        withholdingTax: 2500
       },
       {
         tin: '123-456-789-002',
         lastName: 'Garcia',
         firstName: 'Maria',
         middleName: 'Santos',
-        grossCompensation: 30000 || 0,
+        grossCompensation: 30000,
         nonTaxableCompensation: 0,
-        taxableCompensation: 30000 || 0,
-        withholdingTax: 3000 || 0
+        taxableCompensation: 30000,
+        withholdingTax: 3000
       }
     ];
   };

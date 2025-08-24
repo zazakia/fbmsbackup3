@@ -120,14 +120,15 @@ export class ScriptExecutor {
     const output: string[] = [];
 
     try {
-      while (true) {
+      // Stream loop until done or aborted
+      for (;;) {
         if (signal.aborted) {
           reader.cancel();
           break;
         }
 
         const { done, value } = await reader.read();
-        
+
         if (done) break;
 
         const chunk = decoder.decode(value);

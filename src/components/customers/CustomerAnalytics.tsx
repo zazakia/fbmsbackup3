@@ -17,7 +17,9 @@ import { Customer, CustomerType } from '../../types/business';
 import { useToastStore } from '../../store/toastStore';
 import LoadingSpinner from '../LoadingSpinner';
 
-interface CustomerAnalyticsProps {}
+// Allow any object for props for now; component currently takes no props
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
+interface CustomerAnalyticsProps extends Record<string, never> {}
 
 interface AnalyticsData {
   customerGrowth: Array<{ month: string; newCustomers: number; totalCustomers: number }>;

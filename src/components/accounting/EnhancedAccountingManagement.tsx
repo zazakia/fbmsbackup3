@@ -9,7 +9,11 @@ import {
   CheckCircle,
   AlertTriangle,
   Edit,
-  Download
+  Download,
+  Target,
+  Activity,
+  BookOpen,
+  Receipt
 } from 'lucide-react';
 import { useToastStore } from '../../store/toastStore';
 import { Account, JournalEntry, AccountType } from '../../types/business';

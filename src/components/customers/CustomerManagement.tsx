@@ -1,19 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Users, 
-  Search, 
-  Filter, 
-  Plus, 
-  MoreVertical, 
-  Edit, 
-  Trash2, 
-  Eye, 
-  Star,
+import {
+  Users,
+  Search,
+  Filter,
+  Plus,
+  Edit,
+  Trash2,
+  Eye,
   Phone,
   Mail,
   MapPin,
   Calendar,
-  TrendingUp,
   DollarSign,
   Award
 } from 'lucide-react';
@@ -28,9 +25,14 @@ import CustomerAnalytics from './CustomerAnalytics';
 import LoadingSpinner from '../LoadingSpinner';
 import { customerNotificationService } from '../../services/customerNotifications';
 
-interface CustomerManagementProps {}
+interface CustomerStats {
+  totalCustomers: number;
+  activeCustomers: number;
+  totalRevenue: number;
+  averageOrderValue: number;
+}
 
-const CustomerManagement: React.FC<CustomerManagementProps> = () => {
+const CustomerManagement: React.FC = () => {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -39,7 +41,7 @@ const CustomerManagement: React.FC<CustomerManagementProps> = () => {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
-  const [stats, setStats] = useState<any>(null);
+  const [stats, setStats] = useState<CustomerStats | null>(null);
   const [activeView, setActiveView] = useState<'customers' | 'analytics'>('customers');
 
   const { addToast } = useToastStore();

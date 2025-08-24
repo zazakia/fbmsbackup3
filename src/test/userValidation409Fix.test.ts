@@ -252,7 +252,7 @@ describe('User Validation - 409 Error Prevention', () => {
     it('should detect 409 foreign key constraint violations', async () => {
       const mockError = {
         code: '23503',
-        message: 'insert or update on table \"purchase_order_receiving_records\" violates foreign key constraint \"received_by_fkey\"'
+        message: 'insert or update on table "purchase_order_receiving_records" violates foreign key constraint "received_by_fkey"'
       };
 
       const mockSystemUser = {
@@ -284,13 +284,13 @@ describe('User Validation - 409 Error Prevention', () => {
     it('should not retry for non-foreign key errors', async () => {
       const mockError = {
         code: '42703',
-        message: 'column \"invalid_column\" does not exist'
+        message: 'column "invalid_column" does not exist'
       };
 
       const result = await handleForeignKeyError(mockError, 'test operation');
       
       expect(result.shouldRetry).toBe(false);
-      expect(result.errorMessage).toBe('column \"invalid_column\" does not exist');
+      expect(result.errorMessage).toBe('column "invalid_column" does not exist');
     });
   });
 
@@ -420,7 +420,7 @@ describe('Error Recovery Scenarios', () => {
                   // First attempt fails with 409 error
                   return Promise.reject({
                     code: '23503',
-                    message: 'insert or update on table \"purchase_order_receiving_records\" violates foreign key constraint \"received_by_fkey\"'
+                    message: 'insert or update on table "purchase_order_receiving_records" violates foreign key constraint "received_by_fkey"'
                   });
                 } else {
                   // Retry succeeds

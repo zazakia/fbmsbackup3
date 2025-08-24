@@ -63,7 +63,7 @@ interface POSTransaction {
 const EnhancedPOSSystem: React.FC = () => {
   try {
     console.info('[POS] EnhancedPOSSystem mount start');
-  } catch (e) {}
+  } catch (e) { /* no-op for console failures */ }
   // State management
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -410,7 +410,7 @@ const EnhancedPOSSystem: React.FC = () => {
       // Basic diagnostics for qty changes
        
       console.debug('[POS] handleQuantityChange', { productId, newQuantity });
-    } catch {}
+    } catch (e) { /* no-op */ }
     if (newQuantity <= 0) {
       removeFromCart(productId);
     } else {
@@ -722,7 +722,7 @@ const EnhancedPOSSystem: React.FC = () => {
 
   try {
     console.info('[POS] EnhancedPOSSystem render');
-  } catch (e) {}
+  } catch (e) { /* no-op for console failures */ }
   return (
     <div className="h-screen flex flex-col lg:flex-row bg-gray-50 dark:bg-dark-950">
       {/* Left Panel - Products */}
