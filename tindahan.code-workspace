@@ -1,0 +1,166 @@
+{
+  "folders": [
+    {
+      "name": "🏪 Tindahan FBMS",
+      "path": "."
+    },
+    {
+      "name": "📦 Source Code",
+      "path": "./src"
+    },
+    {
+      "name": "🧪 Tests",
+      "path": "./src/test"
+    },
+    {
+      "name": "📚 Documentation",
+      "path": "./docs"
+    },
+    {
+      "name": "⚙️ Configuration",
+      "path": ".",
+      "files": [
+        "package.json",
+        "tsconfig.json",
+        "vite.config.ts",
+        "tailwind.config.js",
+        "eslint.config.js",
+        ".env",
+        ".env.example"
+      ]
+    }
+  ],
+  "settings": {
+    // Workspace-specific settings
+    "window.title": "🏪 Tindahan - ${activeEditorMedium}${separator}${rootName}",
+    
+    // Custom workspace colors for Tindahan theme
+    "workbench.colorCustomizations": {
+      "activityBar.background": "#0d9488",
+      "activityBar.foreground": "#ffffff",
+      "activityBar.inactiveForeground": "#ffffff99",
+      "activityBarBadge.background": "#f59e0b",
+      "activityBarBadge.foreground": "#ffffff",
+      "statusBar.background": "#0f766e",
+      "statusBar.foreground": "#ffffff",
+      "statusBarItem.hoverBackground": "#14b8a6",
+      "titleBar.activeBackground": "#0d9488",
+      "titleBar.activeForeground": "#ffffff",
+      "titleBar.inactiveBackground": "#0d948899",
+      "titleBar.inactiveForeground": "#ffffff99",
+      "sash.hoverBorder": "#14b8a6",
+      "statusBar.debuggingBackground": "#f59e0b",
+      "statusBar.debuggingForeground": "#ffffff",
+      "statusBar.noFolderBackground": "#0f766e",
+      "statusBar.noFolderForeground": "#ffffff",
+      "panel.border": "#0d9488",
+      "sideBar.border": "#0d9488",
+      "editorGroup.border": "#0d9488",
+      "tab.activeBorder": "#14b8a6"
+    },
+    
+    // Project-specific file exclusions
+    "files.exclude": {
+      "**/node_modules": true,
+      "**/dist": true,
+      "**/.turbo": true,
+      "**/coverage": true,
+      "**/.next": true,
+      "**/.cache": true,
+      "**/tmp": true
+    },
+    
+    // Search configuration
+    "search.exclude": {
+      "**/node_modules": true,
+      "**/dist": true,
+      "**/coverage": true,
+      "**/.git": true,
+      "**/package-lock.json": true,
+      "**/yarn.lock": true,
+      "**/pnpm-lock.yaml": true
+    },
+    
+    // Terminal configuration
+    "terminal.integrated.env.linux": {
+      "NODE_ENV": "development",
+      "PORT": "3000"
+    },
+    
+    // Custom dictionary for spell checker
+    "cSpell.words": [
+      "Tindahan",
+      "FBMS",
+      "Filipino",
+      "Supabase",
+      "barangay",
+      "bir",
+      "sari",
+      "tindero",
+      "tindera",
+      "puhunan",
+      "benta",
+      "kita",
+      "gastos",
+      "resibo",
+      "bodega",
+      "bangko",
+      "utang",
+      "bayad",
+      "tubo",
+      "lugi",
+      "negosyo",
+      "mamimili",
+      "nagbebenta",
+      "paninda",
+      "presyo",
+      "diskwento",
+      "dagdag",
+      "bawas",
+      "bilang",
+      "dami",
+      "piraso",
+      "kilo",
+      "dosena",
+      "kaha"
+    ],
+    
+    // Auto-save configuration
+    "files.autoSave": "afterDelay",
+    "files.autoSaveDelay": 1000,
+    
+    // Format on save for consistency
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.fixAll.eslint": "explicit",
+      "source.organizeImports": "explicit"
+    }
+  },
+  
+  "launch": {
+    // Workspace-level launch configurations
+    "version": "0.2.0",
+    "configurations": [],
+    "compounds": []
+  },
+  
+  "extensions": {
+    // Workspace recommended extensions
+    "recommendations": [
+      "dbaeumer.vscode-eslint",
+      "esbenp.prettier-vscode",
+      "bradlc.vscode-tailwindcss",
+      "ms-vscode.vscode-typescript-next",
+      "eamodio.gitlens",
+      "usernamehw.errorlens",
+      "gruntfuggly.todo-tree",
+      "streetsidesoftware.code-spell-checker"
+    ]
+  },
+  
+  "tasks": {
+    // Quick access tasks
+    "version": "2.0.0",
+    "tasks": []
+  }
+}

@@ -1,0 +1,74 @@
+{
+  "recommendations": [
+    // Essential Extensions
+    "dbaeumer.vscode-eslint",              // ESLint for code quality
+    "esbenp.prettier-vscode",              // Prettier for code formatting
+    "ms-vscode.vscode-typescript-next",    // Latest TypeScript support
+    "bradlc.vscode-tailwindcss",           // Tailwind CSS IntelliSense
+    
+    // React Development
+    "dsznajder.es7-react-js-snippets",     // React snippets
+    "burkeholland.simple-react-snippets",   // More React snippets
+    "wix.vscode-import-cost",              // Display import size
+    "formulahendry.auto-rename-tag",       // Auto rename paired tags
+    
+    // Productivity
+    "christian-kohler.path-intellisense",   // Path autocomplete
+    "christian-kohler.npm-intellisense",    // NPM package autocomplete
+    "mikestead.dotenv",                     // .env file support
+    "yzhang.markdown-all-in-one",          // Markdown support
+    "streetsidesoftware.code-spell-checker", // Spell checker
+    "wayou.vscode-todo-highlight",         // Highlight TODOs
+    "gruntfuggly.todo-tree",               // TODO tree view
+    
+    // Git & Version Control
+    "eamodio.gitlens",                     // Advanced Git features
+    "mhutchie.git-graph",                  // Git graph visualization
+    "donjayamanne.githistory",             // Git history viewer
+    
+    // Database & API
+    "mtxr.sqltools",                       // SQL tools
+    "mtxr.sqltools-driver-pg",             // PostgreSQL driver
+    "rangav.vscode-thunder-client",        // API testing (like Postman)
+    
+    // Testing & Debugging
+    "vitest.explorer",                     // Vitest test explorer
+    "orta.vscode-jest",                    // Jest support
+    "ms-vscode.live-server",               // Live server for testing
+    
+    // Code Quality & Analysis
+    "sonarsource.sonarlint-vscode",        // Code quality analysis
+    "usernamehw.errorlens",                // Show errors inline
+    "aaron-bond.better-comments",          // Better comment highlighting
+    "oderwat.indent-rainbow",              // Colorize indentation
+    
+    // Icons & Themes
+    "pkief.material-icon-theme",           // Material icon theme
+    "zhuangtongfa.material-theme",         // Material theme
+    
+    // AI & Copilot (Optional)
+    "github.copilot",                      // GitHub Copilot
+    "github.copilot-chat",                 // Copilot Chat
+    
+    // Documentation
+    "dnicolson.binary-plist",              // View binary plists
+    "hediet.vscode-drawio",                // Draw.io diagrams
+    "bierner.markdown-mermaid",            // Mermaid diagram support
+    
+    // Utilities
+    "ritwickdey.liveserver",               // Live server
+    "humao.rest-client",                   // REST client
+    "sleistner.vscode-fileutils",          // File utilities
+    "alexcvzz.vscode-sqlite",              // SQLite viewer
+    "styled-components.vscode-styled-components", // Styled components
+    "prisma.prisma",                       // Prisma support
+    "rvest.vs-code-prettier-eslint"        // Prettier ESLint integration
+  ],
+  
+  "unwantedRecommendations": [
+    // Extensions that might conflict or are not needed
+    "ms-vscode.vscode-typescript-tslint-plugin", // Deprecated, use ESLint
+    "hookyqr.beautify",                          // Use Prettier instead
+    "hex-ci.stylelint-plus"                      // Conflicts with Tailwind
+  ]
+}
