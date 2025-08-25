@@ -36,7 +36,7 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'jsdom',
-    setupFiles: ['./src/test/setup.ts', './src/__tests__/utils/TestEnvironment.ts'],
+    setupFiles: ['./src/test/minimal-setup.ts'],
     testTimeout: 30000, // 30 seconds timeout per test
     hookTimeout: 10000, // 10 seconds timeout for setup/teardown hooks
     teardownTimeout: 5000, // 5 seconds for teardown
@@ -110,8 +110,8 @@ export default defineConfig({
     },
     // Test reporters
     reporters: ['verbose', 'json', 'html'],
-    // Global test setup
-    globalSetup: './src/__tests__/config/globalSetup.ts',
+    // Global test setup - removed due to vitest internal state issues
+    // globalSetup: './src/__tests__/config/globalSetup.ts',
     // Enhanced watch mode
     watchExclude: [
       'node_modules/**',
