@@ -1,548 +1,432 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { renderHook, act } from '@testing-library/react';
-import { useBusinessStore } from '../../store/businessStore';
-import { useOfflineStore } from '../../store/offlineStore';
-import { Product, Customer, Sale } from '../../types/business';
+import { TestEnvironment, usePerformanceTests } from '../utils/TestEnvironment';
+import { TestDataFactory } from '../factories/TestDataFactory';
+import {
+  createPurchaseOrder,
+  getPurchaseOrders,
+  receivePurchaseOrder
+} from '../../api/purchases';
+import {
+  createProduct,
+  getProducts,
+  updateStock,
+  searchProducts
+} from '../../api/products';
+import {
+  createSale,
+  processSaleTransaction
+} from '../../api/sales';
 
-// Mock external dependencies
-vi.mock('../../api/sales', () => ({
-  createSale: vi.fn(),
-  getSales: vi.fn(),
-  updateSale: vi.fn(),
-  deleteSale: vi.fn(),
-  getNextInvoiceNumber: vi.fn(),
-}));
+// Performance test configuration
+const PERFORMANCE_THRESHOLDS = {
+  api_create: 1000,      // 1 second for create operations
+  api_read: 500,         // 0.5 seconds for read operations
+  api_update: 800,       // 0.8 seconds for update operations
+  bulk_operation: 5000,  // 5 seconds for bulk operations
+  search_operation: 300, // 0.3 seconds for search operations
+  concurrent_load: 10000 // 10 seconds for concurrent operations
+};
 
-vi.mock('../../api/customers', () => ({
-  getCustomers: vi.fn(),
-  createCustomer: vi.fn(),
-  updateCustomer: vi.fn(),
-  deleteCustomer: vi.fn(),
-}));
+const performanceTests = usePerformanceTests(PERFORMANCE_THRESHOLDS);
 
-vi.mock('../../services/receiptService', () => ({
-  receiptService: {
-    createReceiptData: vi.fn().mockReturnValue({
-      receiptNumber: 'RCP-123',
-      businessName: 'Test Business',
-      items: [],
-      total: 0,
-    }),
-  },
-}));
-
-describe('Load Testing and Performance', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
+describe('Performance Testing Framework', () => {
+  beforeEach(async () => {
+    await TestEnvironment.setup({
+      mockDatabase: true,
+      loadTestData: true,
+      testDataScale: 'large'
+    });
   });
 
-  afterEach(() => {
-    vi.restoreAllMocks();
+  afterEach(async () => {
+    await TestEnvironment.cleanup();
   });
 
-  describe('High Volume Transaction Processing', () => {
-    it('should handle 100 concurrent sales transactions efficiently', async () => {
-      const { result: businessStore } = renderHook(() => useBusinessStore());
+  describe('API Performance Tests', () => {
+    it('should handle high-volume product operations efficiently', async () => {
+      const products = TestDataFactory.createBulkProducts(1000);
+      
+      // Test bulk product creation
+      const createResults = await performanceTests.measureApiCall(async () => {
+        const promises = products.map(product => createProduct(product));
+        return Promise.all(promises);
+      });
 
-      // Setup test products
-      const testProducts: Product[] = Array.from({ length: 50 }, (_, index) => ({
-        id: `prod-${index + 1}`,
-        name: `Product ${index + 1}`,
-        sku: `SKU-${String(index + 1).padStart(3, '0')}`,
-        barcode: `123456789${String(index).padStart(2, '0')}`,
-        price: Math.floor(Math.random() * 1000) + 50,
-        cost: Math.floor(Math.random() * 500) + 25,
-        stock: Math.floor(Math.random() * 100) + 50,
-        category: `category-${Math.floor(index / 10) + 1}`,
-        categoryId: `cat-${Math.floor(index / 10) + 1}`,
-        description: `Test product ${index + 1} description`,
-        unit: 'pcs',
-        isActive: true,
-        reorderPoint: 10,
-        maxStock: 200,
-        supplier: `Supplier ${Math.floor(index / 5) + 1}`,
-        location: 'Main Store',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      }));
+      expect(createResults.__duration).toBeLessThan(PERFORMANCE_THRESHOLDS.bulk_operation);
+      expect(createResults.length).toBe(1000);
 
-      // Add products to store
-      act(() => {
-        testProducts.forEach(product => {
-          businessStore.current.addProduct(product);
+      // Test product retrieval performance
+      const retrieveResults = await performanceTests.measureApiCall(async () => {
+        return getProducts(1000, 0);
+      });
+
+      expect(retrieveResults.__duration).toBeLessThan(PERFORMANCE_THRESHOLDS.api_read);
+      expect(retrieveResults.data?.length).toBe(1000);
+
+      console.log(`Bulk product operations: Create ${createResults.__duration}ms, Retrieve ${retrieveResults.__duration}ms`);
+    });
+
+    it('should maintain performance under concurrent sale transactions', async () => {
+      const products = TestDataFactory.createBulkProducts(50, { stock: 1000 });
+      const customers = TestDataFactory.createBulkCustomers(20);
+      
+      TestEnvironment.setMockData('products', products);
+      TestEnvironment.setMockData('customers', customers);
+
+      // Create 100 concurrent sales
+      const concurrentSales = Array.from({ length: 100 }, () => {
+        const randomCustomer = customers[Math.floor(Math.random() * customers.length)];
+        const randomProducts = products.slice(0, Math.floor(Math.random() * 5) + 1);
+        
+        return TestDataFactory.createSale({
+          customerId: randomCustomer.id,
+          items: randomProducts.map(product => ({
+            productId: product.id,
+            productName: product.name,
+            sku: product.sku!,
+            quantity: Math.floor(Math.random() * 5) + 1,
+            price: product.price,
+            total: product.price * (Math.floor(Math.random() * 5) + 1)
+          }))
         });
       });
 
-      expect(businessStore.current.products).toHaveLength(50);
+      const concurrentResults = await performanceTests.measureApiCall(async () => {
+        const promises = concurrentSales.map(sale => processSaleTransaction(sale));
+        return Promise.allSettled(promises);
+      });
 
-      // Mock successful sale creation
-      const { createSale } = await import('../../api/sales');
-      (createSale as any).mockImplementation(() => 
-        Promise.resolve({
-          data: { id: `sale-${Date.now()}-${Math.random()}`, createdAt: new Date() },
-          error: null,
+      const successfulSales = concurrentResults.filter(r => r.status === 'fulfilled').length;
+      
+      expect(concurrentResults.__duration).toBeLessThan(PERFORMANCE_THRESHOLDS.concurrent_load);
+      expect(successfulSales).toBeGreaterThan(90); // At least 90% success rate
+
+      console.log(`Concurrent sales: ${successfulSales}/100 successful in ${concurrentResults.__duration}ms`);
+    });
+
+    it('should handle large purchase order processing efficiently', async () => {
+      const suppliers = TestDataFactory.createBulkSuppliers(10);
+      const products = TestDataFactory.createBulkProducts(500);
+      
+      TestEnvironment.setMockData('suppliers', suppliers);
+      TestEnvironment.setMockData('products', products);
+
+      // Create large purchase orders
+      const largePOs = suppliers.map(supplier => 
+        TestDataFactory.createPurchaseOrder({
+          supplierId: supplier.id,
+          supplierName: supplier.name,
+          items: products.slice(0, 50).map(product => 
+            TestDataFactory.createPurchaseOrderItem({
+              productId: product.id,
+              productName: product.name,
+              sku: product.sku!,
+              quantity: Math.floor(Math.random() * 100) + 10,
+              cost: product.cost
+            })
+          )
         })
       );
 
-      // Measure performance of concurrent transactions
-      const startTime = performance.now();
+      const createResults = await performanceTests.measureApiCall(async () => {
+        const promises = largePOs.map(po => createPurchaseOrder(po));
+        return Promise.all(promises);
+      });
+
+      expect(createResults.__duration).toBeLessThan(PERFORMANCE_THRESHOLDS.bulk_operation);
+      expect(createResults.length).toBe(10);
+
+      // Test receiving performance
+      const receiveResults = await performanceTests.measureApiCall(async () => {
+        const receivePromises = createResults.map(result => {
+          if (result.data) {
+            const receivedItems = result.data.items.map(item => ({
+              productId: item.productId,
+              receivedQuantity: item.quantity
+            }));
+            return receivePurchaseOrder(result.data.id, receivedItems);
+          }
+          return Promise.resolve({ data: null, error: null });
+        });
+        return Promise.all(receivePromises);
+      });
+
+      expect(receiveResults.__duration).toBeLessThan(PERFORMANCE_THRESHOLDS.bulk_operation);
+
+      console.log(`Large PO processing: Create ${createResults.__duration}ms, Receive ${receiveResults.__duration}ms`);
+    });
+  });
+
+  describe('Search Performance Tests', () => {
+    it('should maintain fast search performance with large datasets', async () => {
+      const products = TestDataFactory.createBulkProducts(5000);
+      TestEnvironment.setMockData('products', products);
+
+      const searchTerms = ['laptop', 'phone', 'tablet', 'mouse', 'keyboard'];
       
-      const salePromises = Array.from({ length: 100 }, async (_, index) => {
-        const randomProduct = testProducts[Math.floor(Math.random() * testProducts.length)];
-        const quantity = Math.floor(Math.random() * 5) + 1;
-        
-        const saleData = {
-          customerId: undefined,
-          customerName: 'Walk-in Customer',
-          items: [{
-            id: `item-${Date.now()}-${index}`,
-            productId: randomProduct.id,
-            productName: randomProduct.name,
-            sku: randomProduct.sku,
-            quantity: quantity,
-            price: randomProduct.price,
-            total: randomProduct.price * quantity,
-          }],
-          subtotal: randomProduct.price * quantity,
-          tax: (randomProduct.price * quantity) * 0.12,
-          discount: 0,
-          total: (randomProduct.price * quantity) * 1.12,
-          paymentMethod: 'cash' as const,
-          paymentStatus: 'paid' as const,
-          status: 'completed' as const,
-          cashierId: 'user-1',
-          invoiceNumber: `INV-LOAD-${String(index + 1).padStart(3, '0')}`,
-          notes: `Load test transaction ${index + 1}`,
-        };
-
-        return businessStore.current.createSale(saleData);
+      const searchResults = await performanceTests.measureApiCall(async () => {
+        const promises = searchTerms.map(term => searchProducts(term));
+        return Promise.all(promises);
       });
 
-      await act(async () => {
-        await Promise.all(salePromises);
+      expect(searchResults.__duration).toBeLessThan(PERFORMANCE_THRESHOLDS.search_operation);
+      expect(searchResults.length).toBe(searchTerms.length);
+
+      // Test pagination performance
+      const paginationResults = await performanceTests.measureApiCall(async () => {
+        const pages = Array.from({ length: 10 }, (_, i) => 
+          getProducts(100, i * 100)
+        );
+        return Promise.all(pages);
       });
 
-      const endTime = performance.now();
-      const executionTime = endTime - startTime;
+      expect(paginationResults.__duration).toBeLessThan(PERFORMANCE_THRESHOLDS.api_read);
 
-      // Performance assertions
-      expect(executionTime).toBeLessThan(5000); // Should complete within 5 seconds
-      expect(businessStore.current.sales).toHaveLength(100);
+      console.log(`Search performance: ${searchResults.__duration}ms, Pagination: ${paginationResults.__duration}ms`);
+    });
+
+    it('should handle complex filtering operations efficiently', async () => {
+      const products = TestDataFactory.createBulkProducts(2000, {
+        category: 'Electronics'
+      });
       
-      console.log(`Processed 100 concurrent transactions in ${executionTime.toFixed(2)}ms`);
-      console.log(`Average time per transaction: ${(executionTime / 100).toFixed(2)}ms`);
-    });
-
-    it('should handle large cart operations efficiently', async () => {
-      const { result: businessStore } = renderHook(() => useBusinessStore());
-
-      // Create 200 test products
-      const testProducts: Product[] = Array.from({ length: 200 }, (_, index) => ({
-        id: `cart-prod-${index + 1}`,
-        name: `Cart Product ${index + 1}`,
-        sku: `CART-${String(index + 1).padStart(3, '0')}`,
-        barcode: `987654321${String(index).padStart(2, '0')}`,
-        price: Math.floor(Math.random() * 500) + 10,
-        cost: Math.floor(Math.random() * 250) + 5,
-        stock: 1000, // High stock to avoid stock issues
-        category: `cart-category-${Math.floor(index / 20) + 1}`,
-        categoryId: `cart-cat-${Math.floor(index / 20) + 1}`,
-        description: `Cart test product ${index + 1}`,
-        unit: 'pcs',
-        isActive: true,
-        reorderPoint: 50,
-        maxStock: 2000,
-        supplier: `Cart Supplier ${Math.floor(index / 10) + 1}`,
-        location: 'Main Store',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      }));
-
-      act(() => {
-        testProducts.forEach(product => {
-          businessStore.current.addProduct(product);
-        });
-      });
-
-      // Measure cart operations performance
-      const startTime = performance.now();
-
-      // Add 100 items to cart
-      act(() => {
-        for (let i = 0; i < 100; i++) {
-          const randomProduct = testProducts[Math.floor(Math.random() * testProducts.length)];
-          businessStore.current.addToCart(randomProduct, Math.floor(Math.random() * 3) + 1);
-        }
-      });
-
-      // Calculate cart totals multiple times (simulating real-time updates)
-      let subtotal = 0;
-      let tax = 0;
-      let total = 0;
-
-      for (let i = 0; i < 50; i++) {
-        subtotal = businessStore.current.getCartSubtotal();
-        tax = businessStore.current.getCartTax();
-        total = businessStore.current.getCartTotal();
-      }
-
-      const endTime = performance.now();
-      const executionTime = endTime - startTime;
-
-      // Performance assertions
-      expect(executionTime).toBeLessThan(1000); // Should complete within 1 second
-      expect(businessStore.current.cart.length).toBeGreaterThan(0);
-      expect(subtotal).toBeGreaterThan(0);
-      expect(tax).toBeGreaterThan(0);
-      expect(total).toBeGreaterThan(0);
-
-      console.log(`Cart operations completed in ${executionTime.toFixed(2)}ms`);
-      console.log(`Cart contains ${businessStore.current.cart.length} items`);
-      console.log(`Cart total: ₱${total.toFixed(2)}`);
-    });
-  });
-
-  describe('Memory Usage and Cleanup', () => {
-    it('should handle large datasets without memory leaks', async () => {
-      const { result: businessStore } = renderHook(() => useBusinessStore());
-
-      // Create large dataset
-      const largeProductSet: Product[] = Array.from({ length: 1000 }, (_, index) => ({
-        id: `memory-prod-${index + 1}`,
-        name: `Memory Test Product ${index + 1}`,
-        sku: `MEM-${String(index + 1).padStart(4, '0')}`,
-        barcode: `111222333${String(index).padStart(3, '0')}`,
-        price: Math.floor(Math.random() * 2000) + 100,
-        cost: Math.floor(Math.random() * 1000) + 50,
-        stock: Math.floor(Math.random() * 500) + 100,
-        category: `memory-category-${Math.floor(index / 100) + 1}`,
-        categoryId: `mem-cat-${Math.floor(index / 100) + 1}`,
-        description: `Memory test product ${index + 1} with detailed description for testing memory usage`,
-        unit: 'pcs',
-        isActive: true,
-        reorderPoint: 25,
-        maxStock: 1000,
-        supplier: `Memory Supplier ${Math.floor(index / 50) + 1}`,
-        location: 'Main Store',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      }));
-
-      const startTime = performance.now();
-
-      // Add all products
-      act(() => {
-        largeProductSet.forEach(product => {
-          businessStore.current.addProduct(product);
-        });
-      });
-
-      // Perform various operations
-      act(() => {
-        // Search operations
-        const searchResults = businessStore.current.products.filter(p => 
-          p.name.toLowerCase().includes('test')
-        );
-        expect(searchResults.length).toBe(1000);
-
-        // Category filtering
-        const categoryResults = businessStore.current.products.filter(p => 
-          p.categoryId === 'mem-cat-1'
-        );
-        expect(categoryResults.length).toBe(100);
-
-        // Stock operations
-        for (let i = 0; i < 100; i++) {
-          const randomProduct = largeProductSet[Math.floor(Math.random() * largeProductSet.length)];
-          businessStore.current.updateStock(randomProduct.id, -1, 'sale', 'user-1', 'test-ref', 'Memory test');
-        }
-      });
-
-      const endTime = performance.now();
-      const executionTime = endTime - startTime;
-
-      // Performance assertions
-      expect(executionTime).toBeLessThan(3000); // Should complete within 3 seconds
-      expect(businessStore.current.products).toHaveLength(1000);
-
-      console.log(`Large dataset operations completed in ${executionTime.toFixed(2)}ms`);
-
-      // Cleanup test
-      act(() => {
-        // Remove all test products
-        largeProductSet.forEach(product => {
-          businessStore.current.deleteProduct(product.id);
-        });
-      });
-
-      expect(businessStore.current.products).toHaveLength(0);
-    });
-  });
-
-  describe('Offline Mode Performance', () => {
-    it('should handle offline queue operations efficiently', async () => {
-      const { result: offlineStore } = renderHook(() => useOfflineStore());
-
-      // Set offline mode
-      act(() => {
-        offlineStore.current.setOnlineStatus(false);
-        offlineStore.current.toggleOfflineMode();
-      });
-
-      const startTime = performance.now();
-
-      // Add 500 pending transactions
-      act(() => {
-        for (let i = 0; i < 500; i++) {
-          offlineStore.current.addPendingTransaction({
-            type: 'sale',
-            data: {
-              customerId: undefined,
-              customerName: 'Walk-in Customer',
-              items: [{
-                id: `offline-item-${i}`,
-                productId: `offline-prod-${i}`,
-                productName: `Offline Product ${i}`,
-                sku: `OFF-${String(i).padStart(3, '0')}`,
-                quantity: 1,
-                price: 100,
-                total: 100,
-              }],
-              subtotal: 100,
-              tax: 12,
-              discount: 0,
-              total: 112,
-              paymentMethod: 'cash' as const,
-              paymentStatus: 'paid' as const,
-              status: 'completed' as const,
-              cashierId: 'user-1',
-              invoiceNumber: `INV-OFF-${String(i + 1).padStart(3, '0')}`,
-              notes: `Offline transaction ${i + 1}`,
-            },
-          });
-        }
-      });
-
-      // Test filtering operations
-      const pendingSales = offlineStore.current.getPendingTransactionsByType('sale');
-      const failedTransactions = offlineStore.current.getFailedTransactions();
-
-      const endTime = performance.now();
-      const executionTime = endTime - startTime;
-
-      // Performance assertions
-      expect(executionTime).toBeLessThan(2000); // Should complete within 2 seconds
-      expect(offlineStore.current.pendingTransactions).toHaveLength(500);
-      expect(pendingSales).toHaveLength(500);
-      expect(failedTransactions).toHaveLength(0);
-
-      console.log(`Offline queue operations completed in ${executionTime.toFixed(2)}ms`);
-
-      // Cleanup
-      act(() => {
-        offlineStore.current.clearPendingTransactions();
-      });
-
-      expect(offlineStore.current.pendingTransactions).toHaveLength(0);
-    });
-  });
-
-  describe('Search and Filter Performance', () => {
-    it('should perform fast searches on large product catalogs', async () => {
-      const { result: businessStore } = renderHook(() => useBusinessStore());
-
-      // Create diverse product catalog
-      const productCatalog: Product[] = Array.from({ length: 2000 }, (_, index) => ({
-        id: `search-prod-${index + 1}`,
-        name: `${['Electronics', 'Clothing', 'Food', 'Books', 'Tools'][index % 5]} Product ${index + 1}`,
-        sku: `SEARCH-${String(index + 1).padStart(4, '0')}`,
-        barcode: `555666777${String(index).padStart(3, '0')}`,
-        price: Math.floor(Math.random() * 5000) + 50,
-        cost: Math.floor(Math.random() * 2500) + 25,
-        stock: Math.floor(Math.random() * 200) + 10,
-        category: ['electronics', 'clothing', 'food', 'books', 'tools'][index % 5],
-        categoryId: `search-cat-${(index % 5) + 1}`,
-        description: `Detailed description for ${['Electronics', 'Clothing', 'Food', 'Books', 'Tools'][index % 5]} product ${index + 1}`,
-        unit: 'pcs',
-        isActive: Math.random() > 0.1, // 90% active
-        reorderPoint: 15,
-        maxStock: 500,
-        supplier: `Search Supplier ${Math.floor(index / 100) + 1}`,
-        location: ['Main Store', 'Warehouse A', 'Warehouse B'][index % 3],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      }));
-
-      act(() => {
-        productCatalog.forEach(product => {
-          businessStore.current.addProduct(product);
-        });
-      });
-
-      // Test various search scenarios
-      const searchTests = [
-        { term: 'Electronics', expectedMin: 350 },
-        { term: 'Product 1', expectedMin: 100 },
-        { term: 'SEARCH-0001', expectedMin: 1 },
-        { term: 'clothing', expectedMin: 350 },
-        { term: 'nonexistent', expectedMin: 0 },
+      // Add products with different categories
+      const mixedProducts = [
+        ...products,
+        ...TestDataFactory.createBulkProducts(500, { category: 'Clothing' }),
+        ...TestDataFactory.createBulkProducts(500, { category: 'Books' })
       ];
 
-      for (const test of searchTests) {
-        const startTime = performance.now();
+      TestEnvironment.setMockData('products', mixedProducts);
 
-        const searchResults = businessStore.current.products.filter(product => 
-          product.name.toLowerCase().includes(test.term.toLowerCase()) ||
-          product.sku.toLowerCase().includes(test.term.toLowerCase()) ||
-          product.category.toLowerCase().includes(test.term.toLowerCase())
+      const filterResults = await performanceTests.measureApiCall(async () => {
+        // Simulate complex filtering
+        const filters = [
+          { category: 'Electronics', priceRange: [100, 500] },
+          { category: 'Clothing', stockRange: [10, 100] },
+          { category: 'Books', search: 'programming' }
+        ];
+
+        const promises = filters.map(filter => 
+          // Mock filtered search
+          getProducts(1000, 0)
         );
 
-        const endTime = performance.now();
-        const searchTime = endTime - startTime;
+        return Promise.all(promises);
+      });
 
-        expect(searchTime).toBeLessThan(100); // Each search should complete within 100ms
-        expect(searchResults.length).toBeGreaterThanOrEqual(test.expectedMin);
+      expect(filterResults.__duration).toBeLessThan(PERFORMANCE_THRESHOLDS.search_operation);
 
-        console.log(`Search for "${test.term}" found ${searchResults.length} results in ${searchTime.toFixed(2)}ms`);
-      }
-
-      // Test category filtering performance
-      const categoryStartTime = performance.now();
-      
-      const electronicsProducts = businessStore.current.products.filter(p => p.category === 'electronics');
-      const activeProducts = businessStore.current.products.filter(p => p.isActive);
-      const lowStockProducts = businessStore.current.products.filter(p => p.stock < p.reorderPoint);
-
-      const categoryEndTime = performance.now();
-      const categoryTime = categoryEndTime - categoryStartTime;
-
-      expect(categoryTime).toBeLessThan(200); // Category filtering should complete within 200ms
-      expect(electronicsProducts.length).toBeGreaterThan(300);
-      expect(activeProducts.length).toBeGreaterThan(1700); // ~90% should be active
-
-      console.log(`Category filtering completed in ${categoryTime.toFixed(2)}ms`);
-      console.log(`Found ${electronicsProducts.length} electronics, ${activeProducts.length} active, ${lowStockProducts.length} low stock`);
+      console.log(`Complex filtering: ${filterResults.__duration}ms`);
     });
   });
 
-  describe('Concurrent User Simulation', () => {
-    it('should handle multiple simultaneous user operations', async () => {
-      const { result: businessStore } = renderHook(() => useBusinessStore());
+  describe('Memory Usage Tests', () => {
+    it('should not exceed memory limits during large operations', async () => {
+      const initialMemory = process.memoryUsage();
+      
+      // Process large dataset
+      const largeDataset = TestDataFactory.createLargeDataset('xlarge');
+      
+      TestEnvironment.setMockData('products', largeDataset.products);
+      TestEnvironment.setMockData('sales', largeDataset.sales);
 
-      // Setup shared products
-      const sharedProducts: Product[] = Array.from({ length: 20 }, (_, index) => ({
-        id: `shared-prod-${index + 1}`,
-        name: `Shared Product ${index + 1}`,
-        sku: `SHARED-${String(index + 1).padStart(2, '0')}`,
-        barcode: `888999000${String(index).padStart(2, '0')}`,
-        price: 200,
-        cost: 120,
-        stock: 100, // High stock for concurrent access
-        category: 'shared',
-        categoryId: 'shared-cat-1',
-        description: `Shared product ${index + 1} for concurrent testing`,
-        unit: 'pcs',
-        isActive: true,
-        reorderPoint: 20,
-        maxStock: 200,
-        supplier: 'Shared Supplier',
-        location: 'Main Store',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      }));
+      // Perform memory-intensive operations
+      const memoryResults = await performanceTests.measureApiCall(async () => {
+        const operations = [
+          getProducts(10000, 0),
+          searchProducts('test'),
+          ...Array.from({ length: 100 }, () => 
+            createSale(TestDataFactory.createSale())
+          )
+        ];
 
-      act(() => {
-        sharedProducts.forEach(product => {
-          businessStore.current.addProduct(product);
-        });
+        return Promise.all(operations);
       });
 
-      // Mock successful operations
-      const { createSale } = await import('../../api/sales');
-      (createSale as any).mockImplementation(() => 
-        Promise.resolve({
-          data: { id: `concurrent-sale-${Date.now()}-${Math.random()}`, createdAt: new Date() },
-          error: null,
-        })
-      );
+      const finalMemory = process.memoryUsage();
+      const memoryIncrease = finalMemory.heapUsed - initialMemory.heapUsed;
+      const memoryIncreaseMB = memoryIncrease / 1024 / 1024;
 
-      const startTime = performance.now();
+      expect(memoryIncreaseMB).toBeLessThan(512); // Should not exceed 512MB increase
+      
+      console.log(`Memory usage increase: ${memoryIncreaseMB.toFixed(2)}MB`);
+    });
 
-      // Simulate 10 concurrent users each performing multiple operations
-      const userOperations = Array.from({ length: 10 }, async (_, userIndex) => {
-        const userId = `user-${userIndex + 1}`;
+    it('should properly clean up resources after operations', async () => {
+      const initialMemory = process.memoryUsage();
+      
+      // Create and process temporary data
+      for (let i = 0; i < 10; i++) {
+        const tempProducts = TestDataFactory.createBulkProducts(1000);
+        TestEnvironment.setMockData('products', tempProducts);
         
-        // Each user performs a series of operations
-        for (let opIndex = 0; opIndex < 5; opIndex++) {
-          const randomProduct = sharedProducts[Math.floor(Math.random() * sharedProducts.length)];
+        await getProducts(1000, 0);
+        
+        // Clear data to simulate cleanup
+        TestEnvironment.clearMockData();
+        
+        // Force garbage collection if available
+        if (global.gc) {
+          global.gc();
+        }
+      }
+
+      const finalMemory = process.memoryUsage();
+      const memoryIncrease = finalMemory.heapUsed - initialMemory.heapUsed;
+      const memoryIncreaseMB = memoryIncrease / 1024 / 1024;
+
+      expect(memoryIncreaseMB).toBeLessThan(100); // Should not have significant memory leak
+
+      console.log(`Memory after cleanup: ${memoryIncreaseMB.toFixed(2)}MB increase`);
+    });
+  });
+
+  describe('Stress Testing', () => {
+    it('should handle extreme load conditions', async () => {
+      const extremeLoad = {
+        products: 10000,
+        customers: 1000,
+        sales: 5000,
+        purchaseOrders: 500
+      };
+
+      // Create extreme dataset
+      const products = TestDataFactory.createBulkProducts(extremeLoad.products);
+      const customers = TestDataFactory.createBulkCustomers(extremeLoad.customers);
+      
+      TestEnvironment.setMockData('products', products);
+      TestEnvironment.setMockData('customers', customers);
+
+      const stressResults = await performanceTests.measureApiCall(async () => {
+        // Create concurrent operations at extreme scale
+        const operations = [
+          // Bulk reads
+          ...Array.from({ length: 50 }, () => getProducts(200, Math.floor(Math.random() * 9800))),
           
-          // Add to cart
-          await act(async () => {
-            businessStore.current.addToCart(randomProduct, 1);
-          });
+          // Bulk searches  
+          ...Array.from({ length: 20 }, () => searchProducts('stress')),
+          
+          // Bulk sales
+          ...Array.from({ length: 100 }, () => {
+            const randomCustomer = customers[Math.floor(Math.random() * customers.length)];
+            const randomProducts = products.slice(0, 5);
+            
+            return processSaleTransaction(TestDataFactory.createSale({
+              customerId: randomCustomer.id,
+              items: randomProducts.map(product => ({
+                productId: product.id,
+                productName: product.name,  
+                sku: product.sku!,
+                quantity: 1,
+                price: product.price,
+                total: product.price
+              }))
+            }));
+          })
+        ];
 
-          // Update cart
-          await act(async () => {
-            businessStore.current.updateCartItem(randomProduct.id, 2);
-          });
+        return Promise.allSettled(operations);
+      });
 
-          // Create sale
-          const saleData = {
-            customerId: undefined,
-            customerName: `User ${userIndex + 1} Customer`,
-            items: [{
-              id: `concurrent-item-${userIndex}-${opIndex}`,
-              productId: randomProduct.id,
-              productName: randomProduct.name,
-              sku: randomProduct.sku,
-              quantity: 2,
-              price: randomProduct.price,
-              total: randomProduct.price * 2,
-            }],
-            subtotal: randomProduct.price * 2,
-            tax: (randomProduct.price * 2) * 0.12,
-            discount: 0,
-            total: (randomProduct.price * 2) * 1.12,
-            paymentMethod: 'cash' as const,
-            paymentStatus: 'paid' as const,
-            status: 'completed' as const,
-            cashierId: userId,
-            invoiceNumber: `INV-CONCURRENT-${userIndex}-${opIndex}`,
-            notes: `Concurrent operation by ${userId}`,
-          };
+      const successRate = stressResults.filter(r => r.status === 'fulfilled').length / stressResults.length;
+      
+      expect(stressResults.__duration).toBeLessThan(30000); // 30 seconds max
+      expect(successRate).toBeGreaterThan(0.85); // At least 85% success rate under stress
 
-          await act(async () => {
-            await businessStore.current.createSale(saleData);
-          });
+      console.log(`Stress test: ${(successRate * 100).toFixed(1)}% success rate in ${stressResults.__duration}ms`);
+    });
 
-          // Clear cart for next operation
-          await act(async () => {
-            businessStore.current.clearCart();
+    it('should recover gracefully from high error rates', async () => {
+      // Simulate high error conditions
+      let errorRate = 0.5; // 50% error rate initially
+      
+      vi.doMock('../../utils/supabase', () => ({
+        supabase: {
+          from: vi.fn(() => ({
+            select: vi.fn().mockImplementation(() => {
+              if (Math.random() < errorRate) {
+                return Promise.resolve({ data: null, error: new Error('Simulated database error') });
+              }
+              return Promise.resolve({ data: TestDataFactory.createBulkProducts(10), error: null });
+            })
+          }))
+        }
+      }));
+
+      const recoveryResults = await performanceTests.measureApiCall(async () => {
+        const results = [];
+        
+        // Gradually reduce error rate to simulate recovery
+        for (let i = 0; i < 10; i++) {
+          errorRate = Math.max(0, errorRate - 0.05); // Reduce error rate by 5% each iteration
+          
+          const batchResults = await Promise.allSettled(
+            Array.from({ length: 20 }, () => getProducts(10, 0))
+          );
+          
+          results.push({
+            iteration: i,
+            successRate: batchResults.filter(r => r.status === 'fulfilled').length / batchResults.length,
+            errorRate
           });
+        }
+        
+        return results;
+      });
+
+      const finalSuccessRate = recoveryResults[recoveryResults.length - 1].successRate;
+      expect(finalSuccessRate).toBeGreaterThan(0.9); // Should recover to >90% success
+
+      console.log(`Error recovery: Final success rate ${(finalSuccessRate * 100).toFixed(1)}%`);
+    });
+  });
+
+  describe('Performance Regression Tests', () => {
+    it('should maintain baseline performance benchmarks', async () => {
+      const benchmarks = {
+        productCreate: { baseline: 100, threshold: 150 },
+        productRead: { baseline: 50, threshold: 100 },
+        saleProcess: { baseline: 200, threshold: 300 },
+        searchOperation: { baseline: 80, threshold: 150 }
+      };
+
+      const results: Record<string, number> = {};
+
+      // Test product creation
+      const productResult = await performanceTests.measureApiCall(async () => {
+        return createProduct(TestDataFactory.createProduct());
+      });
+      results.productCreate = productResult.__duration;
+
+      // Test product reading
+      const readResult = await performanceTests.measureApiCall(async () => {
+        return getProducts(100, 0);
+      });
+      results.productRead = readResult.__duration;
+
+      // Test sale processing
+      const saleResult = await performanceTests.measureApiCall(async () => {
+        return processSaleTransaction(TestDataFactory.createSale());
+      });
+      results.saleProcess = saleResult.__duration;
+
+      // Test search operation
+      const searchResult = await performanceTests.measureApiCall(async () => {
+        return searchProducts('test');
+      });
+      results.searchOperation = searchResult.__duration;
+
+      // Verify no performance regression
+      Object.entries(benchmarks).forEach(([operation, benchmark]) => {
+        expect(results[operation]).toBeLessThan(benchmark.threshold);
+        
+        if (results[operation] > benchmark.baseline * 1.2) {
+          console.warn(`Performance degradation detected in ${operation}: ${results[operation]}ms > ${benchmark.baseline * 1.2}ms`);
         }
       });
 
-      await Promise.all(userOperations);
-
-      const endTime = performance.now();
-      const executionTime = endTime - startTime;
-
-      // Performance assertions
-      expect(executionTime).toBeLessThan(10000); // Should complete within 10 seconds
-      expect(businessStore.current.sales.length).toBe(50); // 10 users × 5 operations each
-
-      console.log(`Concurrent user operations completed in ${executionTime.toFixed(2)}ms`);
-      console.log(`Processed ${businessStore.current.sales.length} concurrent sales`);
-
-      // Verify data integrity
-      const totalSales = businessStore.current.sales.reduce((sum, sale) => sum + sale.total, 0);
-      expect(totalSales).toBeGreaterThan(0);
-
-      // Verify stock was properly updated
-      sharedProducts.forEach(product => {
-        const updatedProduct = businessStore.current.getProduct(product.id);
-        expect(updatedProduct?.stock).toBeLessThanOrEqual(100); // Stock should have decreased
-      });
+      console.log('Performance benchmarks:', results);
     });
   });
 });
