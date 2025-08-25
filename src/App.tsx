@@ -109,20 +109,26 @@ const App: React.FC = () => {
     initializeTheme();
     
     // Test Supabase connection after a brief delay to allow initialization
-    setTimeout(() => {
-      testSupabaseConnection().then((result) => {
-        if (!result.connected) {
-          addToast({
-            type: 'error',
-            title: 'Database Connection Error',
-            message: `Failed to connect to database: ${result.error}`,
-            duration: 10000
-          });
-        } else {
-          console.log('✅ Database connection verified');
-        }
-      });
-    }, 1000); // 1 second delay
+    // Only run connection test in development mode to avoid ERR_ABORTED errors in production
+    if (import.meta.env.DEV) {
+      setTimeout(() => {
+        testSupabaseConnection().then((result) => {
+          if (!result.connected && !result.error?.includes('timed out')) {
+            addToast({
+              type: 'error',
+              title: 'Database Connection Error',
+              message: `Failed to connect to database: ${result.error}`,
+              duration: 10000
+            });
+          } else {
+            console.log('✅ Database connection verified');
+          }
+        }).catch((error) => {
+          // Silently handle connection test errors to prevent ERR_ABORTED from affecting UX
+          console.warn('⚠️ Database connection test failed silently:', error.message);
+        });
+      }, 2000); // Increased delay to 2 seconds
+    }
     
     if (!isOAuthCallback) {
       setupDevAuth(); // Setup development authentication

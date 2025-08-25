@@ -1,0 +1,39 @@
+{
+  "interval": 120000,
+  "commitMessagePrefix": "Auto-update",
+  "maxRetries": 3,
+  "retryDelay": 5000,
+  "excludePatterns": [
+    "node_modules/",
+    ".git/",
+    "dist/",
+    "build/",
+    "*.log",
+    ".env.local",
+    "auto-git-push.log"
+  ],
+  "enableLogging": true,
+  "logFile": "auto-git-push.log",
+  "branch": null,
+  "silentMode": false,
+  "enableNotifications": true,
+  "backupOnError": false,
+  "customCommitMessages": {
+    "enabled": false,
+    "templates": [
+      "Automated backup - {timestamp}",
+      "Auto-save: {fileCount} files updated",
+      "Continuous integration update - {date}"
+    ]
+  },
+  "gitOptions": {
+    "pushForce": false,
+    "pullBeforePush": false,
+    "stashUncommittedChanges": false
+  },
+  "monitoring": {
+    "enableHealthCheck": true,
+    "healthCheckInterval": 600000,
+    "maxConsecutiveFailures": 5
+  }
+}

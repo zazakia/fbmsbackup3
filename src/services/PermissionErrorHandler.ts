@@ -6,7 +6,7 @@ import {
 } from '../types/moduleLoading';
 import { UserRole } from '../types/auth';
 import { hasPermission, canAccessModule, ROLE_PERMISSIONS } from '../utils/permissions';
-import { useAuthStore } from '../store/supabaseAuthStore';
+import { useSupabaseAuthStore } from '../store/supabaseAuthStore';
 
 /**
  * Permission Error Handler Service
@@ -349,7 +349,7 @@ This request was generated automatically on ${new Date().toLocaleString()}`;
   private getCurrentUserId(): string {
     // In a real implementation, this would get from auth store
     try {
-      const authData = useAuthStore.getState();
+      const authData = useSupabaseAuthStore.getState();
       return authData.user?.id || 'unknown-user';
     } catch {
       return 'unknown-user';
@@ -358,7 +358,7 @@ This request was generated automatically on ${new Date().toLocaleString()}`;
 
   private getCurrentUserRole(): UserRole {
     try {
-      const authData = useAuthStore.getState();
+      const authData = useSupabaseAuthStore.getState();
       return authData.user?.user_metadata?.role || 'employee';
     } catch {
       return 'employee';

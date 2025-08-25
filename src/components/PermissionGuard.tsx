@@ -19,49 +19,12 @@ const PermissionGuard: React.FC<PermissionGuardProps> = ({
   children,
   fallback
 }) => {
-  const { user, isAuthenticated, logout, isLoading } = useSupabaseAuthStore();
-  const [loggingOut, setLoggingOut] = React.useState(false);
+  const { user, isAuthenticated } = useSupabaseAuthStore();
 
-  // Handle login button click - forces logout which triggers auth page
-  const handleLoginClick = async () => {
-    setLoggingOut(true);
-    try {
-      // Logout will set hasLoggedOut=true, which disables dev bypass and shows auth page
-      await logout();
-    } catch (error) {
-      console.error('Error during logout:', error);
-      // Force reload as fallback to reset app state
-      window.location.reload();
-    } finally {
-      setLoggingOut(false);
-    }
-  };
-
-  // Check if user is authenticated
+  // Check if user is authenticated - ProtectedRoute should handle this, not PermissionGuard
   if (!user || !isAuthenticated) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <Lock className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">Authentication Required</h3>
-          <p className="text-gray-600 dark:text-gray-400 mb-4">Please log in to access this feature.</p>
-          <button
-            onClick={handleLoginClick}
-            disabled={loggingOut || isLoading}
-            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            {loggingOut || isLoading ? (
-              <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                Redirecting...
-              </>
-            ) : (
-              'Go to Login'
-            )}
-          </button>
-        </div>
-      </div>
-    );
+    // Return null to let ProtectedRoute handle authentication
+    return null;
   }
 
   // Check specific role requirement

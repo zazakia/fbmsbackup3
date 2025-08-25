@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useSupabaseAuthStore } from '../store/supabaseAuthStore';
 import ModernAuthPage from './auth/ModernAuthPage';
 import EmailVerificationBanner from './auth/EmailVerificationBanner';
@@ -9,10 +9,15 @@ interface ProtectedRouteProps {
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const { isAuthenticated, checkAuth, hasLoggedOut, user, pendingEmailVerification } = useSupabaseAuthStore();
+  const hasCheckedAuth = useRef(false);
 
   useEffect(() => {
-    checkAuth(); // checkAuth in useSupabaseAuthStore is async, useEffect handles this.
-  }, [checkAuth]);
+    // Only check auth once to prevent infinite loops
+    if (!hasCheckedAuth.current) {
+      hasCheckedAuth.current = true;
+      checkAuth();
+    }
+  }, []);
 
   // Only allow development bypass if:
   // 1. We're in development mode

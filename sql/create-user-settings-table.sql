@@ -128,6 +128,20 @@ CREATE TABLE IF NOT EXISTS public.user_settings (
             "autoGenerate": true
         }
     }'::jsonb,
+    "menuVisibility" JSONB DEFAULT '{
+        "dashboard": true,
+        "inventory": true,
+        "sales": true,
+        "purchases": true,
+        "suppliers": true,
+        "customers": true,
+        "reports": true,
+        "analytics": true,
+        "settings": true,
+        "users": true,
+        "audit": true,
+        "backup": true
+    }'::jsonb,
     security JSONB DEFAULT '{
         "twoFactorAuth": {
             "enabled": false,

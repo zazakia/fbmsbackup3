@@ -12,6 +12,13 @@
 import { supabase, supabaseAnon } from './supabase';
 import { useSupabaseAuthStore } from '../store/supabaseAuthStore';
 
+// Extend window interface for logout timeout tracking
+declare global {
+  interface Window {
+    logoutTimeoutCount?: number;
+  }
+}
+
 export interface LogoutResult {
   success: boolean;
   message: string;
@@ -19,10 +26,28 @@ export interface LogoutResult {
   actionsCompleted: string[];
 }
 
+// Prevent multiple simultaneous logout attempts
+let isLogoutInProgress = false;
+let lastLogoutAttempt = 0;
+
 /**
  * Enhanced logout function that handles all edge cases
  */
 export async function enhancedLogout(): Promise<LogoutResult> {
+  // Debounce logout attempts - prevent multiple calls within 2 seconds
+  const now = Date.now();
+  if (isLogoutInProgress || (now - lastLogoutAttempt < 2000)) {
+    console.log('🔄 Logout already in progress or too recent, skipping...');
+    return {
+      success: true,
+      message: 'Logout already in progress or recently completed',
+      actionsCompleted: ['Skipped duplicate logout attempt']
+    };
+  }
+  
+  isLogoutInProgress = true;
+  lastLogoutAttempt = now;
+  
   const actionsCompleted: string[] = [];
   const errors: string[] = [];
   
@@ -66,7 +91,13 @@ export async function enhancedLogout(): Promise<LogoutResult> {
         }
       } catch (timeoutError) {
         errors.push('Logout request timed out');
-        console.warn('⚠️ Logout timed out, proceeding with local cleanup');
+        // Reduce warning frequency - only log every 3rd timeout to avoid spam
+        if (!window.logoutTimeoutCount) window.logoutTimeoutCount = 0;
+        window.logoutTimeoutCount++;
+        
+        if (window.logoutTimeoutCount % 3 === 1) {
+          console.warn('⚠️ Logout timed out, proceeding with local cleanup (warning ' + window.logoutTimeoutCount + ')');
+        }
       }
       
     } catch (authError) {
@@ -263,6 +294,9 @@ export async function enhancedLogout(): Promise<LogoutResult> {
       errors: [`Critical error: ${criticalError}`, ...errors],
       actionsCompleted
     };
+  } finally {
+    // Always reset the logout progress flag
+    isLogoutInProgress = false;
   }
 }
 

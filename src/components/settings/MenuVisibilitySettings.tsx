@@ -1,5 +1,5 @@
-import React from 'react';
-import { Eye, EyeOff, Menu, ToggleLeft, ToggleRight, Info } from 'lucide-react';
+import React, { useEffect } from 'react';
+import { Eye, EyeOff, Menu, ToggleLeft, ToggleRight, Info, Loader2, AlertCircle } from 'lucide-react';
 import { useSettingsStore } from '../../store/settingsStore';
 
 interface MenuItem {
@@ -10,7 +10,19 @@ interface MenuItem {
 }
 
 const MenuVisibilitySettings: React.FC = () => {
-  const { menuVisibility, setMenuVisibility, toggleAllMenus } = useSettingsStore();
+  const { 
+    menuVisibility, 
+    setMenuVisibility, 
+    toggleAllMenus, 
+    loadFromSupabase, 
+    isLoading, 
+    lastSyncError 
+  } = useSettingsStore();
+
+  // Load settings from Supabase on component mount
+  useEffect(() => {
+    loadFromSupabase();
+  }, [loadFromSupabase]);
 
   const menuItems: MenuItem[] = [
     // Core Modules
@@ -51,12 +63,12 @@ const MenuVisibilitySettings: React.FC = () => {
 
   const categories = ['Core', 'Operations', 'Financial', 'Management', 'System', 'Admin'];
 
-  const handleToggle = (menuId: string) => {
-    setMenuVisibility(menuId, !menuVisibility[menuId as keyof typeof menuVisibility]);
+  const handleToggle = async (menuId: string) => {
+    await setMenuVisibility(menuId, !menuVisibility[menuId as keyof typeof menuVisibility]);
   };
 
-  const handleToggleAll = (visible: boolean) => {
-    toggleAllMenus(visible);
+  const handleToggleAll = async (visible: boolean) => {
+    await toggleAllMenus(visible);
   };
 
   const getVisibleCount = () => {
@@ -67,8 +79,45 @@ const MenuVisibilitySettings: React.FC = () => {
     return Object.keys(menuVisibility).length;
   };
 
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="border-b border-gray-200 pb-4">
+          <h3 className="text-lg font-medium text-gray-900 flex items-center gap-2">
+            <Menu className="h-5 w-5" />
+            Menu Visibility Settings
+          </h3>
+          <p className="text-sm text-gray-600 mt-1">
+            Control which menu items appear in the side navigation
+          </p>
+        </div>
+        <div className="bg-white rounded-lg border border-gray-200 p-6">
+          <div className="flex items-center justify-center py-12">
+            <div className="flex items-center gap-2 text-gray-600">
+              <Loader2 className="h-5 w-5 animate-spin" />
+              <span>Loading settings...</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
+      {lastSyncError && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <div className="flex items-start space-x-3">
+            <AlertCircle className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
+            <div>
+              <h5 className="font-medium text-red-900">Sync Error</h5>
+              <p className="text-sm text-red-700 mt-1">
+                Failed to sync settings: {lastSyncError}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="border-b border-gray-200 pb-4">
         <h3 className="text-lg font-medium text-gray-900 flex items-center gap-2">
           <Menu className="h-5 w-5" />
@@ -90,16 +139,18 @@ const MenuVisibilitySettings: React.FC = () => {
           <div className="flex space-x-2">
             <button
               onClick={() => handleToggleAll(true)}
-              className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-1"
+              disabled={isLoading}
+              className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <Eye className="h-4 w-4" />
+              {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Eye className="h-4 w-4" />}
               Show All
             </button>
             <button
               onClick={() => handleToggleAll(false)}
-              className="px-3 py-1.5 text-sm bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors flex items-center gap-1"
+              disabled={isLoading}
+              className="px-3 py-1.5 text-sm bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <EyeOff className="h-4 w-4" />
+              {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <EyeOff className="h-4 w-4" />}
               Hide All
             </button>
           </div>
@@ -143,7 +194,8 @@ const MenuVisibilitySettings: React.FC = () => {
                           </div>
                           <button
                             onClick={() => handleToggle(item.id)}
-                            className={`ml-3 transition-colors ${
+                            disabled={isLoading}
+                            className={`ml-3 transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
                               isVisible ? 'text-green-600' : 'text-gray-400'
                             }`}
                           >

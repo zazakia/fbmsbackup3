@@ -9,6 +9,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest",
+    "test:timeout": "vitest --run --reporter=verbose --testTimeout=30000",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest --coverage",
     "test:unit": "vitest --run --reporter=verbose --testNamePattern='unit|Unit'",

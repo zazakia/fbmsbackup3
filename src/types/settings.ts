@@ -1,3 +1,18 @@
+export interface MenuVisibilitySettings {
+  dashboard: boolean;
+  inventory: boolean;
+  sales: boolean;
+  purchases: boolean;
+  suppliers: boolean;
+  customers: boolean;
+  reports: boolean;
+  analytics: boolean;
+  settings: boolean;
+  users: boolean;
+  audit: boolean;
+  backup: boolean;
+}
+
 export interface UserSettings {
   id: string;
   userId: string;
@@ -13,6 +28,7 @@ export interface UserSettings {
   reports: ReportSettings;
   inventory: InventorySettings;
   security: SecuritySettings;
+  menuVisibility: MenuVisibilitySettings;
   createdAt: string;
   updatedAt: string;
 }
@@ -364,5 +380,19 @@ export const defaultUserSettings: Omit<UserSettings, 'id' | 'userId' | 'createdA
       enabled: false,
       addresses: [],
     },
+  },
+  menuVisibility: {
+    dashboard: true,
+    inventory: true,
+    sales: true,
+    purchases: true,
+    suppliers: true,
+    customers: true,
+    reports: true,
+    analytics: true,
+    settings: true,
+    users: true,
+    audit: true,
+    backup: true,
   },
 };

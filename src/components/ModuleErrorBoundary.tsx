@@ -9,7 +9,7 @@ import {
 } from '../types/moduleLoading';
 import { createError, logError, ERROR_CODES } from '../utils/errorHandling';
 import { checkUserPermissions } from '../utils/permissions';
-import { useAuthStore } from '../store/supabaseAuthStore';
+import { useSupabaseAuthStore } from '../store/supabaseAuthStore';
 
 interface State {
   hasError: boolean;

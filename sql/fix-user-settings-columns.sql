@@ -34,6 +34,25 @@ BEGIN
         ALTER TABLE public.user_settings ADD COLUMN time_format VARCHAR(5) DEFAULT '12h' CHECK (time_format IN ('12h', '24h'));
     END IF;
 
+    -- Add menuVisibility column if missing
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                   WHERE table_name = 'user_settings' AND column_name = 'menuVisibility') THEN
+        ALTER TABLE public.user_settings ADD COLUMN "menuVisibility" JSONB DEFAULT '{
+            "dashboard": true,
+            "inventory": true,
+            "sales": true,
+            "purchases": true,
+            "suppliers": true,
+            "customers": true,
+            "reports": true,
+            "analytics": true,
+            "settings": true,
+            "users": true,
+            "audit": true,
+            "backup": true
+        }'::jsonb;
+    END IF;
+
     RAISE NOTICE 'Missing columns have been added to user_settings table';
 END $$;
 
