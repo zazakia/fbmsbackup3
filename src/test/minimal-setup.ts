@@ -39,8 +39,63 @@ vi.mock('../store/settingsStore', () => ({
   default: vi.fn(() => mockStores.settings)
 }));
 
-// Setup before each test
-beforeEach(() => {
+import { expect, afterEach, beforeEach, vi } from 'vitest';
+import { cleanup } from '@testing-library/react';
+import * as matchers from '@testing-library/jest-dom/matchers';
+import { mockSupabaseModule } from './mocks/supabaseMock';
+import { mockStores, resetAllStoreMocks } from './mocks/storeMocks';
+import { TestDataFactory } from './factories/testDataFactory';
+import { testEnv, testDb } from './database/testDatabase';
+
+// Extend Vitest's expect with jest-dom matchers
+expect.extend(matchers);
+
+// Mock Supabase
+vi.mock('../utils/supabase', () => ({
+  supabase: mockSupabaseModule.supabase,
+  createClient: mockSupabaseModule.createClient
+}));
+
+// Mock Zustand stores
+vi.mock('../store/businessStore', () => ({
+  useBusinessStore: vi.fn(() => mockStores.business),
+  default: vi.fn(() => mockStores.business)
+}));
+
+vi.mock('../store/notificationStore', () => ({
+  useNotificationStore: vi.fn(() => mockStores.notification),
+  default: vi.fn(() => mockStores.notification)
+}));
+
+vi.mock('../store/authStore', () => ({
+  useAuthStore: vi.fn(() => mockStores.auth),
+  default: vi.fn(() => mockStores.auth)
+}));
+
+vi.mock('../store/cartStore', () => ({
+  useCartStore: vi.fn(() => mockStores.cart),
+  default: vi.fn(() => mockStores.cart)
+}));
+
+vi.mock('../store/settingsStore', () => ({
+  useSettingsStore: vi.fn(() => mockStores.settings),
+  default: vi.fn(() => mockStores.settings)
+}));
+
+// Global test setup
+beforeEach(async () => {
+  // Reset test data factory counter for consistent test runs
+  TestDataFactory.resetIdCounter();
+  
+  // Setup test environment
+  await testEnv.setupTestEnvironment({
+    mockDatabase: true,
+    mockPayments: true,
+    mockNotifications: true,
+    mockReporting: true,
+    loadTestData: false // Load per test as needed
+  });
+  
   // Reset all store mocks
   resetAllStoreMocks();
   
@@ -49,14 +104,23 @@ beforeEach(() => {
 });
 
 // Cleanup after each test case
-afterEach(() => {
+afterEach(async () => {
   // Cleanup React Testing Library
   cleanup();
+  
+  // Cleanup test environment
+  await testEnv.cleanupTestData();
+  
+  // Cleanup test database
+  await testDb.cleanup();
   
   // Reset all mocks
   vi.clearAllMocks();
   vi.clearAllTimers();
 });
+
+// Export utilities for tests
+export { testEnv, testDb, TestDataFactory, mockStores };
 
 // Mock window.matchMedia for responsive design tests
 Object.defineProperty(window, 'matchMedia', {

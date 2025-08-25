@@ -1,498 +1,349 @@
 import { vi } from 'vitest';
-import { TestDataFactory, InventoryTestData } from '../factories/testDataFactory';
-import { mockServices } from '../mocks/mockServices';
-import { TestConfig } from '../config/testConfig';
-import { Product, Category, Customer, Sale, PurchaseOrder, StockMovement } from '../../types/business';
+import { TestDataFactory } from '../factories/testDataFactory';
+import { mockSupabaseModule } from '../mocks/supabaseMock';
 
-export interface DatabaseTestState {
-  isInitialized: boolean;
-  hasData: boolean;
-  transactionActive: boolean;
-  currentTransaction?: string;
-  backupData?: Map<string, any[]>;
+interface TestDatabaseState {
+  tables: Record<string, any[]>;
+  transactions: any[];
+  snapshots: Record<string, Record<string, any[]>>;
 }
 
-export interface DatabaseTransaction {
-  id: string;
-  startTime: Date;
-  operations: DatabaseOperation[];
-  status: 'active' | 'committed' | 'rolled_back';
-}
+export class TestDatabase {
+  private state: TestDatabaseState;
+  private isIsolated: boolean = false;
+  private snapshotCounter: number = 0;
 
-export interface DatabaseOperation {
-  type: 'insert' | 'update' | 'delete';
-  table: string;
-  data: any;
-  timestamp: Date;
-}
-
-export class TestDatabaseManager {
-  private static instance: TestDatabaseManager;
-  private state: DatabaseTestState = {
-    isInitialized: false,
-    hasData: false,
-    transactionActive: false
-  };
-  private transactions: Map<string, DatabaseTransaction> = new Map();
-  private schemas: Map<string, any> = new Map();
-
-  static getInstance(): TestDatabaseManager {
-    if (!TestDatabaseManager.instance) {
-      TestDatabaseManager.instance = new TestDatabaseManager();
-    }
-    return TestDatabaseManager.instance;
-  }
-
-  async setupTestDatabase(config: TestConfig): Promise<void> {
-    console.log(`Setting up test database for ${config.environment} environment`);
-
-    // Reset state
+  constructor() {
     this.state = {
-      isInitialized: false,
-      hasData: false,
-      transactionActive: false
+      tables: {
+        products: [],
+        customers: [],
+        sales: [],
+        purchase_orders: [],
+        suppliers: [],
+        users: [],
+        accounts: [],
+        receipts: [],
+        inventory_movements: [],
+        journal_entries: []  
+      },
+      transactions: [],
+      snapshots: {}
     };
-
-    // Initialize mock services
-    mockServices.reset();
-
-    // Setup database schemas
-    await this.setupSchemas();
-
-    // Configure database based on test config
-    if (config.database.mockDatabase) {
-      await this.setupMockDatabase(config);
-    }
-
-    // Seed test data if requested
-    if (config.database.seedData) {
-      await this.seedTestData(config.database.dataScale);
-    }
-
-    // Setup transaction support if enabled
-    if (config.database.enableTransactions) {
-      this.setupTransactionSupport();
-    }
-
-    // Setup Row Level Security if enabled
-    if (config.database.enableRLS) {
-      this.setupRowLevelSecurity();
-    }
-
-    this.state.isInitialized = true;
-    console.log('Test database setup completed');
   }
 
-  private async setupSchemas(): Promise<void> {
-    // Define table schemas for validation
-    this.schemas.set('products', {
-      id: 'string',
-      name: 'string',
-      sku: 'string',
-      price: 'number',
-      cost: 'number',
-      stock: 'number',
-      category: 'string',
-      isActive: 'boolean',
-      created_at: 'date',
-      updated_at: 'date'
-    });
+  // Initialize test database with sample data
+  async initializeTestData() {
+    console.log('🔧 Initializing test database...');
 
-    this.schemas.set('categories', {
-      id: 'string',
-      name: 'string',
-      description: 'string',
-      isActive: 'boolean',
-      created_at: 'date'
-    });
+    // Create sample Philippine business data
+    this.state.tables.products = TestDataFactory.createProductsBatch(10);
+    this.state.tables.customers = TestDataFactory.createCustomersBatch(5);
+    this.state.tables.suppliers = Array.from({ length: 3 }, () => TestDataFactory.createSupplier());
+    this.state.tables.users = TestDataFactory.createUsersBatch(3);
+    this.state.tables.accounts = Array.from({ length: 8 }, () => TestDataFactory.createAccount());
 
-    this.schemas.set('customers', {
-      id: 'string',
-      firstName: 'string',
-      lastName: 'string',
-      email: 'string',
-      phone: 'string',
-      isActive: 'boolean',
-      created_at: 'date',
-      updated_at: 'date'
-    });
-
-    this.schemas.set('sales', {
-      id: 'string',
-      invoiceNumber: 'string',
-      customerId: 'string',
-      total: 'number',
-      status: 'string',
-      created_at: 'date'
-    });
-
-    this.schemas.set('stock_movements', {
-      id: 'string',
-      productId: 'string',
-      type: 'string',
-      quantity: 'number',
-      reason: 'string',
-      performedBy: 'string',
-      created_at: 'date'
-    });
-
-    console.log('Database schemas initialized');
+    console.log('✅ Test database initialized with sample data');
+    return this.state;
   }
 
-  private async setupMockDatabase(config: TestConfig): Promise<void> {
-    // Configure mock database timeouts
-    if (config.database.connectionTimeout) {
-      // Mock connection timeout behavior
-      vi.spyOn(mockServices.supabase, 'from').mockImplementation((table: string) => {
-        const originalFrom = mockServices.supabase.from.bind(mockServices.supabase);
-        return originalFrom(table);
-      });
+  // Create database snapshot for rollback
+  createSnapshot(name: string = `snapshot_${++this.snapshotCounter}`) {
+    console.log(`📸 Creating database snapshot: ${name}`);
+    this.state.snapshots[name] = JSON.parse(JSON.stringify(this.state.tables));
+    return name;
+  }
+
+  // Restore database from snapshot
+  restoreSnapshot(name: string) {
+    if (this.state.snapshots[name]) {
+      console.log(`🔄 Restoring database snapshot: ${name}`);
+      this.state.tables = JSON.parse(JSON.stringify(this.state.snapshots[name]));
+      return true;
     }
-
-    // Setup query timeout simulation
-    if (config.database.queryTimeout) {
-      mockServices.supabase.setMockDelay(config.database.queryTimeout);
-    }
-
-    console.log('Mock database configured');
+    console.warn(`⚠️ Snapshot not found: ${name}`);
+    return false;
   }
 
-  private async seedTestData(scale: 'small' | 'medium' | 'large'): Promise<void> {
-    console.log(`Seeding test data at ${scale} scale`);
-
-    const testData = TestDataFactory.createLargeDataset(scale);
-
-    // Load data into mock database
-    mockServices.supabase.setMockData('products', testData.products);
-    mockServices.supabase.setMockData('categories', testData.categories);
-    mockServices.supabase.setMockData('customers', testData.customers);
-    mockServices.supabase.setMockData('sales', testData.sales);
-    mockServices.supabase.setMockData('purchase_orders', testData.purchaseOrders);
-    mockServices.supabase.setMockData('stock_movements', testData.stockMovements);
-    mockServices.supabase.setMockData('inventory_locations', testData.locations);
-    mockServices.supabase.setMockData('stock_transfers', testData.transfers);
-    mockServices.supabase.setMockData('stock_alerts', testData.alerts);
-
-    this.state.hasData = true;
-    console.log(`Test data seeded: ${testData.products.length} products, ${testData.sales.length} sales, ${testData.stockMovements.length} movements`);
-  }
-
-  private setupTransactionSupport(): void {
-    // Mock transaction support
-    const originalFrom = mockServices.supabase.from.bind(mockServices.supabase);
-    
-    mockServices.supabase.from = vi.fn().mockImplementation((table: string) => {
-      const tableOperations = originalFrom(table);
-      
-      // Wrap operations with transaction tracking
-      return {
-        ...tableOperations,
-        insert: (data: any) => {
-          this.recordOperation('insert', table, data);
-          return tableOperations.insert(data);
-        },
-        update: (data: any) => ({
-          eq: (column: string, value: any) => {
-            this.recordOperation('update', table, { data, where: { column, value } });
-            return tableOperations.update(data).eq(column, value);
-          }
-        }),
-        delete: () => ({
-          eq: (column: string, value: any) => {
-            this.recordOperation('delete', table, { where: { column, value } });
-            return tableOperations.delete().eq(column, value);
-          }
-        })
-      };
-    });
-
-    console.log('Transaction support enabled');
-  }
-
-  private setupRowLevelSecurity(): void {
-    // Mock RLS policies
-    const policies = new Map<string, (row: any, user: any) => boolean>();
-
-    // Example RLS policy for products
-    policies.set('products', (row: any, user: any) => {
-      // Allow all operations for admin users
-      if (user?.role === 'admin') return true;
-      
-      // Allow read for all authenticated users
-      if (user?.id) return true;
-      
-      // Deny for unauthenticated users
-      return false;
-    });
-
-    // Example RLS policy for sales
-    policies.set('sales', (row: any, user: any) => {
-      // Allow all operations for admin and managers
-      if (['admin', 'manager'].includes(user?.role)) return true;
-      
-      // Allow cashiers to see their own sales
-      if (user?.role === 'cashier' && row.cashierId === user.id) return true;
-      
-      return false;
-    });
-
-    console.log('Row Level Security policies configured');
-  }
-
-  async beginTransaction(): Promise<string> {
-    const transactionId = `txn-${Date.now()}-${Math.random().toString(36).substr(2, 8)}`;
-    
-    // Create backup of current data
-    const backup = new Map<string, any[]>();
-    ['products', 'categories', 'customers', 'sales', 'stock_movements'].forEach(table => {
-      backup.set(table, [...mockServices.supabase.getMockData(table)]);
-    });
-
-    const transaction: DatabaseTransaction = {
-      id: transactionId,
-      startTime: new Date(),
-      operations: [],
-      status: 'active'
-    };
-
-    this.transactions.set(transactionId, transaction);
-    this.state.transactionActive = true;
-    this.state.currentTransaction = transactionId;
-    this.state.backupData = backup;
-
-    console.log(`Transaction ${transactionId} started`);
-    return transactionId;
-  }
-
-  async commitTransaction(transactionId: string): Promise<void> {
-    const transaction = this.transactions.get(transactionId);
-    if (!transaction) {
-      throw new Error(`Transaction ${transactionId} not found`);
-    }
-
-    if (transaction.status !== 'active') {
-      throw new Error(`Transaction ${transactionId} is not active`);
-    }
-
-    transaction.status = 'committed';
-    this.state.transactionActive = false;
-    this.state.currentTransaction = undefined;
-    this.state.backupData = undefined;
-
-    console.log(`Transaction ${transactionId} committed with ${transaction.operations.length} operations`);
-  }
-
-  async rollbackTransaction(transactionId: string): Promise<void> {
-    const transaction = this.transactions.get(transactionId);
-    if (!transaction) {
-      throw new Error(`Transaction ${transactionId} not found`);
-    }
-
-    if (transaction.status !== 'active') {
-      throw new Error(`Transaction ${transactionId} is not active`);
-    }
-
-    // Restore data from backup
-    if (this.state.backupData) {
-      this.state.backupData.forEach((data, table) => {
-        mockServices.supabase.setMockData(table, data);
-      });
-    }
-
-    transaction.status = 'rolled_back';
-    this.state.transactionActive = false;
-    this.state.currentTransaction = undefined;
-    this.state.backupData = undefined;
-
-    console.log(`Transaction ${transactionId} rolled back, ${transaction.operations.length} operations reverted`);
-  }
-
-  private recordOperation(type: 'insert' | 'update' | 'delete', table: string, data: any): void {
-    if (!this.state.transactionActive || !this.state.currentTransaction) {
+  // Start database isolation for test
+  async startIsolation() {
+    if (this.isIsolated) {
+      console.warn('⚠️ Database is already isolated');
       return;
     }
 
-    const transaction = this.transactions.get(this.state.currentTransaction);
-    if (transaction) {
-      transaction.operations.push({
-        type,
-        table,
-        data,
-        timestamp: new Date()
-      });
-    }
+    console.log('🔒 Starting database isolation');
+    this.createSnapshot('isolation_start');
+    this.isIsolated = true;
+
+    // Mock Supabase operations to use our test database
+    this.mockSupabaseOperations();
   }
 
-  async validateDataIntegrity(): Promise<{ isValid: boolean; errors: string[] }> {
-    const errors: string[] = [];
+  // End database isolation and cleanup
+  async endIsolation() {
+    if (!this.isIsolated) {
+      console.warn('⚠️ Database is not isolated');
+      return;
+    }
 
-    // Validate foreign key relationships
-    const products = mockServices.supabase.getMockData('products');
-    const categories = mockServices.supabase.getMockData('categories');
-    const sales = mockServices.supabase.getMockData('sales');
-    const stockMovements = mockServices.supabase.getMockData('stock_movements');
+    console.log('🔓 Ending database isolation');
+    this.restoreSnapshot('isolation_start');
+    this.isIsolated = false;
 
-    // Check product-category relationships
-    const categoryIds = new Set(categories.map((c: any) => c.id));
-    products.forEach((product: any) => {
-      if (product.categoryId && !categoryIds.has(product.categoryId)) {
-        errors.push(`Product ${product.id} references non-existent category ${product.categoryId}`);
-      }
-    });
+    // Clear test data
+    await this.cleanup();
+  }
 
-    // Check stock movement-product relationships
-    const productIds = new Set(products.map((p: any) => p.id));
-    stockMovements.forEach((movement: any) => {
-      if (!productIds.has(movement.productId)) {
-        errors.push(`Stock movement ${movement.id} references non-existent product ${movement.productId}`);
-      }
-    });
+  // Mock Supabase operations to work with test database
+  private mockSupabaseOperations() {
+    const mockSupabase = mockSupabaseModule.supabase;
 
-    // Validate data types according to schema
-    for (const [tableName, tableData] of [
-      ['products', products],
-      ['categories', categories],
-      ['sales', sales],
-      ['stock_movements', stockMovements]
-    ]) {
-      const schema = this.schemas.get(tableName);
-      if (schema) {
-        (tableData as any[]).forEach((row: any) => {
-          Object.entries(schema).forEach(([field, expectedType]) => {
-            if (row[field] !== undefined && row[field] !== null) {
-              const actualType = typeof row[field];
-              if (expectedType === 'date' && !(row[field] instanceof Date)) {
-                errors.push(`${tableName}.${field} should be a Date, got ${actualType}`);
-              } else if (expectedType !== 'date' && actualType !== expectedType) {
-                errors.push(`${tableName}.${field} should be ${expectedType}, got ${actualType}`);
-              }
+    // Override from method to interact with test database
+    mockSupabase.from = vi.fn((tableName: string) => {
+      const tableData = this.state.tables[tableName] || [];
+
+      return {
+        // SELECT operations
+        select: vi.fn(() => ({
+          eq: vi.fn((column: string, value: any) => ({
+            single: vi.fn(() => {
+              const item = tableData.find(row => row[column] === value);
+              return Promise.resolve({ data: item || null, error: null });
+            }),
+            then: vi.fn((callback: any) => {
+              const items = tableData.filter(row => row[column] === value);
+              return Promise.resolve({ data: items, error: null }).then(callback);
+            })
+          })),
+          order: vi.fn(() => ({
+            then: vi.fn((callback: any) => {
+              return Promise.resolve({ data: [...tableData], error: null }).then(callback);
+            })
+          })),
+          then: vi.fn((callback: any) => {
+            return Promise.resolve({ data: [...tableData], error: null }).then(callback);
+          })
+        })),
+
+        // INSERT operations
+        insert: vi.fn((data: any) => ({
+          select: vi.fn(() => ({
+            single: vi.fn(() => {
+              const newItem = Array.isArray(data) ? data[0] : data;
+              const itemWithId = { id: TestDataFactory.getNextId('test'), ...newItem };
+              tableData.push(itemWithId);
+              console.log(`➕ Inserted into ${tableName}:`, itemWithId);
+              return Promise.resolve({ data: itemWithId, error: null });
+            })
+          }))
+        })),
+
+        // UPDATE operations  
+        update: vi.fn((updates: any) => ({
+          eq: vi.fn((column: string, value: any) => ({
+            select: vi.fn(() => ({
+              single: vi.fn(() => {
+                const itemIndex = tableData.findIndex(row => row[column] === value);
+                if (itemIndex !== -1) {
+                  tableData[itemIndex] = { ...tableData[itemIndex], ...updates };
+                  console.log(`✏️ Updated in ${tableName}:`, tableData[itemIndex]);
+                  return Promise.resolve({ data: tableData[itemIndex], error: null });
+                }
+                return Promise.resolve({ data: null, error: { message: 'Record not found' } });
+              })
+            }))
+          }))
+        })),
+
+        // DELETE operations
+        delete: vi.fn(() => ({
+          eq: vi.fn((column: string, value: any) => {
+            const itemIndex = tableData.findIndex(row => row[column] === value);
+            if (itemIndex !== -1) {
+              const deletedItem = tableData.splice(itemIndex, 1)[0];
+              console.log(`🗑️ Deleted from ${tableName}:`, deletedItem);
+              return Promise.resolve({ data: null, error: null });
             }
-          });
-        });
-      }
-    }
-
-    return {
-      isValid: errors.length === 0,
-      errors
-    };
-  }
-
-  async cleanupTestDatabase(): Promise<void> {
-    console.log('Cleaning up test database');
-
-    // Rollback any active transactions
-    if (this.state.transactionActive && this.state.currentTransaction) {
-      await this.rollbackTransaction(this.state.currentTransaction);
-    }
-
-    // Clear all data
-    mockServices.reset();
-
-    // Clear transactions
-    this.transactions.clear();
-
-    // Reset state
-    this.state = {
-      isInitialized: false,
-      hasData: false,
-      transactionActive: false
-    };
-
-    console.log('Test database cleanup completed');
-  }
-
-  async createTestSnapshot(): Promise<string> {
-    const snapshotId = `snapshot-${Date.now()}`;
-    const snapshot = new Map<string, any[]>();
-
-    ['products', 'categories', 'customers', 'sales', 'stock_movements'].forEach(table => {
-      snapshot.set(table, [...mockServices.supabase.getMockData(table)]);
-    });
-
-    // Store snapshot (in a real implementation, this might be saved to disk)
-    (this as any)[`snapshot_${snapshotId}`] = snapshot;
-
-    console.log(`Test snapshot ${snapshotId} created`);
-    return snapshotId;
-  }
-
-  async restoreTestSnapshot(snapshotId: string): Promise<void> {
-    const snapshot = (this as any)[`snapshot_${snapshotId}`];
-    if (!snapshot) {
-      throw new Error(`Snapshot ${snapshotId} not found`);
-    }
-
-    snapshot.forEach((data: any[], table: string) => {
-      mockServices.supabase.setMockData(table, [...data]);
-    });
-
-    console.log(`Test snapshot ${snapshotId} restored`);
-  }
-
-  getState(): DatabaseTestState {
-    return { ...this.state };
-  }
-
-  getTransactions(): DatabaseTransaction[] {
-    return Array.from(this.transactions.values());
-  }
-
-  async executeRawQuery(query: string, params?: any[]): Promise<any> {
-    // Mock raw query execution for testing
-    console.log(`Executing raw query: ${query}`, params);
-    
-    // This would be implemented based on your specific needs
-    // For now, return a mock result
-    return { data: [], error: null };
-  }
-
-  async getTableStats(): Promise<Record<string, { count: number; size: number }>> {
-    const stats: Record<string, { count: number; size: number }> = {};
-
-    ['products', 'categories', 'customers', 'sales', 'stock_movements'].forEach(table => {
-      const data = mockServices.supabase.getMockData(table);
-      stats[table] = {
-        count: data.length,
-        size: JSON.stringify(data).length
+            return Promise.resolve({ data: null, error: { message: 'Record not found' } });
+          })
+        }))
       };
     });
+  }
 
-    return stats;
+  // Get test data from table
+  getTableData(tableName: string) {
+    return this.state.tables[tableName] || [];
+  }
+
+  // Add test data to table
+  addTableData(tableName: string, data: any) {
+    if (!this.state.tables[tableName]) {
+      this.state.tables[tableName] = [];
+    }
+    this.state.tables[tableName].push(data);
+  }
+
+  // Clear table data
+  clearTable(tableName: string) {
+    this.state.tables[tableName] = [];
+    console.log(`🧹 Cleared table: ${tableName}`);
+  }
+
+  // Clear all tables
+  clearAllTables() {
+    Object.keys(this.state.tables).forEach(tableName => {
+      this.state.tables[tableName] = [];
+    });
+    console.log('🧹 Cleared all tables');
+  }
+
+  // Cleanup test database
+  async cleanup() {
+    console.log('🧹 Cleaning up test database...');
+
+    // Clear all tables
+    this.clearAllTables();
+
+    // Clear transactions
+    this.state.transactions = [];
+
+    // Clear snapshots
+    this.state.snapshots = {};
+
+    // Reset counter
+    TestDataFactory.resetIdCounter();
+
+    console.log('✅ Test database cleanup completed');
+  }
+
+  // Verify database state
+  verifyState() {
+    const report = {
+      totalTables: Object.keys(this.state.tables).length,
+      totalRecords: Object.values(this.state.tables).reduce((sum, table) => sum + table.length, 0),
+      tableStats: Object.entries(this.state.tables).map(([name, data]) => ({
+        table: name,
+        count: data.length
+      })),
+      snapshots: Object.keys(this.state.snapshots).length,
+      isIsolated: this.isIsolated
+    };
+
+    console.log('📊 Database state report:', report);
+    return report;
+  }
+
+  // Transaction simulation
+  async runTransaction(operations: () => Promise<void>) {
+    const transactionId = TestDataFactory.getNextId('txn');
+    const beforeSnapshot = `txn_before_${transactionId}`;
+
+    try {
+      console.log(`🔄 Starting transaction: ${transactionId}`);
+      this.createSnapshot(beforeSnapshot);
+
+      await operations();
+
+      console.log(`✅ Transaction completed: ${transactionId}`);
+      return { success: true, transactionId };
+    } catch (error) {
+      console.error(`❌ Transaction failed: ${transactionId}`, error);
+      this.restoreSnapshot(beforeSnapshot);
+      return { success: false, error, transactionId };
+    }
+  }
+
+  // Performance testing helpers
+  async performanceBenchmark(operation: () => Promise<void>, iterations: number = 100) {
+    const startTime = performance.now();
+
+    for (let i = 0; i < iterations; i++) {
+      await operation();
+    }
+
+    const endTime = performance.now();
+    const totalTime = endTime - startTime;
+    const avgTime = totalTime / iterations;
+
+    const results = {
+      iterations,
+      totalTime: Math.round(totalTime * 100) / 100,
+      averageTime: Math.round(avgTime * 100) / 100,
+      operationsPerSecond: Math.round((iterations / totalTime) * 1000 * 100) / 100
+    };
+
+    console.log('⚡ Performance benchmark results:', results);
+    return results;
   }
 }
 
-// Convenience functions
-export const testDb = TestDatabaseManager.getInstance();
+// Singleton instance for global use
+export const testDb = new TestDatabase();
 
-export async function setupTestDatabase(config: TestConfig): Promise<void> {
-  return testDb.setupTestDatabase(config);
+// Test environment setup helper
+export class TestEnvironment {
+  private static instance: TestEnvironment;
+  private isSetup: boolean = false;
+
+  static getInstance() {
+    if (!TestEnvironment.instance) {
+      TestEnvironment.instance = new TestEnvironment();
+    }
+    return TestEnvironment.instance;
+  }
+
+  async setupTestEnvironment(options: {
+    mockDatabase?: boolean;
+    mockPayments?: boolean;
+    mockNotifications?: boolean;
+    mockReporting?: boolean;
+    loadTestData?: boolean;
+  } = {}) {
+    if (this.isSetup) {
+      console.log('✅ Test environment already setup');
+      return;
+    }
+
+    console.log('🔧 Setting up test environment...');
+
+    if (options.mockDatabase !== false) {
+      await testDb.initializeTestData();
+      await testDb.startIsolation();
+    }
+
+    if (options.loadTestData !== false) {
+      // Load additional test data if needed
+      const scenario = TestDataFactory.createBusinessScenario();
+      console.log('📦 Loaded business scenario with:', {
+        products: scenario.products.length,
+        customers: scenario.customers.length,
+        sales: scenario.sales.length,
+        totalValue: scenario.totalValue
+      });
+    }
+
+    this.isSetup = true;
+    console.log('✅ Test environment setup completed');
+  }
+
+  async cleanupTestData() {
+    if (!this.isSetup) {
+      return;
+    }
+
+    console.log('🧹 Cleaning up test environment...');
+    await testDb.cleanup();
+    await testDb.endIsolation();
+    this.isSetup = false;
+    console.log('✅ Test environment cleanup completed');
+  }
+
+  getTestDatabase() {
+    return testDb;
+  }
 }
 
-export async function cleanupTestDatabase(): Promise<void> {
-  return testDb.cleanupTestDatabase();
-}
-
-export async function beginTransaction(): Promise<string> {
-  return testDb.beginTransaction();
-}
-
-export async function commitTransaction(transactionId: string): Promise<void> {
-  return testDb.commitTransaction(transactionId);
-}
-
-export async function rollbackTransaction(transactionId: string): Promise<void> {
-  return testDb.rollbackTransaction(transactionId);
-}
-
-export async function validateDataIntegrity(): Promise<{ isValid: boolean; errors: string[] }> {
-  return testDb.validateDataIntegrity();
-}
-
-export async function createTestSnapshot(): Promise<string> {
-  return testDb.createTestSnapshot();
-}
-
-export async function restoreTestSnapshot(snapshotId: string): Promise<void> {
-  return testDb.restoreTestSnapshot(snapshotId);
-}
+// Export singleton
+export const testEnv = TestEnvironment.getInstance();
