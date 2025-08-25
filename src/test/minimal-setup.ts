@@ -1,9 +1,52 @@
-import { expect, afterEach, vi } from 'vitest';
+import { expect, afterEach, beforeEach, vi } from 'vitest';
 import { cleanup } from '@testing-library/react';
 import * as matchers from '@testing-library/jest-dom/matchers';
+import { mockSupabaseModule } from './mocks/supabaseMock';
+import { mockStores, resetAllStoreMocks } from './mocks/storeMocks';
 
 // Extend Vitest's expect with jest-dom matchers
 expect.extend(matchers);
+
+// Mock Supabase
+vi.mock('../utils/supabase', () => ({
+  supabase: mockSupabaseModule.supabase,
+  createClient: mockSupabaseModule.createClient
+}));
+
+// Mock Zustand stores
+vi.mock('../store/businessStore', () => ({
+  useBusinessStore: vi.fn(() => mockStores.business),
+  default: vi.fn(() => mockStores.business)
+}));
+
+vi.mock('../store/notificationStore', () => ({
+  useNotificationStore: vi.fn(() => mockStores.notification),
+  default: vi.fn(() => mockStores.notification)
+}));
+
+vi.mock('../store/authStore', () => ({
+  useAuthStore: vi.fn(() => mockStores.auth),
+  default: vi.fn(() => mockStores.auth)
+}));
+
+vi.mock('../store/cartStore', () => ({
+  useCartStore: vi.fn(() => mockStores.cart),
+  default: vi.fn(() => mockStores.cart)
+}));
+
+vi.mock('../store/settingsStore', () => ({
+  useSettingsStore: vi.fn(() => mockStores.settings),
+  default: vi.fn(() => mockStores.settings)
+}));
+
+// Setup before each test
+beforeEach(() => {
+  // Reset all store mocks
+  resetAllStoreMocks();
+  
+  // Reset Supabase mocks
+  vi.clearAllMocks();
+});
 
 // Cleanup after each test case
 afterEach(() => {
