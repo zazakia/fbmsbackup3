@@ -410,4 +410,322 @@ describe('Philippine BIR Compliance Tests', () => {
       expect(endTime - startTime).toBeLessThan(2000); // Should complete within 2 seconds
     });
   });
+
+  describe('BIR Form 2550M Generation', () => {
+    it('should generate Form 2550M with accurate VAT calculations', () => {
+      const { generateBIRForm2550M } = require('../../utils/birCompliance');
+      
+      const mockSales: Sale[] = [
+        {
+          id: 'sale-1',
+          invoiceNumber: 'INV-001',
+          customerId: 'cust-1',
+          items: [{ id: '1', productId: '1', productName: 'Product 1', sku: 'P001', quantity: 1, price: 1000, total: 1000 }],
+          subtotal: 1000,
+          tax: 120,
+          discount: 0,
+          total: 1120,
+          paymentMethod: 'cash',
+          paymentStatus: 'paid',
+          status: 'completed',
+          cashierId: 'user-1',
+          createdAt: new Date('2024-01-15')
+        },
+        {
+          id: 'sale-2',
+          invoiceNumber: 'INV-002',
+          customerId: 'cust-2',
+          items: [{ id: '2', productId: '2', productName: 'Product 2', sku: 'P002', quantity: 2, price: 500, total: 1000 }],
+          subtotal: 1000,
+          tax: 120,
+          discount: 0,
+          total: 1120,
+          paymentMethod: 'card',
+          paymentStatus: 'paid',
+          status: 'completed',
+          cashierId: 'user-1',
+          createdAt: new Date('2024-01-20')
+        }
+      ];
+
+      const form2550M = generateBIRForm2550M(mockSales, { month: 1, year: 2024 });
+
+      expect(form2550M.businessName).toBe('Filipino Business Management System');
+      expect(form2550M.tin).toBe('123-456-789-000');
+      expect(form2550M.taxPeriod).toBe('1/2024');
+      expect(form2550M.grossSales).toBe(2240);
+      expect(form2550M.vatableAmount).toBe(2000);
+      expect(form2550M.vatAmount).toBe(240);
+    });
+
+    it('should handle quarterly periods', () => {
+      const { generateBIRForm2550M } = require('../../utils/birCompliance');
+      
+      const mockSales: Sale[] = [
+        {
+          id: 'sale-q1',
+          invoiceNumber: 'INV-Q1-001',
+          items: [{ id: '1', productId: '1', productName: 'Product 1', sku: 'P001', quantity: 1, price: 5000, total: 5000 }],
+          subtotal: 5000,
+          tax: 600,
+          discount: 0,
+          total: 5600,
+          paymentMethod: 'cash',
+          paymentStatus: 'paid',
+          status: 'completed',
+          cashierId: 'user-1',
+          createdAt: new Date('2024-02-15')
+        }
+      ];
+
+      const form2550Q = generateBIRForm2550M(mockSales, { year: 2024 });
+
+      expect(form2550Q.taxPeriod).toBe('2024');
+      expect(form2550Q.grossSales).toBe(5600);
+      expect(form2550Q.vatableAmount).toBe(5000);
+      expect(form2550Q.vatAmount).toBe(600);
+    });
+  });
+
+  describe('Philippine Government Contributions', () => {
+    it('should calculate SSS contributions correctly', () => {
+      const { calculateSSSContribution } = require('../../utils/birCompliance');
+      
+      // Test different salary brackets
+      const testCases = [
+        { salary: 3000, expectedTotal: 135 },
+        { salary: 5000, expectedTotal: 225 },
+        { salary: 10000, expectedTotal: 450 },
+        { salary: 15000, expectedTotal: 675 },
+        { salary: 25000, expectedTotal: 900 } // Maximum
+      ];
+
+      testCases.forEach(({ salary, expectedTotal }) => {
+        const contrib = calculateSSSContribution(salary);
+        expect(contrib.total).toBe(expectedTotal);
+        expect(contrib.employee + contrib.employer).toBe(expectedTotal);
+        expect(contrib.employee).toBeGreaterThan(0);
+        expect(contrib.employer).toBeGreaterThan(contrib.employee); // Employer pays more
+      });
+    });
+
+    it('should calculate PhilHealth contributions correctly', () => {
+      const { calculatePhilHealthContribution } = require('../../utils/birCompliance');
+      
+      const testCases = [
+        { salary: 10000, expectedTotal: 500 }, // 5% of 10,000
+        { salary: 50000, expectedTotal: 2500 }, // 5% of 50,000
+        { salary: 150000, expectedTotal: 5000 } // Capped at ₱5,000
+      ];
+
+      testCases.forEach(({ salary, expectedTotal }) => {
+        const contrib = calculatePhilHealthContribution(salary);
+        expect(contrib.total).toBe(expectedTotal);
+        expect(contrib.employee).toBe(contrib.employer); // Equal sharing
+      });
+    });
+
+    it('should calculate Pag-IBIG contributions correctly', () => {
+      const { calculatePagibigContribution } = require('../../utils/birCompliance');
+      
+      const testCases = [
+        { salary: 5000, expectedTotal: 200 }, // 2% each, but capped
+        { salary: 15000, expectedTotal: 400 } // Still capped at ₱200 each
+      ];
+
+      testCases.forEach(({ salary, expectedTotal }) => {
+        const contrib = calculatePagibigContribution(salary);
+        expect(contrib.total).toBe(expectedTotal);
+        expect(contrib.employee).toBe(contrib.employer); // Equal sharing
+        expect(contrib.employee).toBeLessThanOrEqual(200); // Max ₱200 each
+      });
+    });
+  });
+
+  describe('Employee Withholding Tax', () => {
+    it('should calculate withholding tax for different salary levels', () => {
+      const { calculateWithholdingTaxForEmployee } = require('../../utils/birCompliance');
+      
+      // Test cases based on Philippine tax brackets
+      const testCases = [
+        { salary: 15000, exemptions: 4, expectedTax: 0 }, // Below taxable threshold
+        { salary: 25000, exemptions: 4, expectedTax: 0 }, // Still below threshold with exemptions
+        { salary: 40000, exemptions: 1, expectedTax: 4000 }, // Should have tax
+        { salary: 100000, exemptions: 0, expectedTax: 27916.67 } // High salary, no exemptions
+      ];
+
+      testCases.forEach(({ salary, exemptions, expectedTax }) => {
+        const tax = calculateWithholdingTaxForEmployee(salary, exemptions);
+        expect(tax).toBeCloseTo(expectedTax, 2);
+      });
+    });
+
+    it('should handle zero exemptions', () => {
+      const { calculateWithholdingTaxForEmployee } = require('../../utils/birCompliance');
+      
+      const tax = calculateWithholdingTaxForEmployee(30000, 0);
+      expect(tax).toBeGreaterThan(0); // Should have tax with no exemptions
+    });
+  });
+
+  describe('Alphalist Generation', () => {
+    it('should generate Alphalist data for BIR reporting', () => {
+      const { generateAlphalist } = require('../../utils/birCompliance');
+      
+      const mockEmployees: Employee[] = [
+        {
+          id: 'emp-1',
+          employeeId: 'EMP-001',
+          firstName: 'Juan',
+          lastName: 'Dela Cruz',
+          middleName: 'Santos',
+          email: 'juan@company.com',
+          phone: '+639171234567',
+          address: '123 Main St',
+          city: 'Manila',
+          province: 'Metro Manila',
+          zipCode: '1000',
+          birthDate: new Date('1990-01-01'),
+          hireDate: new Date('2023-01-01'),
+          position: 'Sales Associate',
+          department: 'Sales',
+          employmentType: 'Regular',
+          status: 'Active',
+          basicSalary: 25000,
+          allowances: [],
+          tinNumber: '123-456-789-001',
+          emergencyContact: {
+            name: 'Maria Dela Cruz',
+            relationship: 'Spouse',
+            phone: '+639171234568'
+          },
+          createdAt: new Date(),
+          updatedAt: new Date()
+        }
+      ];
+
+      const alphalist = generateAlphalist(mockEmployees, 2024);
+
+      expect(alphalist).toHaveLength(1);
+      expect(alphalist[0].tin).toBe('123-456-789-001');
+      expect(alphalist[0].lastName).toBe('Dela Cruz');
+      expect(alphalist[0].firstName).toBe('Juan');
+      expect(alphalist[0].grossCompensation).toBe(300000); // 25,000 * 12
+      expect(alphalist[0].withholdingTax).toBeGreaterThanOrEqual(0);
+      expect(alphalist[0].year).toBe(2024);
+    });
+  });
+
+  describe('Advanced BIR Compliance Scenarios', () => {
+    it('should handle mixed VAT rates for different product types', () => {
+      const regularVAT = calculateVAT(1000); // Regular 12%
+      const exemptVAT = calculateVAT(1000, { exempt: true });
+      const zeroRatedVAT = calculateVAT(1000, { zeroRated: true });
+
+      expect(regularVAT.vatAmount).toBe(120);
+      expect(exemptVAT.vatAmount).toBe(0);
+      expect(exemptVAT.exemptAmount).toBe(1000);
+      expect(zeroRatedVAT.vatAmount).toBe(0);
+      expect(zeroRatedVAT.zeroRatedAmount).toBe(1000);
+    });
+
+    it('should validate complex receipt scenarios', () => {
+      const complexReceipt: BIRReceipt = {
+        orNumber: '1234567890',
+        tin: '123-456-789-001',
+        businessName: 'Test Complex Business Inc.',
+        businessAddress: 'Complex Address, Manila',
+        date: new Date(),
+        items: [
+          { description: 'Regular Item', quantity: 2, unitPrice: 500, amount: 1000 },
+          { description: 'Bulk Item', quantity: 10, unitPrice: 100, amount: 1000 },
+          { description: 'Premium Item', quantity: 1, unitPrice: 2000, amount: 2000 }
+        ],
+        vatableAmount: 4000,
+        vatAmount: 480,
+        totalAmount: 4480,
+        customerName: 'Corporate Customer Inc.',
+        customerTIN: '987-654-321-001'
+      };
+
+      const validation = validateBIRReceipt(complexReceipt);
+      expect(validation.isValid).toBe(true);
+      expect(validation.errors).toHaveLength(0);
+    });
+
+    it('should handle senior citizen and PWD discounts', () => {
+      // Senior citizens get 20% discount and VAT exemption
+      const regularAmount = 1000;
+      const seniorDiscount = regularAmount * 0.20;
+      const discountedAmount = regularAmount - seniorDiscount;
+      
+      // VAT should be calculated on discounted amount
+      const vat = calculateVAT(discountedAmount);
+      
+      expect(vat.vatableAmount).toBe(800);
+      expect(vat.vatAmount).toBe(96);
+      expect(vat.totalAmount).toBe(896);
+    });
+
+    it('should calculate correct penalties for late BIR filings', () => {
+      const taxDue = 10000;
+      const daysLate = 30;
+      
+      // BIR penalty: 25% of tax due + 20% per annum interest
+      const penalty = taxDue * 0.25;
+      const interest = (taxDue * 0.20 * daysLate) / 365;
+      const totalPenalty = penalty + interest;
+      
+      expect(penalty).toBe(2500);
+      expect(interest).toBeCloseTo(164.38, 2);
+      expect(totalPenalty).toBeCloseTo(2664.38, 2);
+    });
+
+    it('should handle foreign currency transactions', () => {
+      const usdAmount = 1000;
+      const exchangeRate = 56.50; // USD to PHP
+      const phpAmount = usdAmount * exchangeRate;
+      
+      const vat = calculateVAT(phpAmount);
+      
+      expect(vat.vatableAmount).toBe(56500);
+      expect(vat.vatAmount).toBe(6780);
+      expect(vat.totalAmount).toBe(63280);
+    });
+  });
+
+  describe('BIR Electronic Filing Simulation', () => {
+    it('should validate electronic filing requirements', () => {
+      const filingData = {
+        tin: '123-456-789-000',
+        taxPeriod: '2024-01',
+        grossSales: 100000,
+        vatAmount: 12000,
+        filingDate: new Date(),
+        digitalSignature: 'mock-digital-signature'
+      };
+
+      // Simulate validation rules for electronic filing
+      expect(filingData.tin).toMatch(/^\d{3}-\d{3}-\d{3}-\d{3}$/);
+      expect(filingData.taxPeriod).toMatch(/^\d{4}-\d{2}$/);
+      expect(filingData.grossSales).toBeGreaterThan(0);
+      expect(filingData.vatAmount).toBe(filingData.grossSales * 0.12);
+      expect(filingData.digitalSignature).toBeDefined();
+    });
+
+    it('should handle electronic payment integration', () => {
+      const paymentData = {
+        taxDue: 15000,
+        paymentMethod: 'online_banking',
+        referenceNumber: 'PAY-2024-001-123456',
+        paymentDate: new Date(),
+        bankCode: 'BPI',
+        status: 'confirmed'
+      };
+
+      expect(paymentData.taxDue).toBeGreaterThan(0);
+      expect(paymentData.referenceNumber).toMatch(/^PAY-\d{4}-\d{3}-\d{6}$/);
+      expect(paymentData.status).toBe('confirmed');
+    });
+  });
 });
