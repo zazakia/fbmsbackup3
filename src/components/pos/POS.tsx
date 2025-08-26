@@ -470,7 +470,7 @@ const POS: React.FC<POSProps> = ({ onBack }) => {
       </div>
 
       {/* Review Section */}
-      <div className="fixed bottom-44 left-1/2 transform -translate-x-1/2 w-full max-w-sm px-2 z-10">
+      <div className="fixed bottom-44 left-0 right-0 mx-auto w-full max-w-sm px-2 z-10">
         <div
           className="bg-gradient-to-r from-pink-500 to-purple-600 rounded-lg p-4 text-white shadow-lg cursor-pointer hover:opacity-90"
           onClick={() => setPosScreen('receipt')}
@@ -492,7 +492,7 @@ const POS: React.FC<POSProps> = ({ onBack }) => {
       </div>
 
       {/* Bottom Section */}
-      <div className="fixed bottom-0 left-1/2 transform -translate-x-1/2 w-full max-w-sm bg-pink-500 p-4 z-20">
+      <div className="fixed bottom-0 left-0 right-0 mx-auto w-full max-w-sm bg-pink-500 p-4 z-20">
         {/* Search Bar */}
         <div className="relative mb-4">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
