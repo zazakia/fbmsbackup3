@@ -20,13 +20,17 @@ import SimpleRecentPurchaseOrders from './dashboard/SimpleRecentPurchaseOrders';
 import SimplePurchasesAlerts from './dashboard/SimplePurchasesAlerts';
 import DatabaseConnectionTest from './DatabaseConnectionTest';
 import ReceivingDashboard from './dashboard/ReceivingDashboard';
+import MainMenuButtons from './dashboard/MainMenuButtons';
+import TinderaStyleHeader from './dashboard/TinderaStyleHeader';
 import { useNotificationStore, createSystemNotification } from '../store/notificationStore';
 import { inventoryMonitor } from '../services/inventoryMonitor';
 import { useSimplePurchasesData } from '../hooks/useSimplePurchasesData';
+import { useNavigation } from '../contexts/NavigationContext';
 
 const Dashboard: React.FC = () => {
   const { addNotification } = useNotificationStore();
   const { data: simplePurchasesData, loading: simpleLoading, error: simpleError } = useSimplePurchasesData();
+  const { onModuleChange } = useNavigation();
 
   // Debug purchases data (can be removed in production)
   useEffect(() => {
@@ -58,7 +62,7 @@ const Dashboard: React.FC = () => {
       change: '+12.5%',
       trend: 'up' as const,
       icon: DollarSign,
-      color: 'green'
+      color: 'green' as const
     },
     {
       title: 'Total Sales',
@@ -66,7 +70,7 @@ const Dashboard: React.FC = () => {
       change: '+8.2%',
       trend: 'up' as const,
       icon: ShoppingCart,
-      color: 'blue'
+      color: 'blue' as const
     },
     {
       title: 'Inventory Value',
@@ -74,7 +78,7 @@ const Dashboard: React.FC = () => {
       change: '-2.1%',
       trend: 'down' as const,
       icon: Package,
-      color: 'purple'
+      color: 'purple' as const
     },
     {
       title: 'Active Customers',
@@ -82,7 +86,7 @@ const Dashboard: React.FC = () => {
       change: '+15.3%',
       trend: 'up' as const,
       icon: Users,
-      color: 'indigo'
+      color: 'indigo' as const
     }
   ];
 
@@ -130,6 +134,16 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Tindera Style Header - Mobile-first design inspired by TinderaWebPedlerV0 */}
+      <TinderaStyleHeader 
+        userName="Business Owner"
+        balance="₱156,789.00"
+        businessName="FBMS Business"
+      />
+
+      {/* Main Menu Buttons - Inspired by TinderaWebPedlerV0 */}
+      <MainMenuButtons onNavigate={onModuleChange} />
 
       {/* Database Connection Test */}
       <DatabaseConnectionTest />
