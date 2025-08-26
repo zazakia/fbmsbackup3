@@ -15,18 +15,6 @@
       "staging": false
     }
   },
-  "env": {
-    "VITE_PUBLIC_SUPABASE_URL": "@vite-public-supabase-url",
-    "VITE_PUBLIC_SUPABASE_ANON_KEY": "@vite-public-supabase-anon-key",
-    "VITE_APP_ENV": "production"
-  },
-  "build": {
-    "env": {
-      "VITE_PUBLIC_SUPABASE_URL": "@vite-public-supabase-url",
-      "VITE_PUBLIC_SUPABASE_ANON_KEY": "@vite-public-supabase-anon-key",
-      "VITE_APP_ENV": "production"
-    }
-  },
   "rewrites": [
     {
       "source": "/(.*)",
