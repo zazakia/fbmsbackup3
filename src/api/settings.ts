@@ -152,10 +152,6 @@ export class SettingsAPI {
         inventory: {
           ...defaultUserSettings.inventory,
           ...transformedData.inventory
-        },
-        menuVisibility: {
-          ...defaultUserSettings.menuVisibility,
-          ...transformedData.menuVisibility
         }
       };
 

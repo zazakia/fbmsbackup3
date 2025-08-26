@@ -485,7 +485,6 @@ export interface Database {
           security?: any; // JSONB
           reports?: any; // JSONB
           inventory?: any; // JSONB
-          menuVisibility?: any; // JSONB
           created_at?: string;
           updated_at?: string;
         };

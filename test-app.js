@@ -15,7 +15,7 @@ function testDevServer() {
   return new Promise((resolve) => {
     console.log('📡 Testing dev server connection...');
     
-    const req = http.get('http://localhost:3000', (res) => {
+    const req = https.get('http://localhost:3000', (res) => {
       console.log('✅ Dev server is responding');
       console.log(`   Status: ${res.statusCode}`);
       console.log(`   Headers: ${res.headers['content-type']}`);
