@@ -28,6 +28,18 @@ const transformSaleData = (saleData: any) => {
 
 // CREATE sale
 export async function createSale(sale: Omit<Sale, 'id' | 'createdAt'>) {
+  // Ensure cashier_id is never null
+  let cashierId = sale.cashierId;
+  if (!cashierId) {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      cashierId = user?.id || 'system-default';
+    } catch (error) {
+      console.warn('Failed to get current user for cashier_id, using default:', error);
+      cashierId = 'system-default';
+    }
+  }
+
   const { data, error } = await supabase
     .from('sales')
     .insert([{
@@ -42,7 +54,7 @@ export async function createSale(sale: Omit<Sale, 'id' | 'createdAt'>) {
       payment_method: sale.paymentMethod,
       payment_status: sale.paymentStatus,
       status: sale.status,
-      cashier_id: sale.cashierId,
+      cashier_id: cashierId, // Guaranteed non-null
       notes: sale.notes
     }])
     .select(`

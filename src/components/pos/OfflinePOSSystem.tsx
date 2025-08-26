@@ -12,6 +12,7 @@ import { useSupabaseAuthStore } from '../../store/supabaseAuthStore';
 import { useToastStore } from '../../store/toastStore';
 import { PaymentMethod, Customer, Sale } from '../../types/business';
 import { formatCurrency } from '../../utils/formatters';
+import { validateSaleData, sanitizeSaleData } from '../../utils/salesHelpers';
 import ProductGrid from './ProductGrid';
 import Cart from './Cart';
 import CustomerSelector from './CustomerSelector';
@@ -163,8 +164,17 @@ const OnlinePOSSystem: React.FC = () => {
         createdAt: new Date()
       };
 
+      // Validate the sale data before submission
+      const validation = validateSaleData(saleData);
+      if (!validation.isValid) {
+        throw new Error(`Sale validation failed: ${validation.errors.join(', ')}`);
+      }
+
+      // Sanitize the data to ensure all required fields are present
+      const sanitizedData = await sanitizeSaleData(saleData);
+      
       // Process sale online only
-      await createSale(saleData);
+      await createSale(sanitizedData);
       
       addToast({
         type: 'success',
@@ -396,4 +406,4 @@ const OnlinePOSSystem: React.FC = () => {
   );
 };
 
-export default OfflinePOSSystem;
+export default OnlinePOSSystem;

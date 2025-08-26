@@ -626,6 +626,10 @@ export const useBusinessStore = create<BusinessStore>()(
           // 2) Persist sale if backend exists
           if ((supabase as any)) {
             try {
+              // Get current user for cashier_id
+              const { data: { user } } = await supabase.auth.getUser();
+              const cashierId = saleData.cashierId || user?.id || 'system-default';
+              
               await supabase.from('sales').insert({
                 invoice_number: saleData.invoiceNumber || saleData.receiptNumber || `INV-${Date.now()}`,
                 customer_id: saleData.customerId || null,
@@ -638,7 +642,7 @@ export const useBusinessStore = create<BusinessStore>()(
                 payment_method: saleData.paymentMethod,
                 payment_status: saleData.paymentStatus,
                 status: saleData.status,
-                cashier_id: saleData.cashierId,
+                cashier_id: cashierId, // Ensure cashier_id is never null
                 notes: saleData.notes || null
               });
             } catch (dbErr) {
@@ -651,8 +655,28 @@ export const useBusinessStore = create<BusinessStore>()(
           for (const line of items) {
             const productId = line.productId || line.product?.id;
             const qty = Number(line.quantity) || 0;
-            if (!productId || qty <= 0) {
-              console.warn('[Store][createSale] skip stock move - invalid line', { productId, qty });
+            
+            // Enhanced validation with detailed logging
+            if (!productId) {
+              console.warn('[Store][createSale] skip stock move - missing productId', { 
+                line: {
+                  id: line.id,
+                  productId: line.productId,
+                  productName: line.productName || line.product?.name,
+                  quantity: line.quantity
+                }
+              });
+              continue;
+            }
+            
+            if (qty <= 0 || !Number.isFinite(qty)) {
+              console.warn('[Store][createSale] skip stock move - invalid quantity', { 
+                productId, 
+                qty, 
+                originalQty: line.quantity,
+                qtyType: typeof line.quantity,
+                productName: line.productName || line.product?.name
+              });
               continue;
             }
             try {

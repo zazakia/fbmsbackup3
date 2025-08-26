@@ -10,8 +10,10 @@ import {
   ChevronDown,
 } from 'lucide-react';
 import { useBusinessStore } from '../../store/businessStore';
+import { useSupabaseAuthStore } from '../../store/supabaseAuthStore';
 import { Product, Customer, CartItem } from '../../types/business';
 import { formatCurrency } from '../../utils/formatters';
+import { validateSaleData, sanitizeSaleData, getCurrentCashierId } from '../../utils/salesHelpers';
 
 interface POSProps {
   onBack: () => void;
@@ -114,18 +116,39 @@ const POS: React.FC<POSProps> = ({ onBack }) => {
     try {
       const cartItems = getCartItems();
       
-      // Create transaction using fbmsbackup3's store
+      // Create transaction using fbmsbackup3's store with proper validation
       const transactionData = {
-        items: cartItems,
+        items: cartItems.map(item => ({
+          id: `item-${Date.now()}-${Math.random()}`,
+          productId: item.product_id,
+          productName: item.product_name,
+          quantity: item.quantity,
+          price: item.unit_price,
+          total: item.subtotal
+        })),
         subtotal: totalAmount,
         tax: 0,
         discount: 0,
         total: totalAmount,
         paymentMethod,
+        paymentStatus: 'paid',
+        status: 'completed',
+        cashierId: await getCurrentCashierId(), // Ensure cashier ID is set
+        invoiceNumber: `INV-${Date.now()}`,
         notes: showCustomerDetails ? `Customer: ${customerDetails.name}` : undefined,
       };
 
-      await createSale(transactionData);
+      // Validate the sale data before submission
+      const validation = validateSaleData(transactionData);
+      if (!validation.isValid) {
+        alert(`Transaction validation failed:\n${validation.errors.join('\n')}`);
+        return;
+      }
+
+      // Sanitize the data
+      const sanitizedData = await sanitizeSaleData(transactionData);
+      
+      await createSale(sanitizedData);
 
       // Clear cart after successful transaction
       setCart({});

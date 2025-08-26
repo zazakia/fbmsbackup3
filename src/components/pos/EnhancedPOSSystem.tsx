@@ -29,6 +29,7 @@ import { useNotificationStore, createSystemNotification } from '../../store/noti
 import { Product, Customer, PaymentMethod, CartItem } from '../../types/business';
 import { formatCurrency } from '../../utils/formatters';
 import { StockValidationError } from '../../utils/stockValidation';
+import { validateSaleData, sanitizeSaleData } from '../../utils/salesHelpers';
 import EnhancedPaymentModal from './EnhancedPaymentModal';
 import CustomerSelector from './CustomerSelector';
 import StockValidationAlert from './StockValidationAlert';
@@ -638,7 +639,16 @@ const EnhancedPOSSystem: React.FC = () => {
 
       // Create sale record (this will automatically update stock)
       try {
-        await createSale(saleData);
+        // Validate the sale data before submission
+        const validation = validateSaleData(saleData);
+        if (!validation.isValid) {
+          throw new Error(`Sale validation failed: ${validation.errors.join(', ')}`);
+        }
+
+        // Sanitize the data to ensure all required fields are present
+        const sanitizedData = await sanitizeSaleData(saleData);
+        
+        await createSale(sanitizedData);
       } catch (error) {
         console.error('Error creating sale:', error);
         throw new Error('Failed to create sale record');
