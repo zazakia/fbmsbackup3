@@ -85,6 +85,7 @@ import {
   LazyProductHistory
 } from './utils/lazyComponents';
 import { LazyProductCategories } from './utils/lazyComponents';
+import POS from './components/pos/POS';
 
 const App: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -210,6 +211,7 @@ const App: React.FC = () => {
     const menuIdToVisibilityKey: Record<string, keyof typeof menuVisibility> = {
       'dashboard': 'dashboard',
       'sales': 'sales',
+      'tindera-pos': 'sales',
       'sales-history': 'sales',
       'inventory': 'inventory',
       'product-history': 'inventory',
@@ -238,6 +240,7 @@ const App: React.FC = () => {
     const allMenuItems = [
       { id: 'dashboard', label: 'Dashboard', icon: Home, module: 'dashboard' },
       { id: 'sales', label: 'Sales & POS', icon: ShoppingCart, module: 'pos' },
+      { id: 'tindera-pos', label: 'Tindera POS', icon: ShoppingCart, module: 'pos' },
       { id: 'sales-history', label: 'Sales History', icon: Receipt, module: 'pos' },
       { id: 'inventory', label: 'Inventory', icon: Package, module: 'inventory' },
       { id: 'product-categories', label: 'Product Categories', icon: Package, module: 'inventory' },
@@ -323,6 +326,13 @@ const App: React.FC = () => {
           return (
             <PermissionGuard module="pos">
               <LazyEnhancedPOSSystem />
+            </PermissionGuard>
+          );
+        case 'tindera-pos':
+          console.info('[NAV] Loading Tindera POS module');
+          return (
+            <PermissionGuard module="pos">
+              <POS onBack={() => setActiveModule('dashboard')} />
             </PermissionGuard>
           );
         case 'sales-history':
