@@ -39,7 +39,7 @@ import { useThemeStore } from './store/themeStore';
 import { useSupabaseAuthStore } from './store/supabaseAuthStore';
 import { useSettingsStore } from './store/settingsStore';
 import { canAccessModule } from './utils/permissions';
-import { setupDevAuth, testSupabaseConnection } from './utils/supabase';
+import { setupDevAuth, testSupabaseConnection, checkAndRefreshToken } from './utils/supabase';
 import { NavigationProvider } from './contexts/NavigationContext';
 import { useSecurity } from './hooks/useSecurity';
 import './utils/devCommands'; // Initialize dev commands
@@ -98,7 +98,6 @@ const App: React.FC = () => {
   const { user, logout } = useSupabaseAuthStore();
   const { menuVisibility } = useSettingsStore();
   const { securityStatus } = useSecurity();
-  console.log('Security status:', securityStatus); // TODO: Use security status in UI
 
   // Check for OAuth callback
   const isOAuthCallback = window.location.hash.includes('access_token') || 
@@ -150,8 +149,9 @@ const App: React.FC = () => {
     window.addEventListener('errorMonitor:newError', handleNewError);
     
     // Handle auto-copy notifications
-    const handleAutoCopy = (event: CustomEvent) => {
-      const { message } = event.detail;
+    const handleAutoCopy = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      const { message } = customEvent.detail;
       addToast({
         type: 'info',
         title: 'Auto-Copy',
@@ -159,34 +159,59 @@ const App: React.FC = () => {
         duration: 5000
       });
     };
-    
+
     window.addEventListener('errorMonitor:autoCopy', handleAutoCopy);
-    
+
     // Handle token expired events
-    const handleTokenExpired = async (event: CustomEvent) => {
-      console.log('Token expired event received:', event.detail);
-      addToast({
-        type: 'warning',
-        title: 'Session Expired',
-        message: event.detail.message || 'Your session has expired. Please log in again.',
-        duration: 5000
-      });
-      // Trigger logout to clear auth state
-      await logout();
+    const handleTokenExpired = async (event: Event) => {
+      const customEvent = event as CustomEvent;
+      console.log('Token expired event received:', customEvent.detail);
+
+      // Prevent multiple logout calls
+      if (user) {
+        addToast({
+          type: 'warning',
+          title: 'Session Expired',
+          message: customEvent.detail.message || 'Your session has expired. Please log in again.',
+          duration: 8000
+        });
+
+        // Trigger logout to clear auth state
+        try {
+          await logout();
+        } catch (logoutError) {
+          console.error('Error during logout after token expiry:', logoutError);
+          // Force clear auth state even if logout fails
+          if (typeof window !== 'undefined') {
+            localStorage.clear();
+            sessionStorage.clear();
+            window.location.reload();
+          }
+        }
+      }
     };
-    
+
     window.addEventListener('auth:token_expired', handleTokenExpired);
     
     // Update error count periodically
     const interval = setInterval(updateErrorCount, 30000); // Every 30 seconds
-    
+
+    // Set up proactive token refresh every 5 minutes
+    const tokenRefreshInterval = setInterval(async () => {
+      if (user && user.isActive) {
+        console.log('🔄 Checking token expiration proactively...');
+        await checkAndRefreshToken();
+      }
+    }, 300000); // Every 5 minutes
+
     return () => {
       window.removeEventListener('errorMonitor:newError', handleNewError);
       window.removeEventListener('errorMonitor:autoCopy', handleAutoCopy);
       window.removeEventListener('auth:token_expired', handleTokenExpired);
       clearInterval(interval);
+      clearInterval(tokenRefreshInterval);
     };
-  }, [initializeTheme, isOAuthCallback, addToast]);
+  }, [initializeTheme, isOAuthCallback, addToast, logout]);
 
   // Keyboard shortcuts
   useEffect(() => {

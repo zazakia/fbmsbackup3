@@ -35,7 +35,11 @@ export const mockSupabase = {
     range: vi.fn().mockReturnThis(),
     single: vi.fn(() => Promise.resolve({ data: null, error: null })),
     maybeSingle: vi.fn(() => Promise.resolve({ data: null, error: null })),
-    then: vi.fn((callback: any) => Promise.resolve({ data: [], error: null }).then(callback))
+    then: vi.fn((callback: any) => Promise.resolve({ data: [], error: null }).then(callback)),
+    // Add count method for performance optimizations
+    count: vi.fn(() => Promise.resolve({ count: 5, error: null })),
+    // Add head method for count queries
+    head: vi.fn().mockReturnThis()
   })),
 
   // RPC methods
@@ -130,7 +134,7 @@ export const createMockSupabaseClient = () => {
   // Override from method to return table-specific mock data
   mockClient.from = vi.fn((table: string) => {
     const tableData = mockData[table as keyof typeof mockData] || [];
-    
+
     return {
       select: vi.fn().mockReturnThis(),
       insert: vi.fn((data: any) => ({
@@ -154,17 +158,21 @@ export const createMockSupabaseClient = () => {
       order: vi.fn().mockReturnThis(),
       limit: vi.fn().mockReturnThis(),
       range: vi.fn().mockReturnThis(),
-      single: vi.fn(() => Promise.resolve({ 
-        data: tableData.length > 0 ? tableData[0] : null, 
-        error: null 
+      single: vi.fn(() => Promise.resolve({
+        data: tableData.length > 0 ? tableData[0] : null,
+        error: null
       })),
-      maybeSingle: vi.fn(() => Promise.resolve({ 
-        data: tableData.length > 0 ? tableData[0] : null, 
-        error: null 
+      maybeSingle: vi.fn(() => Promise.resolve({
+        data: tableData.length > 0 ? tableData[0] : null,
+        error: null
       })),
-      then: vi.fn((callback: any) => 
+      then: vi.fn((callback: any) =>
         Promise.resolve({ data: tableData, error: null }).then(callback)
-      )
+      ),
+      // Add count method for performance optimizations
+      count: vi.fn(() => Promise.resolve({ count: tableData.length, error: null })),
+      // Add head method for count queries
+      head: vi.fn().mockReturnThis()
     };
   });
   

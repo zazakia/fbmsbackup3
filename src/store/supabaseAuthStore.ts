@@ -309,40 +309,66 @@ export const useSupabaseAuthStore = create<SupabaseAuthStore>()(
           console.log('Auth check already in progress, skipping...');
           return;
         }
-        
+
         set({ isLoading: true });
-        
+
         try {
           const { data: { session }, error } = await supabaseAnon.auth.getSession();
-          
+
           if (error) {
+            // Check if it's a JWT expired error
+            if (error.message.includes('JWT expired') || error.message.includes('jwt expired')) {
+              console.warn('🔄 JWT expired during auth check, clearing session...');
+              // Clear invalid tokens and trigger logout
+              await get().logout();
+              return;
+            }
             throw new Error(error.message);
           }
 
           if (session?.user) {
+            // Check if session is expired
+            const now = Math.floor(Date.now() / 1000);
+            if (session.expires_at && session.expires_at < now) {
+              console.warn('🔄 Session expired, clearing session...');
+              await get().logout();
+              return;
+            }
+
             // Get user profile - try by ID first, then by email
             let userProfile, profileError;
-            
-            // First try by ID
-            const idResult = await supabase
-              .from('users')
-              .select('*')
-              .eq('id', session.user.id)
-              .maybeSingle();
-            
-            if (idResult.data) {
-              userProfile = idResult.data;
-              profileError = idResult.error;
-            } else {
-              // Fallback: try by email
-              const emailResult = await supabase
+
+            try {
+              // First try by ID
+              const idResult = await supabase
                 .from('users')
                 .select('*')
-                .eq('email', session.user.email)
+                .eq('id', session.user.id)
                 .maybeSingle();
-              
-              userProfile = emailResult.data;
-              profileError = emailResult.error;
+
+              if (idResult.data) {
+                userProfile = idResult.data;
+                profileError = idResult.error;
+              } else {
+                // Fallback: try by email
+                const emailResult = await supabase
+                  .from('users')
+                  .select('*')
+                  .eq('email', session.user.email)
+                  .maybeSingle();
+
+                userProfile = emailResult.data;
+                profileError = emailResult.error;
+              }
+            } catch (profileFetchError: any) {
+              // Handle JWT expired errors during profile fetch
+              if (profileFetchError.message?.includes('JWT expired') ||
+                  profileFetchError.message?.includes('jwt expired')) {
+                console.warn('🔄 JWT expired during profile fetch, clearing session...');
+                await get().logout();
+                return;
+              }
+              profileError = profileFetchError;
             }
 
             let user: User;
@@ -363,13 +389,13 @@ export const useSupabaseAuthStore = create<SupabaseAuthStore>()(
                 `User profile not found in public.users for email ${session.user.email} or error fetching:`,
                 profileError?.message
               );
-              
+
               console.warn('User profile not found in database during auth check, creating user profile...');
-              
+
               // SECURITY: Remove automatic admin role assignment based on email
               // All new users default to lowest privilege role
               const email = session.user.email || '';
-              
+
               const newUserData = {
                 id: session.user.id,
                 email: email,
@@ -406,7 +432,7 @@ export const useSupabaseAuthStore = create<SupabaseAuthStore>()(
 
             // Check if email is verified or if user exists in our database (existing users)
             const isEmailVerified = session.user.email_confirmed_at !== null || userProfile;
-            
+
             set({
               user,
               userRole: user.role,
@@ -427,12 +453,21 @@ export const useSupabaseAuthStore = create<SupabaseAuthStore>()(
             });
           }
         } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : 'Authentication check failed';
+
+          // Handle JWT expired errors
+          if (errorMessage.includes('JWT expired') || errorMessage.includes('jwt expired')) {
+            console.warn('🔄 JWT expired during auth check, clearing session...');
+            await get().logout();
+            return;
+          }
+
           set({
             user: null,
             userRole: null,
             isAuthenticated: false,
             isLoading: false,
-            error: error instanceof Error ? error.message : 'Authentication check failed',
+            error: errorMessage,
             hasLoggedOut: false
           });
         }
@@ -688,37 +723,44 @@ export const useSupabaseAuthStore = create<SupabaseAuthStore>()(
   )
 );
 
-// Set up auth state listener with enhanced logout handling
+// Set up auth state listener with enhanced logout handling and debouncing
 let isProcessingAuthChange = false;
 let authChangeTimeout: NodeJS.Timeout | null = null;
+let lastProcessedEvent: string | null = null;
+let eventQueue: Array<{ event: string; session: any; timestamp: number }> = [];
 
-supabaseAnon.auth.onAuthStateChange(async (event, session) => {
-  // Prevent multiple simultaneous auth state changes
-  if (isProcessingAuthChange) {
-    console.log('⏳ Auth state change already in progress, skipping...', event);
+const processQueuedEvents = async () => {
+  if (eventQueue.length === 0 || isProcessingAuthChange) return;
+
+  // Process only the most recent event to avoid duplicate processing
+  const latestEvent = eventQueue[eventQueue.length - 1];
+  eventQueue = []; // Clear queue
+
+  await processAuthEvent(latestEvent.event, latestEvent.session);
+};
+
+const processAuthEvent = async (event: string, session: any) => {
+  // Prevent duplicate processing of the same event
+  if (lastProcessedEvent === `${event}-${session?.user?.id || 'no-user'}-${Date.now()}`) {
+    console.log('⏭️ Skipping duplicate auth event:', event);
     return;
   }
-  
-  // Clear any pending auth change timeout
-  if (authChangeTimeout) {
-    clearTimeout(authChangeTimeout);
-    authChangeTimeout = null;
-  }
-  
-  isProcessingAuthChange = true;
+
+  lastProcessedEvent = `${event}-${session?.user?.id || 'no-user'}-${Date.now()}`;
+
   const store = useSupabaseAuthStore.getState();
-  
+
   console.log('🔄 Auth state change:', event, !!session);
-  
+
   try {
     if (event === 'SIGNED_OUT' || !session) {
       // Handle logout - prevent infinite loops by checking current state
       if (!store.hasLoggedOut || store.isAuthenticated) {
         console.log('🚪 Processing SIGNED_OUT event...');
-        
+
         // Clear error state first
         store.clearError();
-        
+
         // Set the logged out state
         useSupabaseAuthStore.setState({
           user: null,
@@ -729,50 +771,57 @@ supabaseAnon.auth.onAuthStateChange(async (event, session) => {
           hasLoggedOut: true,
           pendingEmailVerification: false
         });
-        
+
         // Dispatch logout event for other components to react
         if (typeof window !== 'undefined') {
           window.dispatchEvent(new CustomEvent('auth:signed-out', {
             detail: { timestamp: new Date().toISOString() }
           }));
         }
-        
+
         console.log('✅ SIGNED_OUT processed successfully');
       } else {
         console.log('🔄 Already logged out, skipping SIGNED_OUT processing');
       }
-      
+
     } else if (event === 'TOKEN_REFRESHED') {
-      // Handle successful token refresh
+      // Handle successful token refresh - debounce to avoid excessive API calls
       console.log('✅ Token refreshed successfully');
-      
-      // Only refresh if we're currently authenticated
-      if (store.isAuthenticated && !store.hasLoggedOut) {
-        try {
-          await store.checkAuth();
-        } catch (refreshError) {
-          console.warn('⚠️ Auth check failed after token refresh:', refreshError);
-        }
+
+      // Only refresh if we're currently authenticated and not in a logout state
+      if (store.isAuthenticated && !store.hasLoggedOut && !store.isLoading) {
+        // Debounce the auth check to prevent multiple simultaneous calls
+        if (authChangeTimeout) clearTimeout(authChangeTimeout);
+        authChangeTimeout = setTimeout(async () => {
+          try {
+            await store.refreshUser();
+          } catch (refreshError) {
+            console.warn('⚠️ Auth refresh failed after token refresh:', refreshError);
+          }
+        }, 500); // 500ms debounce
       }
-      
+
     } else if (event === 'SIGNED_IN') {
       console.log('🔑 Processing SIGNED_IN event...');
-      
+
       // Reset any logout state
       useSupabaseAuthStore.setState({ hasLoggedOut: false });
-      
-      // Check auth to populate user data
-      try {
-        await store.checkAuth();
-      } catch (signInError) {
-        console.error('❌ Auth check failed after sign in:', signInError);
-      }
-      
+
+      // Check auth to populate user data with debouncing
+      if (authChangeTimeout) clearTimeout(authChangeTimeout);
+      authChangeTimeout = setTimeout(async () => {
+        try {
+          await store.checkAuth();
+        } catch (signInError) {
+          console.error('❌ Auth check failed after sign in:', signInError);
+        }
+      }, 300); // 300ms debounce
+
       // Handle OAuth user profile creation for non-email providers
       if (session?.user?.app_metadata?.provider !== 'email') {
         const handleOAuthProfile = async () => {
           if (!session?.user) return;
-          
+
           try {
             // Check if user profile exists
             const { data: existingProfile } = await supabase
@@ -780,26 +829,26 @@ supabaseAnon.auth.onAuthStateChange(async (event, session) => {
               .select('id')
               .eq('id', session.user.id)
               .maybeSingle();
-            
+
             if (!existingProfile) {
               console.log('🆕 Creating OAuth user profile...');
-              
+
               // Create user profile for OAuth user - SECURITY: No automatic admin assignment
               const email = session.user.email || '';
-              
+
               const { error: profileError } = await supabase
                 .from('users')
                 .insert({
                   id: session.user.id,
                   email: email,
-                  first_name: session.user.user_metadata?.first_name || 
-                             session.user.user_metadata?.full_name?.split(' ')[0] || '',
-                  last_name: session.user.user_metadata?.last_name || 
-                            session.user.user_metadata?.full_name?.split(' ').slice(1).join(' ') || '',
+                  first_name: session.user.user_metadata?.first_name ||
+                            session.user.user_metadata?.full_name?.split(' ')[0] || '',
+                  last_name: session.user.user_metadata?.last_name ||
+                           session.user.user_metadata?.full_name?.split(' ').slice(1).join(' ') || '',
                   role: 'employee', // Default to lowest privilege role for security
                   is_active: true,
                 });
-              
+
               if (profileError) {
                 console.warn('⚠️ Failed to create OAuth user profile:', profileError.message);
               } else {
@@ -810,30 +859,33 @@ supabaseAnon.auth.onAuthStateChange(async (event, session) => {
             console.warn('⚠️ OAuth profile handling error:', oauthError);
           }
         };
-        
+
         // Handle OAuth profile creation without blocking
         handleOAuthProfile();
       }
-      
+
       console.log('✅ SIGNED_IN processed successfully');
-      
+
     } else {
       console.log('🔄 Unknown auth event:', event);
     }
-    
+
   } catch (authError) {
     console.error('🚨 Auth state change error:', authError);
-    
+
     // If there's an error, ensure we don't get stuck in loading state
     if (store.isLoading) {
       useSupabaseAuthStore.setState({ isLoading: false });
     }
-    
-  } finally {
-    // Reset processing flag with a small delay to prevent race conditions
-    authChangeTimeout = setTimeout(() => {
-      isProcessingAuthChange = false;
-      console.log('🔓 Auth state change processing unlocked');
-    }, 100);
+
   }
+};
+
+supabaseAnon.auth.onAuthStateChange(async (event, session) => {
+  // Queue the event for processing
+  eventQueue.push({ event, session, timestamp: Date.now() });
+
+  // Process events with debouncing
+  if (authChangeTimeout) clearTimeout(authChangeTimeout);
+  authChangeTimeout = setTimeout(processQueuedEvents, 100);
 });
