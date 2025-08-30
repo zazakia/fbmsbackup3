@@ -170,7 +170,7 @@ export async function getProducts(limit?: number, offset?: number) {
     console.log('🔍 [API] Fetching category names for UUIDs:', categoryIds);
     
     // Fetch category names with timeout
-    let categoryMap = new Map();
+    const categoryMap = new Map();
     if (categoryIds.length > 0) {
       try {
         // Execute category lookup directly - Supabase has built-in timeout handling

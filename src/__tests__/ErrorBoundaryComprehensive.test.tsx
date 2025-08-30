@@ -4,14 +4,10 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach, afterAll } from 'vitest';
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import React, { Suspense } from 'react';
-import { ErrorBoundary } from 'react-error-boundary';
-import { ModuleErrorBoundary } from '../components/ModuleErrorBoundary';
-import { ModuleLoadingError } from '../components/errors/ModuleLoadingError';
-import { PermissionDeniedError } from '../components/errors/PermissionDeniedError';
-import { NetworkErrorUI } from '../components/errors/NetworkErrorUI';
-import type { ModuleLoadingError as ModuleLoadingErrorType, UserRole } from '../types/moduleLoading';
+import ModuleErrorBoundary from '../components/ModuleErrorBoundary';
+import type { ModuleId } from '../types/moduleLoading';
 
 // Mock services
 const mockRetryManager = {

@@ -76,6 +76,12 @@ export const runAdminAccessTest = (userRole: UserRole) => {
 };
 
 // Add to window for console access
+declare global {
+  interface Window {
+    testAdminAccess: typeof runAdminAccessTest;
+  }
+}
+
 if (typeof window !== 'undefined') {
-  (window as any).testAdminAccess = runAdminAccessTest;
+  window.testAdminAccess = runAdminAccessTest;
 }

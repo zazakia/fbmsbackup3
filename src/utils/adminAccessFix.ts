@@ -140,8 +140,16 @@ export const forceRefreshAuth = async () => {
 };
 
 // Add to window for console access
+declare global {
+  interface Window {
+    fixAdminAccess: typeof fixAdminAccess;
+    checkAdminStatus: typeof checkAdminStatus;
+    forceRefreshAuth: typeof forceRefreshAuth;
+  }
+}
+
 if (typeof window !== 'undefined') {
-  (window as any).fixAdminAccess = fixAdminAccess;
-  (window as any).checkAdminStatus = checkAdminStatus;
-  (window as any).forceRefreshAuth = forceRefreshAuth;
+  window.fixAdminAccess = fixAdminAccess;
+  window.checkAdminStatus = checkAdminStatus;
+  window.forceRefreshAuth = forceRefreshAuth;
 }

@@ -141,7 +141,9 @@ describe('Products API Tests', () => {
       });
     });
   });
-});
+
+      it('should validate required fields', async () => {
+        const invalidProduct = createTestProduct({
           sku: '',
           price: -1
         });
