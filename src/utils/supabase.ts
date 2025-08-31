@@ -89,7 +89,7 @@ if (!isValidUrl(supabaseUrl) || !supabaseAnonKey) {
 }
 
 // Enhanced error handler for auth and HTTP errors with a global timeout
-const handleSupabaseError = async (input: RequestInfo | URL, init?: RequestInit) => {
+const handleSupabaseError = async (input: RequestInfo, init?: RequestInit) => {
   // Reduce timeout to 10s to match our API layer timeout
   const defaultTimeoutMs = 10000;
   const timeoutMs = Number(ENV.VITE_SUPABASE_FETCH_TIMEOUT_MS) > 0
@@ -159,86 +159,35 @@ const handleSupabaseError = async (input: RequestInfo | URL, init?: RequestInit)
       if (body && body.error) {
         const errorMessage = body.error.message || body.error;
         
-        // Handle refresh token errors and JWT expired errors specifically
-        if (errorMessage.includes('refresh_token_not_found') ||
+        // Handle refresh token errors specifically
+        if (errorMessage.includes('refresh_token_not_found') || 
             errorMessage.includes('Invalid Refresh Token') ||
-            errorMessage.includes('Refresh Token Not Found') ||
-            errorMessage.includes('JWT expired') ||
-            errorMessage.includes('jwt expired') ||
-            errorMessage.includes('token is expired') ||
-            res.status === 401) {
-          console.warn('🔄 JWT/Token expired error detected, attempting automatic refresh...');
-
-          // First, try to refresh the session automatically
-          try {
-            const { data: { session }, error: refreshError } = await supabase.auth.getSession();
-
-            if (refreshError || !session) {
-              console.warn('🔄 Automatic refresh failed, clearing invalid session...');
-
-              // Clear invalid tokens from storage
-              const authKeys = Object.keys(localStorage).filter(key =>
-                key.includes('supabase.auth') ||
-                key.startsWith('sb-') ||
-                key.includes('refresh_token') ||
-                key.includes('access_token') ||
-                key.includes('fbms-auth-token')
-              );
-
-              authKeys.forEach(key => {
-                localStorage.removeItem(key);
-                console.log('🗑️ Removed invalid token:', key);
-              });
-
-              // Clear session storage as well
-              sessionStorage.clear();
-
-              // Force a clean auth state without redirect to prevent loops
-              if (typeof window !== 'undefined' && window.location) {
-                console.log('🔄 Session cleared due to expired token, auth state will be updated...');
-                // Dispatch custom event instead of redirecting
-                window.dispatchEvent(new CustomEvent('auth:token_expired', {
-                  detail: {
-                    message: 'Your session has expired. Please log in again.',
-                    reason: 'jwt_expired'
-                  }
-                }));
-              }
-            } else {
-              console.log('✅ Token refreshed successfully');
-              // Retry the original request with the new token
-              return res;
-            }
-          } catch (refreshAttemptError) {
-            console.error('❌ Token refresh attempt failed:', refreshAttemptError);
-
-            // Clear invalid tokens from storage
-            const authKeys = Object.keys(localStorage).filter(key =>
-              key.includes('supabase.auth') ||
-              key.startsWith('sb-') ||
-              key.includes('refresh_token') ||
-              key.includes('access_token') ||
-              key.includes('fbms-auth-token')
-            );
-
-            authKeys.forEach(key => {
-              localStorage.removeItem(key);
-              console.log('🗑️ Removed invalid token:', key);
-            });
-
-            // Clear session storage as well
-            sessionStorage.clear();
-
-            // Force a clean auth state
-            if (typeof window !== 'undefined' && window.location) {
-              console.log('🔄 Session cleared due to refresh failure, auth state will be updated...');
-              window.dispatchEvent(new CustomEvent('auth:token_expired', {
-                detail: {
-                  message: 'Your session has expired. Please log in again.',
-                  reason: 'refresh_failed'
-                }
-              }));
-            }
+            errorMessage.includes('Refresh Token Not Found')) {
+          console.warn('🔄 Refresh token error detected, clearing invalid session...');
+          
+          // Clear invalid tokens from storage
+          const authKeys = Object.keys(localStorage).filter(key => 
+            key.includes('supabase.auth') || 
+            key.startsWith('sb-') ||
+            key.includes('refresh_token') ||
+            key.includes('access_token')
+          );
+          
+          authKeys.forEach(key => {
+            localStorage.removeItem(key);
+            console.log('🗑️ Removed invalid token:', key);
+          });
+          
+          // Clear session storage as well
+          sessionStorage.clear();
+          
+          // Force a clean auth state without redirect to prevent loops
+          if (typeof window !== 'undefined' && window.location) {
+            console.log('🔄 Session cleared, auth state will be updated...');
+            // Dispatch custom event instead of redirecting
+            window.dispatchEvent(new CustomEvent('auth:token_expired', {
+              detail: { message: 'Session expired, please log in again' }
+            }));
           }
         }
       }
@@ -261,32 +210,21 @@ const handleSupabaseError = async (input: RequestInfo | URL, init?: RequestInit)
 
 // Create the main Supabase client
 export const supabase = createClient(
-  supabaseUrl!,
-  supabaseAnonKey!,
+  supabaseUrl,
+  supabaseAnonKey,
   {
     auth: {
       autoRefreshToken: true,
       persistSession: true,
       detectSessionInUrl: true,
       // Add custom token refresh error handling
-      debug: ENV.DEV === 'true',
-      // Optimize auth performance
-      storage: window?.localStorage,
-      flowType: 'pkce',
-      // Optimize token refresh timing
-      storageKey: 'fbms-auth-token'
+      debug: ENV.DEV
     },
     global: {
       fetch: handleSupabaseError
     },
     db: {
       schema: 'public'
-    },
-    // Add performance optimizations
-    realtime: {
-      params: {
-        eventsPerSecond: 2
-      }
     }
   }
 );
@@ -335,71 +273,28 @@ export async function getCurrentUser() {
   return user;
 }
 
-// Function to check if token is about to expire and refresh proactively
-export async function checkAndRefreshToken() {
-  try {
-    const { data: { session }, error } = await supabase.auth.getSession();
-
-    if (error) {
-      console.warn('❌ Error checking session:', error.message);
-      return false;
-    }
-
-    if (!session) {
-      console.log('ℹ️ No active session found');
-      return false;
-    }
-
-    // Check if token expires within the next 5 minutes
-    const now = Math.floor(Date.now() / 1000);
-    const expiresAt = session.expires_at || 0;
-    const timeUntilExpiry = expiresAt - now;
-
-    if (timeUntilExpiry < 300) { // Less than 5 minutes
-      console.log('🔄 Token expires soon, refreshing proactively...');
-
-      const { data: { session: newSession }, error: refreshError } = await supabase.auth.refreshSession();
-
-      if (refreshError) {
-        console.error('❌ Token refresh failed:', refreshError.message);
-        return false;
-      }
-
-      if (newSession) {
-        console.log('✅ Token refreshed successfully');
-        return true;
-      }
-    }
-
-    return true;
-  } catch (error) {
-    console.error('❌ Error in checkAndRefreshToken:', error);
-    return false;
-  }
-}
-
 // Function to test Supabase connection on app initialization
 export async function testSupabaseConnection() {
   console.log('🔍 Testing Supabase connection...');
-
+  
   try {
     // Test with a simple REST API call to check if Supabase is accessible
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000); // Increased to 10 second timeout
-
+    
     const response = await fetch(`${supabaseUrl}/rest/v1/`, {
       method: 'HEAD',
       headers: {
-        'apikey': supabaseAnonKey!,
+        'apikey': supabaseAnonKey,
         'Authorization': `Bearer ${supabaseAnonKey}`,
         'Content-Type': 'application/json'
       },
       signal: controller.signal,
       mode: 'cors' // Explicitly set CORS mode
     });
-
+    
     clearTimeout(timeoutId);
-
+    
     if (response.ok) {
       console.log('✅ Supabase connection successful');
       console.log('📊 Database service is accessible');
@@ -409,7 +304,7 @@ export async function testSupabaseConnection() {
       console.error('❌ Supabase connection failed:', error);
       return { connected: false, error };
     }
-
+    
   } catch (error: any) {
     if (error.name === 'AbortError') {
       console.warn('⚠️ Supabase connection test timed out - this may be normal');

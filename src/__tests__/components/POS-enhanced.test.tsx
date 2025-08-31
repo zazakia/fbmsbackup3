@@ -54,39 +54,39 @@ const MockPOSComponent = () => {
   };
   
   return (
-    <div data-testid="pos-container" role="main" aria-label="Point of Sale System">
-      <header data-testid="pos-header">
+    <div data-testid=\"pos-container\" role=\"main\" aria-label=\"Point of Sale System\">
+      <header data-testid=\"pos-header\">
         <h1>Point of Sale</h1>
-        <div data-testid="current-time">{new Date().toLocaleString('en-PH')}</div>
+        <div data-testid=\"current-time\">{new Date().toLocaleString('en-PH')}</div>
       </header>
-
-      <div className="pos-layout">
+      
+      <div className=\"pos-layout\">
         {/* Product Search and Selection */}
-        <section data-testid="product-section" aria-label="Product Selection">
-          <div className="search-container">
+        <section data-testid=\"product-section\" aria-label=\"Product Selection\">
+          <div className=\"search-container\">
             <input
-              data-testid="product-search"
-              type="text"
-              placeholder="Search products..."
+              data-testid=\"product-search\"
+              type=\"text\"
+              placeholder=\"Search products...\"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              aria-label="Search products"
+              aria-label=\"Search products\"
             />
           </div>
           
-          <div data-testid="product-grid" className="product-grid">
+          <div data-testid=\"product-grid\" className=\"product-grid\">
             {products
               .filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()))
               .map(product => (
-                <div
-                  key={product.id}
+                <div 
+                  key={product.id} 
                   data-testid={`product-${product.id}`}
-                  className="product-card"
+                  className=\"product-card\"
                 >
                   <h3>{product.name}</h3>
                   <p data-testid={`product-price-${product.id}`}>₱{product.price}</p>
                   <p data-testid={`product-stock-${product.id}`}>Stock: {product.stock}</p>
-                  <button
+                  <button 
                     data-testid={`add-to-cart-${product.id}`}
                     onClick={() => handleAddToCart(product)}
                     disabled={product.stock === 0}
@@ -101,18 +101,18 @@ const MockPOSComponent = () => {
         </section>
         
         {/* Shopping Cart */}
-        <section data-testid="cart-section" aria-label="Shopping Cart">
+        <section data-testid=\"cart-section\" aria-label=\"Shopping Cart\">
           <h2>Cart</h2>
-          <div data-testid="cart-items">
+          <div data-testid=\"cart-items\">
             {cart.length === 0 ? (
-              <p data-testid="empty-cart-message">Cart is empty</p>
+              <p data-testid=\"empty-cart-message\">Cart is empty</p>
             ) : (
               cart.map(item => (
-                <div key={item.id} data-testid={`cart-item-${item.id}`} className="cart-item">
+                <div key={item.id} data-testid={`cart-item-${item.id}`} className=\"cart-item\">
                   <span>{item.name}</span>
                   <span data-testid={`cart-quantity-${item.id}`}>Qty: {item.quantity}</span>
                   <span data-testid={`cart-price-${item.id}`}>₱{item.price * item.quantity}</span>
-                  <button
+                  <button 
                     data-testid={`remove-from-cart-${item.id}`}
                     onClick={() => handleRemoveFromCart(item.id)}
                     aria-label={`Remove ${item.name} from cart`}
@@ -123,25 +123,25 @@ const MockPOSComponent = () => {
               ))
             )}
           </div>
-
-          <div data-testid="cart-total" className="cart-total">
+          
+          <div data-testid=\"cart-total\" className=\"cart-total\">
             <strong>Total: ₱{calculateTotal().toFixed(2)}</strong>
           </div>
         </section>
         
         {/* Customer Selection */}
-        <section data-testid="customer-section" aria-label="Customer Selection">
+        <section data-testid=\"customer-section\" aria-label=\"Customer Selection\">
           <h3>Customer</h3>
-          <select
-            data-testid="customer-select"
+          <select 
+            data-testid=\"customer-select\"
             value={selectedCustomer?.id || ''}
             onChange={(e) => {
               const customer = customers.find(c => c.id === e.target.value);
               setSelectedCustomer(customer || null);
             }}
-            aria-label="Select customer"
+            aria-label=\"Select customer\"
           >
-            <option value="">Walk-in Customer</option>
+            <option value=\"\">Walk-in Customer</option>
             {customers.map(customer => (
               <option key={customer.id} value={customer.id}>
                 {customer.name}
@@ -151,48 +151,48 @@ const MockPOSComponent = () => {
         </section>
         
         {/* Payment Processing */}
-        <section data-testid="payment-section" aria-label="Payment Processing">
+        <section data-testid=\"payment-section\" aria-label=\"Payment Processing\">
           <h3>Payment</h3>
-
-          <div className="payment-method">
+          
+          <div className=\"payment-method\">
             <label>Payment Method:</label>
-            <select
-              data-testid="payment-method-select"
+            <select 
+              data-testid=\"payment-method-select\"
               value={paymentMethod}
               onChange={(e) => setPaymentMethod(e.target.value)}
-              aria-label="Select payment method"
+              aria-label=\"Select payment method\"
             >
-              <option value="cash">Cash</option>
-              <option value="credit_card">Credit Card</option>
-              <option value="gcash">GCash</option>
-              <option value="paymaya">PayMaya</option>
+              <option value=\"cash\">Cash</option>
+              <option value=\"credit_card\">Credit Card</option>
+              <option value=\"gcash\">GCash</option>
+              <option value=\"paymaya\">PayMaya</option>
             </select>
           </div>
           
-          <div className="amount-paid">
-            <label htmlFor="amount-paid">Amount Paid:</label>
+          <div className=\"amount-paid\">
+            <label htmlFor=\"amount-paid\">Amount Paid:</label>
             <input
-              id="amount-paid"
-              data-testid="amount-paid-input"
-              type="number"
-              placeholder="0.00"
+              id=\"amount-paid\"
+              data-testid=\"amount-paid-input\"
+              type=\"number\"
+              placeholder=\"0.00\"
               value={amountPaid}
               onChange={(e) => setAmountPaid(e.target.value)}
-              min="0"
-              step="0.01"
+              min=\"0\"
+              step=\"0.01\"
             />
           </div>
-
-          <div data-testid="change-display" className="change-display">
+          
+          <div data-testid=\"change-display\" className=\"change-display\">
             Change: ₱{Math.max(0, parseFloat(amountPaid || '0') - calculateTotal()).toFixed(2)}
           </div>
-
-          <button
-            data-testid="process-sale-btn"
+          
+          <button 
+            data-testid=\"process-sale-btn\"
             onClick={handleProcessSale}
             disabled={cart.length === 0 || parseFloat(amountPaid || '0') < calculateTotal()}
-            className="process-sale-btn"
-            aria-label="Process sale transaction"
+            className=\"process-sale-btn\"
+            aria-label=\"Process sale transaction\"
           >
             Process Sale
           </button>
@@ -275,7 +275,7 @@ describe('POS Component Tests', () => {
       const timeDisplay = screen.getByTestId('current-time');
       expect(timeDisplay).toBeInTheDocument();
       // Should contain date/time format
-      expect(timeDisplay.textContent).toMatch(/\d/);
+      expect(timeDisplay.textContent).toMatch(/\\d/);
     });
 
     it('should show empty cart initially', () => {

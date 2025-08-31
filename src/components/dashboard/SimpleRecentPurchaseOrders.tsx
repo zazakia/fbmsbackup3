@@ -15,8 +15,8 @@ interface SimpleRecentPurchaseOrdersProps {
   onOrderClick?: (orderId: string) => void;
 }
 
-const SimpleRecentPurchaseOrders: React.FC<SimpleRecentPurchaseOrdersProps> = React.memo(({
-  onOrderClick
+const SimpleRecentPurchaseOrders: React.FC<SimpleRecentPurchaseOrdersProps> = ({ 
+  onOrderClick 
 }) => {
   const [orders, setOrders] = useState<PurchaseOrder[]>([]);
   const [loading, setLoading] = useState(true);
@@ -230,8 +230,6 @@ const SimpleRecentPurchaseOrders: React.FC<SimpleRecentPurchaseOrdersProps> = Re
       )}
     </div>
   );
-});
-
-SimpleRecentPurchaseOrders.displayName = 'SimpleRecentPurchaseOrders';
+};
 
 export default SimpleRecentPurchaseOrders;

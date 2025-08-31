@@ -1,8 +1,13 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
   createSale,
+  getSales,
+  getSale,
+  updateSale,
   processSaleTransaction,
-  calculateSaleTotal
+  calculateSaleTotal,
+  applySaleDiscount,
+  validateSaleData
 } from '../../api/sales';
 import { Sale, SaleItem, PaymentMethod } from '../../types/business';
 

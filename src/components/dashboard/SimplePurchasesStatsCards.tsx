@@ -8,9 +8,9 @@ interface SimplePurchasesStatsCardsProps {
   loading?: boolean;
 }
 
-const SimplePurchasesStatsCards: React.FC<SimplePurchasesStatsCardsProps> = React.memo(({
-  metrics,
-  loading = false
+const SimplePurchasesStatsCards: React.FC<SimplePurchasesStatsCardsProps> = ({ 
+  metrics, 
+  loading = false 
 }) => {
   if (loading) {
     return (
@@ -87,8 +87,6 @@ const SimplePurchasesStatsCards: React.FC<SimplePurchasesStatsCardsProps> = Reac
       ))}
     </div>
   );
-});
-
-SimplePurchasesStatsCards.displayName = 'SimplePurchasesStatsCards';
+};
 
 export default SimplePurchasesStatsCards;

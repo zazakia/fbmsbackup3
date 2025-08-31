@@ -5,7 +5,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { LoadingStateManager } from '../services/LoadingStateManager';
-import type { ModuleLoadingError } from '../types/moduleLoading';
+import type { LoadingState, ModuleLoadingError } from '../types/moduleLoading';
 
 // Mock performance.now for consistent timing tests
 const mockPerformanceNow = vi.fn();

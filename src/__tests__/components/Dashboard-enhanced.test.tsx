@@ -21,32 +21,32 @@ const createMockDashboardData = () => ({
 // Mock child components with better testability
 vi.mock('../../components/StatsCard', () => ({
   default: ({ title, value, icon, onClick, testId }: any) => (
-    <div
-      data-testid={testId || 'stats-card'}
+    <div 
+      data-testid={testId || 'stats-card'} 
       onClick={onClick}
-      role="button"
+      role=\"button\"
       tabIndex={0}
     >
-      <h3 data-testid="stats-title">{title}</h3>
-      <span data-testid="stats-value">{value}</span>
-      {icon && <span data-testid="stats-icon">{icon}</span>}
+      <h3 data-testid=\"stats-title\">{title}</h3>
+      <span data-testid=\"stats-value\">{value}</span>
+      {icon && <span data-testid=\"stats-icon\">{icon}</span>}
     </div>
   )
 }));
 
 vi.mock('../../components/SalesChart', () => ({
   default: ({ data, timeRange, onTimeRangeChange }: any) => (
-    <div data-testid="sales-chart">
-      <div data-testid="chart-title">Sales Chart</div>
-      <div data-testid="chart-data-points">{data?.length || 0} data points</div>
-      <select
-        data-testid="time-range-selector"
-        value={timeRange}
+    <div data-testid=\"sales-chart\">
+      <div data-testid=\"chart-title\">Sales Chart</div>
+      <div data-testid=\"chart-data-points\">{data?.length || 0} data points</div>
+      <select 
+        data-testid=\"time-range-selector\" 
+        value={timeRange} 
         onChange={(e) => onTimeRangeChange?.(e.target.value)}
       >
-        <option value="week">This Week</option>
-        <option value="month">This Month</option>
-        <option value="year">This Year</option>
+        <option value=\"week\">This Week</option>
+        <option value=\"month\">This Month</option>
+        <option value=\"year\">This Year</option>
       </select>
     </div>
   )
@@ -54,16 +54,16 @@ vi.mock('../../components/SalesChart', () => ({
 
 vi.mock('../../components/RecentTransactions', () => ({
   default: ({ transactions, onViewAll }: any) => (
-    <div data-testid="recent-transactions">
+    <div data-testid=\"recent-transactions\">
       <h3>Recent Transactions</h3>
-      <div data-testid="transaction-list">
+      <div data-testid=\"transaction-list\">
         {transactions?.map((tx: any, index: number) => (
           <div key={index} data-testid={`transaction-${index}`}>
             {tx.id} - ₱{tx.total_amount}
           </div>
         ))}
       </div>
-      <button data-testid="view-all-transactions" onClick={onViewAll}>
+      <button data-testid=\"view-all-transactions\" onClick={onViewAll}>
         View All
       </button>
     </div>
@@ -72,15 +72,15 @@ vi.mock('../../components/RecentTransactions', () => ({
 
 vi.mock('../../components/QuickActions', () => ({
   default: ({ onNewSale, onNewProduct, onInventoryCheck }: any) => (
-    <div data-testid="quick-actions">
+    <div data-testid=\"quick-actions\">
       <h3>Quick Actions</h3>
-      <button data-testid="new-sale-btn" onClick={onNewSale}>
+      <button data-testid=\"new-sale-btn\" onClick={onNewSale}>
         New Sale
       </button>
-      <button data-testid="new-product-btn" onClick={onNewProduct}>
+      <button data-testid=\"new-product-btn\" onClick={onNewProduct}>
         Add Product
       </button>
-      <button data-testid="inventory-check-btn" onClick={onInventoryCheck}>
+      <button data-testid=\"inventory-check-btn\" onClick={onInventoryCheck}>
         Check Inventory
       </button>
     </div>
@@ -252,7 +252,7 @@ describe('Enhanced Dashboard Component Tests', () => {
       expect(transactionList).toBeInTheDocument();
       
       // Test transaction items
-      const transactions = within(transactionList).getAllByTestId(/transaction-\d+/);
+      const transactions = within(transactionList).getAllByTestId(/transaction-\\d+/);
       expect(transactions.length).toBe(mockDashboardData.sales.length);
     });
 
@@ -345,7 +345,7 @@ describe('Enhanced Dashboard Component Tests', () => {
       render(<Dashboard />);
       
       // Test that timestamps are handled correctly for Philippine timezone
-      const timeElements = screen.getAllByText(/\d{1,2}:\d{2}/);
+      const timeElements = screen.getAllByText(/\\d{1,2}:\\d{2}/);
       expect(timeElements.length).toBeGreaterThanOrEqual(0);
     });
 

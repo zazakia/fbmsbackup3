@@ -13,29 +13,54 @@ const DatabaseConnectionTest: React.FC = () => {
   const checkConnection = async () => {
     setStatus('checking');
     setDetails('Testing remote database connection...');
-
+    
     try {
-      // Use Promise.all to make all count requests in parallel
-      const [productResult, customerResult, userResult] = await Promise.all([
-        supabase.from('products').select('*', { count: 'exact', head: true }),
-        supabase.from('customers').select('*', { count: 'exact', head: true }),
-        supabase.from('users').select('*', { count: 'exact', head: true })
-      ]);
-
-      // Check for errors
-      if (productResult.error) throw new Error(`Products: ${productResult.error.message}`);
-      if (customerResult.error) throw new Error(`Customers: ${customerResult.error.message}`);
-      if (userResult.error) throw new Error(`Users: ${userResult.error.message}`);
-
+      // Test products table
+      const { data: products, error: productsError } = await supabase
+        .from('products')
+        .select('*')
+        .limit(1);
+      
+      if (productsError) throw new Error(`Products: ${productsError.message}`);
+      
+      // Test customers table
+      const { data: customers, error: customersError } = await supabase
+        .from('customers')
+        .select('*')
+        .limit(1);
+      
+      if (customersError) throw new Error(`Customers: ${customersError.message}`);
+      
+      // Test users table
+      const { data: users, error: usersError } = await supabase
+        .from('users')
+        .select('*')
+        .limit(1);
+      
+      if (usersError) throw new Error(`Users: ${usersError.message}`);
+      
+      // Get counts
+      const { count: productCount } = await supabase
+        .from('products')
+        .select('*', { count: 'exact', head: true });
+      
+      const { count: customerCount } = await supabase
+        .from('customers')
+        .select('*', { count: 'exact', head: true });
+      
+      const { count: userCount } = await supabase
+        .from('users')
+        .select('*', { count: 'exact', head: true });
+      
       setStats({
-        products: productResult.count || 0,
-        customers: customerResult.count || 0,
-        users: userResult.count || 0
+        products: productCount || 0,
+        customers: customerCount || 0,
+        users: userCount || 0
       });
-
+      
       setStatus('connected');
       setDetails(`✅ Database connected successfully!`);
-
+      
     } catch (error) {
       console.error('Database connection error:', error);
       setStatus('error');
